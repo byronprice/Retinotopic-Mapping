@@ -1,7 +1,7 @@
 function [] = MapRetinotopy(AnimalName,Date,Chans)
 % MapRetinotopy.m
 %
-%  Will take data from a retinotopic mapping experiment and extract the 
+%  Will take data from a retinotopic mapping experiment and extract the
 %   retinotopy of the LFP recording electrode.
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
@@ -32,7 +32,7 @@ sampleFreq = adfreq;
 % tsevs are the strobed times of stimulus onset, then offset
 %  Onset at tsevs{1,33}(2), offset at tsevs{1,33}(3), onset at
 %  tsevs{1,33}(4), offset at 5, etc.
-% allad contains the continuous data from each channel, which appear to be 
+% allad contains the continuous data from each channel, which appear to be
 %  recorded at 1000 Hz rather than 40,000
 
 totalAD = size(allad,2);
@@ -69,26 +69,38 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeData = tsevs{1,strobeStart};
+totalStrobes = length(strobeData);
 
+if mod(totalStrobes,2) == 1
+    display('Error: Missed a stimulus onset/offset strobe')
+    return;
+end
+
+reps = 5;
 dataPoints = length(strobeData(1:2:end-1));
 B = glmfit(1:dataPoints,strobeData(2:2:end)-strobeData(1:2:end-1),'Normal');
 timeWindow = B(1);
 
-Response = zeros(dataPoints,numChans);
+Response = zeros(dataPoints/reps,numChans);
 timeFrames = round(timeWindow*sampleFreq);
 
-delay = round(0.1*sampleFreq); % add delay after stimulus onset to account for
-         % ~50ms delay in neuronal processing
+delay = round(0.04*sampleFreq); % add delay after stimulus onset to account for
+         % ~40ms delay in neuronal processing
 for ii=1:numChans
     count = 1;
-    for jj=2:2:length(strobeData)-1
-        stimOnset = strobeData(jj);
-        [~,index] = min(abs(timeStamps-stimOnset));
-        Response(count,ii) = max(ChanData(index+delay:index+timeFrames,ii))-min(ChanData(index+delay:index+timeFrames,ii));
+    for jj=1:dataPoints/reps
+        temp = 0;
+        for kk=1:reps
+            stimOnset = strobeData(jj+dataPoints/reps*(kk-1));
+            [~,index] = min(abs(timeStamps-stimOnset));
+            temp = temp+ChanData(index+delay:index+timeFrames,ii);
+        end
+        avg = temp./reps;
+        Response(count,ii) = max(avg)-min(avg);
         count = count+1;
     end
 end
-cutOff = prctile(Response,99);
+cutOff = prctile(Response,98);
 
 Indeces = cell(1,numChans);
 figure();hold on;

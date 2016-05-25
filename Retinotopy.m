@@ -2,11 +2,11 @@ function [] = Retinotopy(AnimalName,DistToScreen,degreeRadius)
 %Retinotopy.m
 %  Display a series of flashing circles to determine retinotopy of
 %   LFP recording electrode.
-%  Each circle will occupy a 1.5 degree radius of visual space
+%  Each circle will occupy a 4-degree radius of visual space
 % INPUT: DistToScreen - physical distance of observer from the screen, in
 %           units of cm
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
-%        degreeRadius - degrees of visual that radius of circle will occupy
+%        degreeRadius - degrees of visual field that radius of circle will occupy
 %
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
@@ -16,7 +16,7 @@ function [] = Retinotopy(AnimalName,DistToScreen,degreeRadius)
 directory = pwd;
 if nargin < 2
     DistToScreen = 20;
-    degreeRadius = 2;
+    degreeRadius = 4;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
