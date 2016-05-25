@@ -116,7 +116,7 @@ WaitSecs(5);
 usb.stopRecording;
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'stimulusLocs','Radius')
+save(fileName,'stimulusLocs','Radius','reps')
 % Close window
 Screen('CloseAll');
 
