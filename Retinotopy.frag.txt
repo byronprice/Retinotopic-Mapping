@@ -1,0 +1,29 @@
+/* Retinotopy.frag.txt */
+
+const float twopi = 2.0*3.141592653589793;
+
+/* Values passed from vertex shader: */
+varying vec4 Color;
+varying vec4 Grey;
+varying float CenterX;
+varying float CenterY;
+varying float Radius;
+
+void main()
+{
+    /* Query current output texel position: */
+    vec2 pos = gl_TexCoord[0].xy;
+
+    /* Convert distance, apply shift offset: */
+    float x = pos[0]-CenterX;
+    float y = pos[1]-CenterY;
+
+     if (x*x+y*y <= Radius*Radius) {
+         gl_FragColor = Color;
+         }
+    else {
+         gl_FragColor = Grey;
+         }
+
+
+}
