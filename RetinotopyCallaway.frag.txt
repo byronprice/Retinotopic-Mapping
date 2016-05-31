@@ -1,0 +1,51 @@
+/* RetinotopyCallaway.frag.txt */
+
+const float twopi = 2.0*3.141592653589793;
+
+/* Values passed from vertex shader: */
+varying vec4 Black;
+varying vec4 White;
+varying vec4 Grey;
+varying float Center;
+varying float vertOhorz;
+varying float Width;
+varying float checkSize;
+varying float checkPhase;
+
+void main()
+{
+    /* Query current output texel position: */
+    vec2 pos = gl_TexCoord[0].xy;
+    float currentPos; 
+    vec4 color1;
+    vec4 color2;
+
+    if (checkPhase < 0.5) {
+        color1 = White;
+        color2 = Black;
+         }
+    else {
+        color1 = Black;
+        color2 = White;
+    }
+            
+    if (vertOhorz < 1.5) {
+        currentPos = pos[0]-Center;
+        }
+    else {
+        currentPos = pos[1]-Center;
+        }
+
+    if (abs(currentPos) <= Width/2.0) {
+         if (mod(floor(pos[0]/checkSize)+floor(pos[1]/checkSize),2.0) <= 0.5) {
+            gl_FragColor = color1;
+
+            }
+         else {
+            gl_FragColor = color2;
+            }
+     }
+    else {
+         gl_FragColor = Black;
+         }
+}
