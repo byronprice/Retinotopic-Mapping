@@ -12,14 +12,14 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %        barDegree - degrees of visual field that width of bar will
 %         occupy
-% OUTPUT: a file named ' RetinoStim20160531_01234 ' where the date will be
+% OUTPUT: a file named ' RetinoStim20160531_01234.mat ' where the date will be
 %          adjusted for the current date and the last five digits are the
 %          animal's unique ID
 %
 % Reference: Marshel et al. 2011 Functional specialization of seven mouse
 %   visual cortical areas
 %
-% Created: 2016/05/31 at 24 Cummington, Boston
+% Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
 % Updated: 2016/05/31
 %  By: Byron Price
@@ -28,8 +28,8 @@ directory = pwd;
 if nargin < 2
     DistToScreen = 20;
     barDegree = 10;
-    checkDegree = 15;
-    checkRefresh = 0.1667; % 
+    checkDegree = 15; % width or height in degrees of checkerboard squares
+    checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -111,7 +111,7 @@ for zz = [1,2]
       %usb.strobe;
       for jj=centerPos
         % Draw the procedural texture as any other texture via 'DrawTexture'
-        if round(mod(count,checkRefresh)) <= checkRefresh/2
+        if mod(count,checkRefresh) <= checkRefresh/2
             value = 1;
         else 
             value = 0;
@@ -126,16 +126,18 @@ for zz = [1,2]
             vbl = Screen('Flip', win, vbl + ifi/2);
             count = count+1;
       end
+      %usb.strobe;
     end
     WaitSecs(5);
     vbl = vbl+5;
 end
 %WaitSecs(5);
 %usb.stopRecording;
-driftSpeed = driftSpeed/ifi;
+driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'driftSpeed','Width','reps')
+save(fileName,'driftSpeed','Width','w_pixels','h_pixels','reps')
+
 % Close window
 Screen('CloseAll');
 
