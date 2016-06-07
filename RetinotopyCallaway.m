@@ -3,15 +3,16 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
 %  Display drifting horizontal and vertical bars with counter-phase
 %   checkerboard patterns to map retinotopy of LFP recording electrodes or
 %   single units
-%  Each bar will occupy 20 degrees of visual space, the checkerboard
-%   pattern will have 5-degree-per-side squares flashed at 167 ms, drifting at 12
+%  The bar will occupy 10 degrees of visual space, with an overlain checkerboard
+%   pattern at 15-degree-per-side squares flashed every 167 ms, drifting at 12
 %   degrees/second
 %
-% INPUT: DistToScreen - physical distance of observer from the screen, in
-%           units of cm
-%        AnimalName - animal's unique identifier as a number, e.g. 45602
+% INPUT: AnimalName - animal's unique identifier as a number/double, e.g. 45602
+%     OPTIONAL INPUTS:
+%        DistToScreen - physical distance of observer from the screen, in
+%           units of cm, defaults to 20 cm
 %        barDegree - degrees of visual field that width of bar will
-%         occupy
+%         occupy, defaults to 10 degrees
 % OUTPUT: a file named ' RetinoStim20160531_01234.mat ' where the date will be
 %          adjusted for the current date and the last five digits are the
 %          animal's unique ID
@@ -21,7 +22,7 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/05/31
+% Updated: 2016/06/07
 %  By: Byron Price
 
 directory = pwd;
@@ -30,6 +31,7 @@ if nargin < 2
     barDegree = 10;
     checkDegree = 15; % width or height in degrees of checkerboard squares
     checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
+    driftSpeed = 12; % drift speed in degrees/second
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -69,7 +71,7 @@ Width = round(((tan(barDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); % g
                  
 checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
 
-driftSpeed = 12; % drift speed in degrees/second
+
 driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
                   % drift speed in pixels / second
 driftSpeed = driftSpeed*ifi; % pixels / screen refresh
@@ -110,7 +112,6 @@ for zz = [1,2]
       count = 1;
       %usb.strobe;
       for jj=centerPos
-        % Draw the procedural texture as any other texture via 'DrawTexture'
         if mod(count,checkRefresh) <= checkRefresh/2
             value = 1;
         else 
