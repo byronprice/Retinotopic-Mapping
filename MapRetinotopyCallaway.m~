@@ -54,7 +54,7 @@ ChanData = zeros(dataLength,numChans);
 for ii=1:numChans
     ChanData(:,ii) = allad{1,strobeStart+Chans(ii)-1};
 end
-%figure();subplot(2,1,1);plot(ChanData(:,1));subplot(2,1,2);plot(ChanData(:,2));
+figure();subplot(2,1,1);plot(ChanData(:,1);subplot(2,1,2);
 timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
 
 if length(timeStamps) ~= dataLength
@@ -68,7 +68,7 @@ stimLength = round((pixels/driftSpeed)*sampleFreq/2)*2;
 stimPosition = struct('Horz',[linspace(1,w_pixels,stimLength(1)/2),linspace(w_pixels,1,stimLength(1)/2)],...
     'Vert',[linspace(1,h_pixels,stimLength(2)/2),linspace(h_pixels,1,stimLength(2)/2)]);
 
-%delay = round(0.04*sampleFreq); % 50 ms delay
+%timeWindow = 0.05; % 50 ms sliding window
 Response = struct('Horz',zeros(stimLength(1),numChans),'Vert',zeros(stimLength(2),numChans));
 
 for ii=1:numChans
@@ -78,7 +78,7 @@ for ii=1:numChans
             if jj == 1
                 check = kk;
             else
-                check = kk+reps;
+                check = kk+10;
             end
             stimOnset = strobeData(check);
             [~,index] = min(abs(timeStamps-stimOnset));

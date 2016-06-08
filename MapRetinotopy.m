@@ -11,7 +11,7 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/05/25
+% Updated: 2016/06/08
 %  By: Byron Price
 
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
@@ -34,33 +34,14 @@ sampleFreq = adfreq;
 %  tsevs{1,33}(4), offset at 5, etc.
 % allad contains the continuous data from each channel, which appear to be
 %  recorded at 1000 Hz rather than 40,000
+x = find(~cellfun(@isempty,tsevs));
+strobeStart = x(1);
 
-totalAD = size(allad,2);
-totalSEVS = size(tsevs,2);
-
-for ii=1:totalAD
-    if isempty(allad{1,ii})
-        continue;
-    else
-        break;
-    end
-end
-channelStart = ii;
-
-for ii=1:totalSEVS
-    if isempty(allad{1,ii})
-        continue;
-    else
-        break;
-    end
-end
-strobeStart = ii;
-
-dataLength = length(allad{1,channelStart+Chans(1)-1});
+dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
 for ii=1:numChans
-    ChanData(:,ii) = allad{1,channelStart+Chans(ii)-1};
+    ChanData(:,ii) = allad{1,strobeStart+Chans(ii)-1};
 end
 timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
 
@@ -93,7 +74,7 @@ for ii=1:numChans
         for kk=1:reps
             stimOnset = strobeData(jj+dataPoints/reps*(kk-1));
             [~,index] = min(abs(timeStamps-stimOnset));
-            temp = temp+ChanData(index+delay:index+timeFrames,ii);
+            temp = temp+ChanData(index+delay:index+delay+timeFrames,ii);
         end
         avg = temp./reps;
         Response(count,ii) = max(avg)-min(avg);
