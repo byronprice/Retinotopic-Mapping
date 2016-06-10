@@ -101,7 +101,13 @@ for ii=1:numChans
     end
 end
 finalResponse = cell(1,2);
-finalResponse{1} = Response{1}+Response{2};
-finalResponse{2} = Response{3}+Response{4};
+finalResponse{1} = (Response{1}+Response{2})./2;
+finalResponse{2} = (Response{3}+Response{4})./2;
 
+globalResponse = zeros(stimLength(1),stimLength(2),2);
+for ii=1:2
+    globalResponse(:,:,ii) = finalResponse{1}(:,ii)*finalResponse{2}(:,ii)';
+end
+
+imagesc(squeeze(globalResponse(:,:,1)))
 end
