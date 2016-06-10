@@ -63,39 +63,45 @@ if length(timeStamps) ~= dataLength
 end
 strobeData = tsevs{1,strobeStart};
 
-pixels = [2*w_pixels,2*h_pixels];
+pixels = [w_pixels,h_pixels];
 stimLength = round((pixels/driftSpeed)*sampleFreq/2)*2;
-stimPosition = struct('Horz',[linspace(1,w_pixels,stimLength(1)/2),linspace(w_pixels,1,stimLength(1)/2)],...
-    'Vert',[linspace(1,h_pixels,stimLength(2)/2),linspace(h_pixels,1,stimLength(2)/2)]);
+stimPosition = cell(1,4);
+stimPosition{1} = linspace(1,w_pixels,stimLength(1));
+stimPosition{2} = linspace(w_pixels,1,stimLength(1));
+stimPosition{3} = linspace(1,h_pixels,stimLength(2));
+stimPosition{4} = linspace(h_pixels,1,stimLength(2));
 
-%delay = round(0.04*sampleFreq); % 50 ms delay
-Response = struct('Horz',zeros(stimLength(1),numChans),'Vert',zeros(stimLength(2),numChans));
+delay = round(0.04*sampleFreq); % 40 ms delay
+Response = cell(1,4);
+Response{1} = zeros(stimLength(1),numChans);
+Response{2} = zeros(stimLength(1),numChans);
+Response{3} = zeros(stimLength(2),numChans);
+Response{4} = zeros(stimLength(2),numChans);
+
 
 for ii=1:numChans
-    for jj=1:2
+    for jj=1:4
         temp = 0;
-        for kk=1:reps
-            if jj == 1
-                check = kk;
-            else
-                check = kk+reps;
-            end
-            stimOnset = strobeData(check);
-            [~,index] = min(abs(timeStamps-stimOnset));
-            temp = temp+ChanData(index:index+stimLength(jj)-1,ii);
-        end
-        if jj == 1
-            Response.Horz(:,ii) = (temp./reps).^2;
+        if jj == 1 || jj == 2
+            vertOhorz = 1;
         else
-            Response.Vert(:,ii) = (temp./reps).^2;
+            vertOhorz = 2;
         end
+        check = (jj-1)*reps+1:jj*reps;
+        for kk=1:reps
+            stimOnset = strobeData(check(kk));
+            [~,index] = min(abs(timeStamps-stimOnset));
+            if mod(jj,2) == 1
+                temp = temp+ChanData(index:index+stimLength(vertOhorz)-1,ii);
+            else
+                temp = temp+flipud(ChanData(index:index+stimLength(vertOhorz)-1,ii));
+            end
+        end
+        Response{jj}(:,ii) = (temp./reps).^2;
     end
 end
-
-figure();
-subplot(2,2,1);plot(stimPosition.Horz(1:stimLength(1)/2),Response.Horz(1:stimLength(1)/2,1));title('Horizontal Stimulus Right');
-subplot(2,2,2);plot(stimPosition.Vert(1:stimLength(2)/2),Response.Vert(1:stimLength(2)/2,1));title('Vertical Stimulus Up');
-subplot(2,2,3);plot(stimPosition.Horz(1:stimLength(1)/2),flipud(Response.Horz(stimLength(1)/2+1:end,1)));title('Horizontal Stimulus Left');
-subplot(2,2,4);plot(stimPosition.Vert(1:stimLength(2)/2),flipud(Response.Vert(stimLength(2)/2+1:end,1)));title('Vertical Stimulus Down');
+finalResponse = cell(1,2);
+finalResponse{1} = Response{1}+Response{2};
+finalResponse{2} = Response{3}+Response{4};
 
 end

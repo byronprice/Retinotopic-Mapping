@@ -29,10 +29,11 @@ directory = pwd;
 if nargin < 2
     DistToScreen = 20;
     barDegree = 10;
-    checkDegree = 15; % width or height in degrees of checkerboard squares
-    checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
-    driftSpeed = 12; % drift speed in degrees/second
 end
+checkDegree = 15; % width or height in degrees of checkerboard squares
+checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
+driftSpeed = 12; % drift speed in degrees/second
+reps = 20;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');
@@ -42,8 +43,8 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-%usb = usb1208FSPlusClass
-%WaitSecs(5);
+usb = usb1208FSPlusClass
+WaitSecs(5);
 
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
@@ -89,29 +90,30 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
 % size
 Color = [0,0,0,0;1,1,1,1];
 
+usb.startRecording;
+WaitSecs(5);
+
+% Animation loop
+centerPos = cell(1,4);
+centerPos{1} = 1:driftSpeed:w_pixels;
+centerPos{2} = w_pixels:-driftSpeed:1;
+centerPos{3} = 1:driftSpeed:h_pixels;
+centerPos{4} = h_pixels:-driftSpeed:1;
 
 % Perform initial flip to gray background and sync us to the retrace:
 vbl = Screen('Flip', win);
-
-reps = 10;
-
-%usb.startRecording;
-%WaitSecs(5);
-
-% Animation loop
-centerPosx = [1:driftSpeed:w_pixels,w_pixels:-driftSpeed:1];
-centerPosy = [1:driftSpeed:h_pixels,h_pixels:-driftSpeed:1];
-for zz = [1,2]
-    if zz == 1
-        centerPos = centerPosx;
+for zz = 1:4
+    centers = centerPos{zz};
+    if zz == 1|| zz == 2
+        vertOhorz = 1;
     else
-        centerPos = centerPosy;
+        vertOhorz = 2;
     end
     
     for ii=1:reps
       count = 1;
-      %usb.strobe;
-      for jj=centerPos
+      usb.strobe;
+      for jj=centers
         if mod(count,checkRefresh) <= checkRefresh/2
             value = 1;
         else 
@@ -121,19 +123,19 @@ for zz = [1,2]
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
             [], [],[Color(1,1),Color(1,2),Color(1,3),Color(1,4),...
-            Color(2,1),Color(2,2),Color(2,3),Color(2,4),Width,jj,zz,checkSize, ...
+            Color(2,1),Color(2,2),Color(2,3),Color(2,4),Width,jj,vertOhorz,checkSize, ...
             value,0,0,0]);
             % Request stimulus onset
             vbl = Screen('Flip', win, vbl + ifi/2);
             count = count+1;
       end
-      %usb.strobe;
+      vbl = Screen('Flip',win);
     end
     WaitSecs(5);
     vbl = vbl+5;
 end
-%WaitSecs(5);
-%usb.stopRecording;
+WaitSecs(5);
+usb.stopRecording;
 driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
