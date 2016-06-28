@@ -1,11 +1,11 @@
 function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
-%Retinotopy.m
+%RetinotopyCallaway.m
 %  Display drifting horizontal and vertical bars with counter-phase
 %   checkerboard patterns to map retinotopy of LFP recording electrodes or
 %   single units
 %  The bar will occupy 10 degrees of visual space, with an overlain checkerboard
-%   pattern at 15-degree-per-side squares flashed every 167 ms, drifting at 12
-%   degrees/second
+%   pattern at 15-degree-per-side squares flashed every 167 ms, drifting so
+%   that it traverses the screen in 10 seconds
 %
 % INPUT: AnimalName - animal's unique identifier as a number/double, e.g. 45602
 %     OPTIONAL INPUTS:
@@ -22,7 +22,7 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/06/07
+% Updated: 2016/06/17
 %  By: Byron Price
 
 directory = pwd;
@@ -32,8 +32,9 @@ if nargin < 2
 end
 checkDegree = 15; % width or height in degrees of checkerboard squares
 checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
-driftSpeed = 12; % drift speed in degrees/second
-reps = 20;
+driftTime = 10;
+%driftSpeed = 12; % drift speed in degrees/second
+reps = 2;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');
@@ -43,7 +44,7 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-usb = usb1208FSPlusClass
+%usb = usb1208FSPlusClass
 WaitSecs(5);
 
 % Choose screen with maximum id - the secondary display:
@@ -72,12 +73,12 @@ Width = round(((tan(barDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); % g
                  
 checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
 
-
-driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
+driftSpeed = [w_pixels,h_pixels]./driftTime;
+%driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
                   % drift speed in pixels / second
 driftSpeed = driftSpeed*ifi; % pixels / screen refresh
 
-checkRefresh = round(checkRefresh/ifi);
+checkRefresh1 = round(checkRefresh/ifi);
 
 dgshader = [directory '/RetinotopyCallaway.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/RetinotopyCallaway.frag.txt'] }, 1);
@@ -90,21 +91,23 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
 % size
 Color = [0,0,0,0;1,1,1,1];
 
-usb.startRecording;
+% define center positions for bar at each screen refresh
+centerPos = cell(1,4);
+centerPos{1} = 1:driftSpeed(1):w_pixels;
+centerPos{2} = w_pixels:-driftSpeed(1):1;
+centerPos{3} = 1:driftSpeed(2):h_pixels;
+centerPos{4} = h_pixels:-driftSpeed(2):1;
+
+%usb.startRecording;
 WaitSecs(5);
 
 % Animation loop
-centerPos = cell(1,4);
-centerPos{1} = 1:driftSpeed:w_pixels;
-centerPos{2} = w_pixels:-driftSpeed:1;
-centerPos{3} = 1:driftSpeed:h_pixels;
-centerPos{4} = h_pixels:-driftSpeed:1;
 
 % Perform initial flip to gray background and sync us to the retrace:
 vbl = Screen('Flip', win);
 for zz = 1:4
     centers = centerPos{zz};
-    if zz == 1|| zz == 2
+    if zz == 1 || zz == 2
         vertOhorz = 1;
     else
         vertOhorz = 2;
@@ -112,9 +115,9 @@ for zz = 1:4
     
     for ii=1:reps
       count = 1;
-      usb.strobe;
+      %usb.strobe;
       for jj=centers
-        if mod(count,checkRefresh) <= checkRefresh/2
+        if mod(count,checkRefresh1) <= checkRefresh1/2
             value = 1;
         else 
             value = 0;
@@ -130,16 +133,19 @@ for zz = 1:4
             count = count+1;
       end
       vbl = Screen('Flip',win);
+      WaitSecs(1);
+      vbl = vbl+1;
     end
-    WaitSecs(5);
-    vbl = vbl+5;
+    WaitSecs(2);
+    vbl = vbl+2;
 end
 WaitSecs(5);
-usb.stopRecording;
+%usb.stopRecording;
 driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
+stimFreq = 1/driftTime;
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'driftSpeed','Width','w_pixels','h_pixels','reps')
+save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels','h_pixels','reps','checkRefresh')
 
 % Close window
 Screen('CloseAll');
