@@ -32,9 +32,9 @@ if nargin < 2
 end
 checkDegree = 15; % width or height in degrees of checkerboard squares
 checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
-driftTime = 10;
+driftTime = 5;
 %driftSpeed = 12; % drift speed in degrees/second
-reps = 2;
+reps = 5;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');
@@ -44,7 +44,7 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-%usb = usb1208FSPlusClass
+usb = usb1208FSPlusClass
 WaitSecs(5);
 
 % Choose screen with maximum id - the secondary display:
@@ -98,7 +98,7 @@ centerPos{2} = w_pixels:-driftSpeed(1):1;
 centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
 
-%usb.startRecording;
+usb.startRecording;
 WaitSecs(5);
 
 % Animation loop
@@ -115,7 +115,7 @@ for zz = 1:4
     
     for ii=1:reps
       count = 1;
-      %usb.strobe;
+      usb.strobe;
       for jj=centers
         if mod(count,checkRefresh1) <= checkRefresh1/2
             value = 1;
@@ -140,10 +140,11 @@ for zz = 1:4
     vbl = vbl+2;
 end
 WaitSecs(5);
-%usb.stopRecording;
+usb.stopRecording;
 driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
 stimFreq = 1/driftTime;
 
+cd('/home/jglab/Documents/MATLAB/Byron/RetinoExp/')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels','h_pixels','reps','checkRefresh')
 

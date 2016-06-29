@@ -19,6 +19,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,Chans)
 % Updated: 2016/06/17
 %  By: Byron Price
 
+% read in the .plx file
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
 readall(EphysFileName);
 
@@ -31,9 +32,11 @@ if nargin < 3
     Chans = [6,8];
 end
 
+
 sampleFreq = adfreq;
 newFs = 5;
 downSampleRate = sampleFreq/newFs;
+
 
 % tsevs are the strobed times of stimulus onset, then offset
 %  Onset at tsevs{1,33}(2), offset at tsevs{1,33}(3), onset at
@@ -44,9 +47,10 @@ downSampleRate = sampleFreq/newFs;
 %totalAD = size(allad,2);
 %totalSEVS = size(tsevs,2);
 
-x = find(~cellfun(@isempty,tsevs));
-strobeStart = x(1);
+%x = find(~cellfun(@isempty,tsevs));
+strobeStart = 33;
 
+% lowpass filter the data
 dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
@@ -56,9 +60,9 @@ for ii=1:numChans
     lowpass = 1/downSampleRate; % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
     ChanData(:,ii) = filter(blo,1,temp);
-    lowfreq = smooth(ChanData(:,ii),dataLength/(4*reps));
-    figure();plot(ChanData(:,ii));hold on;plot(lowfreq,'r');
-    hold off; figure();plot(ChanData(:,ii)-lowfreq)
+    %lowfreq = smooth(ChanData(:,ii),dataLength/(4*reps));
+    %figure();plot(ChanData(:,ii));hold on;plot(lowfreq,'r');
+    %hold off; figure();plot(ChanData(:,ii)-lowfreq)
 end
 
 
@@ -70,8 +74,8 @@ if length(timeStamps) ~= dataLength
 end
 strobeData = tsevs{1,strobeStart};
 
-figure();plot(timeStamps,ChanData(:,1));hold on;
-plot(strobeData,ones(length(strobeData))*-250,'*r');
+%figure();plot(timeStamps,ChanData(:,1));hold on;
+%plot(strobeData,ones(length(strobeData))*-250,'*r');
 
 stimFreq = 1/driftTime;
 stimLength = round(driftTime*sampleFreq/2)*2;
@@ -103,7 +107,7 @@ for ii=1:numChans
         Response{jj}(:,ii) = Response{jj}(:,ii);
     end
 end
-figure();plot(Response{1}(:,1));
+%figure();plot(Response{1}(:,1));
 
 Fourier = zeros(4,numChans);
 PhaseResponse = zeros(2,numChans);
@@ -115,7 +119,7 @@ for ii=1:numChans
         Y = fft(Response{jj}(:,ii),n);
         f = sampleFreq*(0:(n/2))/n;
         Y = Y(1:n/2+1)./n;
-        figure();plot(f,log(abs(Y)));
+        %figure();plot(f,log(abs(Y)));
         [~,index] = min(abs(f-stimFreq));
  
         Fourier(jj,ii) = Y(index);
@@ -140,5 +144,13 @@ for ii=1:numChans
     end
 end
 fileName = strcat('RetinoMap_',num2str(AnimalName));
-save(filename)
+save(fileName,'CenterPoints','Width','w_pixels','h_pixels')
+
+figure();
+hold on;
+xlim([0 w_pixels])
+ylim([0 h_pixels])
+for ii=1:numChans
+    plot(CenterPoints(1,ii),CenterPoints(2,ii),'*')
+end
 end
