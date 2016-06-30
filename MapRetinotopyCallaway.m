@@ -21,7 +21,10 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,Chans)
 
 % read in the .plx file
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
-readall(EphysFileName);
+
+if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
+    readall(EphysFileName);
+end
 
 StimulusFileName = strcat('RetinoStim',num2str(Date),'_',num2str(AnimalName),'.mat');
 EphysFileName = strcat(EphysFileName,'.mat');
@@ -55,14 +58,11 @@ dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
 for ii=1:numChans
-    temp = smooth(allad{1,strobeStart+Chans(ii)-1},0.1*sampleFreq);
+    temp = smooth(allad{1,strobeStart+Chans(ii)-1},0.25*sampleFreq);
     n = 30;
-    lowpass = 1/downSampleRate; % fraction of Nyquist frequency
+    lowpass = 1/5; % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
     ChanData(:,ii) = filter(blo,1,temp);
-    %lowfreq = smooth(ChanData(:,ii),dataLength/(4*reps));
-    %figure();plot(ChanData(:,ii));hold on;plot(lowfreq,'r');
-    %hold off; figure();plot(ChanData(:,ii)-lowfreq)
 end
 
 
@@ -74,25 +74,26 @@ if length(timeStamps) ~= dataLength
 end
 strobeData = tsevs{1,strobeStart};
 
-%figure();plot(timeStamps,ChanData(:,1));hold on;
-%plot(strobeData,ones(length(strobeData))*-250,'*r');
-
 stimFreq = 1/driftTime;
 stimLength = round(driftTime*sampleFreq/2)*2;
-stimWidth = [Width/w_pixels,Width/h_pixels].*stimLength;
+%stimWidth = [Width/w_pixels,Width/h_pixels].*stimLength;
 
-stimPosition = cell(1,4);
-stimPosition{1} = linspace(1,w_pixels,stimLength);
-stimPosition{2} = linspace(w_pixels,1,stimLength);
-stimPosition{3} = linspace(1,h_pixels,stimLength);
-stimPosition{4} = linspace(h_pixels,1,stimLength);
+% stimPosition = cell(1,4);
+% stimPosition{1} = linspace(1,w_pixels,stimLength);
+% stimPosition{2} = linspace(w_pixels,1,stimLength);
+% stimPosition{3} = linspace(1,h_pixels,stimLength);
+% stimPosition{4} = linspace(h_pixels,1,stimLength);
 
 delay = round(0*sampleFreq); % 0 ms delay
 Response = cell(1,4);
-Response{1} = zeros(stimLength*reps,numChans);
-Response{2} = zeros(stimLength*reps,numChans);
-Response{3} = zeros(stimLength*reps,numChans);
-Response{4} = zeros(stimLength*reps,numChans);
+avResponse = cell(1,4);
+Spectro = cell(1,4);
+for ii=1:4
+    Response{ii} = zeros(stimLength*reps,numChans);
+    avResponse{ii} = zeros(stimLength,numChans);
+    Spectro{ii} = zeros(126,39,numChans);
+end
+% 126 and 39 are due to the size of the spectrogram to be taken below
 
 for ii=1:numChans
     for jj=1:4
@@ -102,12 +103,27 @@ for ii=1:numChans
      
             stimOnset = strobeData(check(kk));
             [~,index] = min(abs(timeStamps-stimOnset));
+            
+            [~,f,t,ps] = spectrogram(ChanData(index:index+stimLength-1,ii),sampleFreq/4,sampleFreq/8,sampleFreq/4,sampleFreq,'yaxis');
+            Spectro{jj}(:,:,ii) = Spectro{jj}(:,:,ii)+ps./reps;
             Response{jj}(stimLoc,ii) = ChanData(index+delay:index+delay+stimLength-1,ii);
+            avResponse{jj}(:,ii) = avResponse{jj}(:,ii)+(ChanData(index+delay:index+delay+stimLength-1,ii).^2)./reps;
         end
-        Response{jj}(:,ii) = Response{jj}(:,ii);
+        %Response{jj}(:,ii) = Response{jj}(:,ii);
     end
 end
-%figure();plot(Response{1}(:,1));
+
+for jj=1:4
+    figure();imagesc(t,f,log(Spectro{jj}(:,:,7)));set(gca,'YDir','normal');ylim([0,60]);
+end
+for jj=1:4
+    figure();
+    for ii=1:numChans
+        subplot(2,4,ii);
+        plot(avResponse{jj}(:,ii));
+    end
+end
+% full width at half max of a normal distribution is 2*sqrt(2*ln(2))*sigma
 
 Fourier = zeros(4,numChans);
 PhaseResponse = zeros(2,numChans);
@@ -143,8 +159,8 @@ for ii=1:numChans
         end
     end
 end
-fileName = strcat('RetinoMap_',num2str(AnimalName));
-save(fileName,'CenterPoints','Width','w_pixels','h_pixels')
+% fileName = strcat('RetinoMap_',num2str(AnimalName));
+% save(fileName,'CenterPoints','Width','w_pixels','h_pixels')
 
 figure();
 hold on;

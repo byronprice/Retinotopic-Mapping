@@ -1,4 +1,4 @@
-function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
+function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %RetinotopyCallaway.m
 %  Display drifting horizontal and vertical bars with counter-phase
 %   checkerboard patterns to map retinotopy of LFP recording electrodes or
@@ -22,19 +22,19 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/06/17
+% Updated: 2016/06/30
 %  By: Byron Price
 
 directory = pwd;
 if nargin < 2
     DistToScreen = 20;
     barDegree = 10;
+    reps = 20;
 end
 checkDegree = 15; % width or height in degrees of checkerboard squares
 checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
 driftTime = 5;
 %driftSpeed = 12; % drift speed in degrees/second
-reps = 5;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');
@@ -136,8 +136,8 @@ for zz = 1:4
       WaitSecs(1);
       vbl = vbl+1;
     end
-    WaitSecs(2);
-    vbl = vbl+2;
+    WaitSecs(1);
+    vbl = vbl+1;
 end
 WaitSecs(5);
 usb.stopRecording;
