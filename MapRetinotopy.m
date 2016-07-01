@@ -121,4 +121,6 @@ end
 for ii=1:numChans
     figure();plot3(centerVals(:,1),centerVals(:,2),significantStimuli(ii,:));
 end
+
+
 end
