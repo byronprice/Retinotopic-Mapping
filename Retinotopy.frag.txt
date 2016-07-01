@@ -4,7 +4,7 @@ const float twopi = 2.0*3.141592653589793;
 
 /* Values passed from vertex shader: */
 varying vec4 Color;
-varying vec4 Grey;
+varying vec4 Background;
 varying float CenterX;
 varying float CenterY;
 varying float Radius;
@@ -22,7 +22,7 @@ void main()
          gl_FragColor = Color;
          }
     else {
-         gl_FragColor = Grey;
+         gl_FragColor = Background;
          }
 
 

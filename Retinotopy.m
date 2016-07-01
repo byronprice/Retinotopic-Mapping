@@ -10,13 +10,16 @@ function [] = Retinotopy(AnimalName,DistToScreen,degreeRadius)
 %
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/05/25
+% Updated: 2016/06/30
 %  By: Byron Price
 
 directory = pwd;
 if nargin < 2
-    DistToScreen = 20;
-    degreeRadius = 4;
+    DistToScreen = 25;
+    degreeRadius = 5;
+    reps = 10;
+    stimLen = 50/1000;
+    waitTime = 1;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -35,7 +38,7 @@ screenid = max(Screen('Screens'));
 
 % Open a fullscreen onscreen window on that display, choose a background
 % color of 128 = gray with 50% max intensity:
-[win,~] = Screen('OpenWindow', screenid,128);
+[win,~] = Screen('OpenWindow', screenid,0);
 
 % Switch color specification to use the 0.0 - 1.0 range
 Screen('ColorRange', win, 1);
@@ -54,8 +57,27 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 Radius = ((tan(degreeRadius*(2*pi)/360))*(DistToScreen*10))./conv_factor; % get number of pixels
      % that 1 degree of visual space will occupy
 Radius = round(Radius);
-CenterX = w_pixels/2-400:Radius*2:w_pixels/2+400;
-CenterY = h_pixels/2-400:Radius*2:h_pixels/2+400;
+centerX = Radius:Radius:w_pixels-Radius;
+centerY = Radius:Radius:h_pixels-Radius;
+
+xIndeces = randperm(length(centerX));
+yIndeces = randperm(length(centerY));
+
+numStimuli = min(length(centerX),length(centerY));
+centerX = centerX(xIndeces(1:numStimuli));
+centerY = centerY(yIndeces(1:numStimuli));
+centerVals = zeros(length(centerX)*length(centerY),2);
+
+count = 1;
+for ii=1:length(centerX)
+    for jj=1:length(centerY)
+        centerVals(count,1) = centerX(ii);
+        centerVals(count,2) = centerY(jj);
+        count = count+1;
+    end
+end
+permIndeces = randperm(length(centerVals));
+centerVals = centerVals(permIndeces,:);
 
 dgshader = [directory '/Retinotopy.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
@@ -71,52 +93,40 @@ Color = [0,0,0,0;1,1,1,1];
 
 % Perform initial flip to gray background and sync us to the retrace:
 vbl = Screen('Flip', win);
-ts = vbl;
-
-reps = 5;
-stimulusLocs = zeros(length(CenterX)*length(CenterX)*reps,2);
 
 usb.startRecording;
 WaitSecs(5);
 
 % Animation loop
-count = 1;
 for zz = 1:reps
-    for ii=1:length(CenterX)
-      for jj=1:length(CenterY)
-        stimulusLocs(count,:) = [CenterX(ii),CenterY(jj)];
-        count = count+1;
+    for ii=1:length(centerVals)
+        
         % Draw the procedural texture as any other texture via 'DrawTexture'
+        value = 2;
+        Screen('DrawTexture', win,gratingTex, [],[],...
+            [],[],[],[0 0 0 0],...
+            [], [],[Color(value,1),Color(value,2),Color(value,3),Color(value,4),...
+            Radius,centerVals(ii,1),centerVals(ii,2),0]);
+        % Request stimulus onset
         usb.strobe;
-        for kk=1:8
-            value = mod(kk,2)+1;
-            Screen('DrawTexture', win,gratingTex, [],[],...
-                [],[],[],[0.5 0.5 0.5 0.5],...
-                [], [],[Color(value,1),Color(value,2),Color(value,3),Color(value,4),...
-                Radius,CenterX(ii),CenterY(jj),0]);
-                % Request stimulus onset
-                vbl = Screen('Flip', win, vbl + 5*ifi/2);
-
-                %usb.triggerON(1,7);
-                %usb.triggerOFF(1,7);
-        end
-        usb.strobe;
-
-         Screen('DrawTexture', win,gratingTex, [],[],...
-             [],[],[],[0.5 0.5 0.5 0.5],...
-             [], [],[0.5,0.5,0.5,0.5,...
-             Radius,CenterX(ii),CenterY(jj),0]);
-        vbl = Screen('Flip', win, vbl + 5*ifi/2);
-        WaitSecs(1.0);
-        vbl = vbl+1.0;
-      end
+        vbl = Screen('Flip', win, vbl + ifi/2);
+        WaitSecs(stimLen);
+        vbl = vbl+stimLen;
+        
+        Screen('DrawTexture', win,gratingTex, [],[],...
+            [],[],[],[0 0 0 0],...
+            [], [],[Color(1,1),Color(1,2),Color(1,3),Color(1,4),...
+            Radius,centerVals(ii,1),centerVals(ii,2),0]);
+        vbl = Screen('Flip', win, vbl + ifi/2);
+        WaitSecs(waitTime);
+        vbl = vbl+waitTime;
     end
 end
 WaitSecs(5);
 usb.stopRecording;
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'stimulusLocs','Radius','reps')
+save(fileName,'centerVals','Radius','reps','stimLen')
 % Close window
 Screen('CloseAll');
 

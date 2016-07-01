@@ -60,7 +60,7 @@ ChanData = zeros(dataLength,numChans);
 for ii=1:numChans
     temp = smooth(allad{1,strobeStart+Chans(ii)-1},0.25*sampleFreq);
     n = 30;
-    lowpass = 1/5; % fraction of Nyquist frequency
+    lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
     ChanData(:,ii) = filter(blo,1,temp);
 end

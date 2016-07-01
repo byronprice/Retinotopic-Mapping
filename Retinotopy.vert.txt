@@ -6,7 +6,7 @@ attribute vec4 auxParameters1;
 attribute vec4 modulateColor;
 
 varying vec4 Color;
-varying vec4 Grey;
+varying vec4 Background;
 varying float Radius;
 varying float CenterX;
 varying float CenterY;
@@ -19,7 +19,7 @@ void main()
     gl_TexCoord[0] = (gl_TextureMatrix[0] * gl_MultiTexCoord0) + vec4(-0.5, 0.5, 0.0, 0.0);
 
     /* Pass first and second color to fragment shader: */
-    Grey = modulateColor;
+    Background = modulateColor;
     Color = auxParameters0;
 
     /* Pass variables to the fragment shader for control of grating: */
