@@ -14,6 +14,7 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 % Updated: 2016/06/30
 %  By: Byron Price
 
+
 % read in the .plx file
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
 
@@ -76,7 +77,7 @@ N = 1000; % number of bootstrap samples
 noStimTime = startPause*sampleFreq;
 
 
-bootPrctile = zeros(numChans,1); % 95% confidence interval
+bootPrctile = zeros(numChans,1); % 97.5% percentile
 for ii=1:numChans
     Tboot = zeros(N,1);
     indeces = randperm(noStimTime-stimLength*2,N);
@@ -100,11 +101,11 @@ for ii=1:numChans
         end
     end
 end
-medianResponse = median(Response,3);
-meanResponse = mean(Response,3);
-
-figure();histogram(medianResponse(end,:));histogram(reshape(medianResponse,numel(medianResponse)));
-figure();histogram(meanResponse(end,:));figure();histogram(reshape(meanResponse,numel(meanResponse)));
+% medianResponse = median(Response,3);
+% meanResponse = mean(Response,3);
+% 
+% figure();histogram(medianResponse(end,:));figure();histogram(reshape(medianResponse,[numel(medianResponse),1]));
+% figure();histogram(meanResponse(end,:));figure();histogram(reshape(meanResponse,[numel(meanResponse),1]));
 
 significantStimuli = zeros(numChans,numStimuli);
 for ii=1:numChans
@@ -117,10 +118,17 @@ for ii=1:numChans
     end    
 end
 
+stimVals = zeros(numChans,max(centerVals(:,1)),max(centerVals(:,2)));
+x=1:max(centerVals(:,1));
+y=1:max(centerVals(:,2));
 
 for ii=1:numChans
-    figure();plot3(centerVals(:,1),centerVals(:,2),significantStimuli(ii,:));
+    for jj=1:numStimuli
+        tempx = centerVals(jj,1);
+        tempy = centerVals(jj,2);
+        stimVals(ii,tempx,tempy) = significantStimuli(ii,jj);
+    end
+    figure();imagesc(x,y,squeeze(stimVals(ii,:,:)));set(gca,'YDir','normal');colorbar;
 end
-
 
 end

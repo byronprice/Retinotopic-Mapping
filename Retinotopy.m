@@ -58,8 +58,8 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 Radius = ((tan(degreeRadius*(2*pi)/360))*(DistToScreen*10))./conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
 Radius = round(Radius);
-centerX = Radius:Radius:w_pixels-Radius;
-centerY = Radius:Radius:h_pixels-Radius;
+centerX = Radius+1:Radius:w_pixels-Radius-1;
+centerY = Radius+1:Radius:h_pixels-Radius-1;
 
 xIndeces = randperm(length(centerX));
 yIndeces = randperm(length(centerY));
@@ -128,7 +128,7 @@ WaitSecs(5);
 usb.stopRecording;
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'centerVals','Radius','reps','stimLen','startPause','numStimuli')
+save(fileName,'centerVals','Radius','reps','stimLen','startPause','numStimuli','w_pixels','h_pixels')
 % Close window
 Screen('CloseAll');
 
