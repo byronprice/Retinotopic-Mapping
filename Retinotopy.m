@@ -20,6 +20,7 @@ if nargin < 2
     reps = 10;
     stimLen = 50/1000;
     waitTime = 1;
+    startPause = 30; % 30 seconds of silence before commencing
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -55,7 +56,7 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 
 % perform unit conversions
 Radius = ((tan(degreeRadius*(2*pi)/360))*(DistToScreen*10))./conv_factor; % get number of pixels
-     % that 1 degree of visual space will occupy
+     % that degreeRadius degrees of visual space will occupy
 Radius = round(Radius);
 centerX = Radius:Radius:w_pixels-Radius;
 centerY = Radius:Radius:h_pixels-Radius;
@@ -78,6 +79,7 @@ for ii=1:length(centerX)
 end
 permIndeces = randperm(length(centerVals));
 centerVals = centerVals(permIndeces,:);
+numStimuli = length(centerVals);
 
 dgshader = [directory '/Retinotopy.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
@@ -95,7 +97,7 @@ Color = [0,0,0,0;1,1,1,1];
 vbl = Screen('Flip', win);
 
 usb.startRecording;
-WaitSecs(5);
+WaitSecs(startPause);
 
 % Animation loop
 for zz = 1:reps
@@ -126,7 +128,7 @@ WaitSecs(5);
 usb.stopRecording;
 
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'centerVals','Radius','reps','stimLen')
+save(fileName,'centerVals','Radius','reps','stimLen','startPause','numStimuli')
 % Close window
 Screen('CloseAll');
 

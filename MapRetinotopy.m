@@ -11,12 +11,15 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/06/08
+% Updated: 2016/06/30
 %  By: Byron Price
 
+% read in the .plx file
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
 
-readall(EphysFileName);
+if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
+    readall(EphysFileName);
+end
 
 StimulusFileName = strcat('RetinoStim',num2str(Date),'_',num2str(AnimalName),'.mat');
 EphysFileName = strcat(EphysFileName,'.mat');
@@ -27,22 +30,37 @@ if nargin < 3
     Chans = [6,8];
 end
 
+
 sampleFreq = adfreq;
+% newFs = 5;
+% downSampleRate = sampleFreq/newFs;
+
 
 % tsevs are the strobed times of stimulus onset, then offset
 %  Onset at tsevs{1,33}(2), offset at tsevs{1,33}(3), onset at
 %  tsevs{1,33}(4), offset at 5, etc.
 % allad contains the continuous data from each channel, which appear to be
 %  recorded at 1000 Hz rather than 40,000
-x = find(~cellfun(@isempty,tsevs));
-strobeStart = x(1);
 
+%totalAD = size(allad,2);
+%totalSEVS = size(tsevs,2);
+
+%x = find(~cellfun(@isempty,tsevs));
+strobeStart = 33;
+
+% lowpass filter the data
 dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
 for ii=1:numChans
-    ChanData(:,ii) = allad{1,strobeStart+Chans(ii)-1};
+    temp = smooth(allad{1,strobeStart+Chans(ii)-1},0.25*sampleFreq);
+    n = 30;
+    lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
+    blo = fir1(n,lowpass,'low',hamming(n+1));
+    ChanData(:,ii) = filter(blo,1,temp);
 end
+
+
 timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
 
 if length(timeStamps) ~= dataLength
@@ -50,45 +68,56 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeData = tsevs{1,strobeStart};
-totalStrobes = length(strobeData);
+stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
 
-if mod(totalStrobes,2) == 1
-    display('Error: Missed a stimulus onset/offset strobe')
-    return;
+% BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
+%  started trial with 30 seconds of a blank screen
+N = 1000; % number of bootstrap samples
+noStimTime = startPause*sampleFreq;
+
+
+bootPrctile = zeros(numChans,1); % 95% confidence interval
+for ii=1:numChans
+    Tboot = zeros(N,1);
+    indeces = randperm(noStimTime-stimLength*2,N);
+    for jj=1:N
+        temp = ChanData(indeces(jj):indeces(jj)+stimLength-1,ii);
+        Tboot(jj) = max(temp)-min(temp);
+    end
+    bootPrctile(ii) = quantile(Tboot,0.975);
 end
 
-reps = 5;
-dataPoints = length(strobeData(1:2:end-1));
-B = glmfit(1:dataPoints,strobeData(2:2:end)-strobeData(1:2:end-1),'Normal');
-timeWindow = B(1);
-
-Response = zeros(dataPoints/reps,numChans);
-timeFrames = round(timeWindow*sampleFreq);
-
-delay = round(0.04*sampleFreq); % add delay after stimulus onset to account for
-         % ~40ms delay in neuronal processing
+% CALCULATE STATISTIC IN PRESENCE OF VISUAL STIMULI
+Response = zeros(numChans,numStimuli,reps);
 for ii=1:numChans
-    count = 1;
-    for jj=1:dataPoints/reps
-        temp = 0;
-        for kk=1:reps
-            stimOnset = strobeData(jj+dataPoints/reps*(kk-1));
+    for jj=1:reps
+        check = (jj-1)*numStimuli+1:jj*numStimuli;
+        for kk=1:numStimuli
+            stimOnset = strobeData(check(kk));
             [~,index] = min(abs(timeStamps-stimOnset));
-            temp = temp+ChanData(index+delay:index+delay+timeFrames,ii);
+            temp = ChanData(index:index+stimLength-1,ii);
+            Response(ii,kk,jj) = max(temp)-min(temp);
         end
-        avg = temp./reps;
-        Response(count,ii) = max(avg)-min(avg);
-        count = count+1;
     end
 end
-cutOff = prctile(Response,98);
+medianResponse = median(Response,3);
+meanResponse = mean(Response,3);
 
-Indeces = cell(1,numChans);
-figure();hold on;
+figure();histogram(medianResponse);
+figure();histogram(meanResponse);
+
+significantStimuli = cell(numChans,numStimuli);
 for ii=1:numChans
-        Indeces{ii} = find(Response(:,ii)>cutOff(ii));
-        subplot(2,1,ii);plot(stimulusLocs(Indeces{ii},1),stimulusLocs(Indeces{ii},2),'*b','LineWidth',2);
+    for jj=1:numStimuli
+        for kk=1:reps
+            if Response(ii,jj,kk) >= bootPrctile(ii)
+                significantStimuli(ii,jj) = significantStimuli(ii,jj)+1;
+            end
+        end
+    end    
 end
-hold off;
 
+for ii=1:numChans
+    figure();imagesc(squeeze(centerVals(:,1)),squeeze(centerVals(:,2)),squeeze(significantStimuli(ii,:)));
+end
 end
