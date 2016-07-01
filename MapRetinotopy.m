@@ -103,10 +103,10 @@ end
 medianResponse = median(Response,3);
 meanResponse = mean(Response,3);
 
-figure();histogram(medianResponse);
-figure();histogram(meanResponse);
+figure();histogram(medianResponse(end,:));histogram(reshape(medianResponse,numel(medianResponse)));
+figure();histogram(meanResponse(end,:));figure();histogram(reshape(meanResponse,numel(meanResponse)));
 
-significantStimuli = cell(numChans,numStimuli);
+significantStimuli = zeros(numChans,numStimuli);
 for ii=1:numChans
     for jj=1:numStimuli
         for kk=1:reps
@@ -117,7 +117,8 @@ for ii=1:numChans
     end    
 end
 
+
 for ii=1:numChans
-    figure();imagesc(squeeze(centerVals(:,1)),squeeze(centerVals(:,2)),squeeze(significantStimuli(ii,:)));
+    figure();plot3(centerVals(:,1),centerVals(:,2),significantStimuli(ii,:));
 end
 end
