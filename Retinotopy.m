@@ -1,4 +1,4 @@
-function [] = Retinotopy(AnimalName,DistToScreen,degreeRadius)
+function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %Retinotopy.m
 %  Display a series of flashing circles to determine retinotopy of
 %   LFP recording electrode.
@@ -7,20 +7,24 @@ function [] = Retinotopy(AnimalName,DistToScreen,degreeRadius)
 %           units of cm
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %        degreeRadius - degrees of visual field that radius of circle will occupy
+%        Hemisphere - hemisphere where electrodes are placed, 'LH' for
+%           left, 'RH' for right, 'both' for both, defaults to 'LH'
 %
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/06/30
+% Updated: 2016/07/01
 %  By: Byron Price
 
 directory = pwd;
 if nargin < 2
+    Hemisphere = 'LH';
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 10;
+    reps = 20;
     stimLen = 50/1000;
     waitTime = 1;
-    startPause = 30; % 30 seconds of silence before commencing
+    startPause = 60; % 60 seconds of silence before commencing
+    numStimuli = 100;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -31,7 +35,8 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-usb = usb1208FSPlusClass
+usb = usb1208FSPlusClass;
+display(usb);
 WaitSecs(5);
 
 % Choose screen with maximum id - the secondary display:
@@ -58,28 +63,25 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 Radius = ((tan(degreeRadius*(2*pi)/360))*(DistToScreen*10))./conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
 Radius = round(Radius);
-centerX = Radius+1:Radius:w_pixels-Radius-1;
-centerY = Radius+1:Radius:h_pixels-Radius-1;
 
-xIndeces = randperm(length(centerX));
-yIndeces = randperm(length(centerY));
+if strcmp(Hemisphere,'LH') == 1
+    centerX = round(w_pixels/2)-50:Radius:w_pixels-Radius;
+    centerY = Radius+1:Radius:h_pixels-Radius;
+elseif strcmp(Hemisphere,'RH') == 1
+    centerX = Radius+1:Radius:round(w_pixels/2)+50;
+    centerY = Radius+1:Radius:h_pixels-Radius;
+elseif strcmp(Hemisphere,'both') == 1
+    centerX = Radius+1:Radius:w_pixels-Radius;
+    centerY = Radius+1:Radius:h_pixels-Radius;
+end
 
-numStimuli = min(length(centerX),length(centerY));
-centerX = centerX(xIndeces(1:numStimuli));
-centerY = centerY(yIndeces(1:numStimuli));
-centerVals = zeros(length(centerX)*length(centerY),2);
-
-count = 1;
-for ii=1:length(centerX)
-    for jj=1:length(centerY)
-        centerVals(count,1) = centerX(ii);
-        centerVals(count,2) = centerY(jj);
-        count = count+1;
-    end
+centerVals = zeros(numStimuli,2);
+for ii=1:numStimuli
+    centerVals(ii,1) = centerX(randperm(numel(centerX),1));
+    centerVals(ii,2) = centerY(randperm(numel(centerY),1));
 end
 permIndeces = randperm(length(centerVals));
 centerVals = centerVals(permIndeces,:);
-numStimuli = length(centerVals);
 
 dgshader = [directory '/Retinotopy.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
@@ -124,9 +126,10 @@ for zz = 1:reps
         vbl = vbl+waitTime;
     end
 end
-WaitSecs(5);
+WaitSecs(2);
 usb.stopRecording;
 
+cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimLen','startPause','numStimuli','w_pixels','h_pixels')
 % Close window
