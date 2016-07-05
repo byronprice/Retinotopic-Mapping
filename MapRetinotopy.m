@@ -73,18 +73,17 @@ stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
 % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
 %  started trial with 30 seconds of a blank screen
 N = 1000; % number of bootstrap samples
-noStimTime = startPause*sampleFreq;
+noStimLen = startPause*sampleFreq;
 
-
-bootPrctile = zeros(numChans,1); % 97.5% percentile
+bootPrctile = zeros(numChans,1); % 99.0 percentile
 for ii=1:numChans
     Tboot = zeros(N,1);
-    indeces = randperm(noStimTime-stimLength*2,N);
+    indeces = randperm(noStimLen-stimLength*2,N);
     for jj=1:N
         temp = ChanData(indeces(jj):indeces(jj)+stimLength-1,ii);
         Tboot(jj) = max(temp)-min(temp);
     end
-    bootPrctile(ii) = quantile(Tboot,0.975);
+    bootPrctile(ii) = quantile(Tboot,0.99);
 end
 
 % CALCULATE STATISTIC IN PRESENCE OF VISUAL STIMULI
@@ -111,21 +110,29 @@ for ii=1:numChans
     for jj=1:numStimuli
         for kk=1:reps
             if Response(ii,jj,kk) >= bootPrctile(ii)
-                significantStimuli(ii,jj) = significantStimuli(ii,jj)+1;
+                significantStimuli(ii,jj) = significantStimuli(ii,jj)+1./reps;
             end
         end
     end    
 end
 
-stimVals = zeros(numChans,max(centerVals(:,1)),max(centerVals(:,2)));
-x=1:max(centerVals(:,1));
-y=1:max(centerVals(:,2));
 
+stimVals = zeros(numChans,w_pixels,h_pixels);
+x=1:w_pixels;
+y=1:h_pixels;
 for ii=1:numChans
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
         tempy = centerVals(jj,2);
-        stimVals(ii,tempx,tempy) = significantStimuli(ii,jj);
+        for kk=(tempx-Radius):(tempx+Radius)
+            pointx = (kk-tempx)^2;
+            for ll=(tempy-Radius):(tempy+Radius)
+                pointy = (ll-tempy)^2;
+                if (pointx+pointy) <= (Radius*Radius)
+                    stimVals(ii,kk,ll) = significantStimuli(ii,jj);
+                end
+            end
+        end
     end
     figure();imagesc(x,y,squeeze(stimVals(ii,:,:)));set(gca,'YDir','normal');colorbar;
 end
