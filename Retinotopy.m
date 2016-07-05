@@ -25,6 +25,14 @@ if nargin < 2
     waitTime = 1;
     startPause = 60; % 60 seconds of silence before commencing
     numStimuli = 100;
+elseif nargin < 3
+    DistToScreen = 25;
+    degreeRadius = 5;
+    reps = 20;
+    stimLen = 50/1000;
+    waitTime = 1;
+    startPause = 60; % 60 seconds of silence before commencing
+    numStimuli = 100;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -65,14 +73,14 @@ Radius = ((tan(degreeRadius*(2*pi)/360))*(DistToScreen*10))./conv_factor; % get 
 Radius = round(Radius);
 
 if strcmp(Hemisphere,'LH') == 1
-    centerX = round(w_pixels/2)-50:Radius:w_pixels-Radius;
-    centerY = Radius+1:Radius:h_pixels-Radius;
+    centerX = round(w_pixels/2)-50:2*Radius:w_pixels-Radius;
+    centerY = Radius+1:2*Radius:h_pixels-Radius;
 elseif strcmp(Hemisphere,'RH') == 1
-    centerX = Radius+1:Radius:round(w_pixels/2)+50;
-    centerY = Radius+1:Radius:h_pixels-Radius;
+    centerX = Radius+1:2*Radius:round(w_pixels/2)+50;
+    centerY = Radius+1:2*Radius:h_pixels-Radius;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = Radius+1:Radius:w_pixels-Radius;
-    centerY = Radius+1:Radius:h_pixels-Radius;
+    centerX = Radius+1:2*Radius:w_pixels-Radius;
+    centerY = Radius+1:2*Radius:h_pixels-Radius;
 end
 
 centerVals = zeros(numStimuli,2);
