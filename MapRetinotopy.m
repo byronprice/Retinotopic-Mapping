@@ -126,7 +126,16 @@ for ii=1:numChans
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
         tempy = centerVals(jj,2);
-        stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
+        for kk=(tempx-Radius):(tempx+Radius)
+            for ll=(tempy-Radius):(tempy+Radius)
+                pointx = kk-tempx;
+                pointy = ll-tempy;
+                if pointx*pointx+pointy*pointy <= Radius*Radius
+                    stimVals(ii,kk,ll) = significantStimuli(ii,jj);
+                end
+            end
+        end
+        %stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
     figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');colorbar;
 end
