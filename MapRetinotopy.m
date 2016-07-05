@@ -11,7 +11,7 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/01
+% Updated: 2016/07/05
 %  By: Byron Price
 
 
@@ -83,6 +83,7 @@ for ii=1:numChans
         temp = ChanData(indeces(jj):indeces(jj)+stimLength-1,ii);
         Tboot(jj) = max(temp)-min(temp);
     end
+    figure();histogram(Tboot);
     bootPrctile(ii) = quantile(Tboot,0.99);
 end
 
@@ -97,13 +98,14 @@ for ii=1:numChans
             temp = ChanData(index:index+stimLength-1,ii);
             Response(ii,kk,jj) = max(temp)-min(temp);
         end
+        clear check;
     end
 end
-% medianResponse = median(Response,3);
-% meanResponse = mean(Response,3);
-% 
-% figure();histogram(medianResponse(end,:));figure();histogram(reshape(medianResponse,[numel(medianResponse),1]));
-% figure();histogram(meanResponse(end,:));figure();histogram(reshape(meanResponse,[numel(meanResponse),1]));
+
+for ii=1:numChans
+    figure();histogram(reshape(squeeze(Response(ii,:,:)),[numStimuli*reps,1]));
+    hold on; plot(bootPrctile(ii)*ones(100,1),0:99,'LineWidth',2);
+end
 
 significantStimuli = zeros(numChans,numStimuli);
 for ii=1:numChans
@@ -115,7 +117,6 @@ for ii=1:numChans
         end
     end    
 end
-
 
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
