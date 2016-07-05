@@ -83,7 +83,7 @@ for ii=1:numChans
         temp = ChanData(indeces(jj):indeces(jj)+stimLength-1,ii);
         Tboot(jj) = max(temp)-min(temp);
     end
-    figure();histogram(Tboot);
+    %figure();histogram(Tboot);
     bootPrctile(ii) = quantile(Tboot,0.99);
 end
 
@@ -104,7 +104,7 @@ end
 
 for ii=1:numChans
     figure();histogram(reshape(squeeze(Response(ii,:,:)),[numStimuli*reps,1]));
-    hold on; plot(bootPrctile(ii)*ones(100,1),0:99,'LineWidth',2);
+    hold on; plot(bootPrctile(ii)*ones(500,1),0:499,'LineWidth',2);
 end
 
 significantStimuli = zeros(numChans,numStimuli);
@@ -117,6 +117,7 @@ for ii=1:numChans
         end
     end    
 end
+%figure();histogram(significantStimuli(1,:));figure();histogram(significantStimuli(2,:));
 
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
@@ -125,17 +126,18 @@ for ii=1:numChans
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
         tempy = centerVals(jj,2);
-        for kk=(tempx-Radius):(tempx+Radius)
-            pointx = (kk-tempx)^2;
-            for ll=(tempy-Radius):(tempy+Radius)
-                pointy = (ll-tempy)^2;
-                if (pointx+pointy) <= (Radius*Radius)
-                    stimVals(ii,kk,ll) = significantStimuli(ii,jj);
-                end
-            end
-        end
+        stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
-    figure();imagesc(x,y,squeeze(stimVals(ii,:,:)));set(gca,'YDir','normal');colorbar;
+    figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');colorbar;
 end
 
 end
+
+
+% for ii=1:numChans
+%     for jj=x
+%         for kk=y
+%             
+%         end
+%     end
+% end

@@ -85,11 +85,11 @@ end
 
 centerVals = zeros(numStimuli,2);
 for ii=1:numStimuli
-    centerVals(ii,1) = centerX(randperm(numel(centerX),1));
-    centerVals(ii,2) = centerY(randperm(numel(centerY),1));
+    centerVals(ii,1) = centerX(randi([1,numel(centerX)],1));
+    centerVals(ii,2) = centerY(randi([1,numel(centerY)],1));
 end
-permIndeces = randperm(length(centerVals));
-centerVals = centerVals(permIndeces,:);
+%permIndeces = randperm(length(centerVals));
+%centerVals = centerVals(permIndeces,:);
 
 dgshader = [directory '/Retinotopy.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
