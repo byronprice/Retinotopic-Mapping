@@ -20,6 +20,7 @@ if nargin < 2
     Hemisphere = 'LH';
     DistToScreen = 25;
     degreeRadius = 5;
+    checkSize = 5;
     reps = 20;
     stimLen = 50/1000;
     waitTime = 1;
@@ -51,7 +52,7 @@ WaitSecs(5);
 screenid = max(Screen('Screens'));
 
 % Open a fullscreen onscreen window on that display, choose a background
-% color of 128 = gray with 50% max intensity:
+% color of 128 = gray with 50% max intensity; 0 = black
 [win,~] = Screen('OpenWindow', screenid,0);
 
 % Switch color specification to use the 0.0 - 1.0 range
@@ -68,9 +69,11 @@ ifi = Screen('GetFlipInterval', win);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 
 % perform unit conversions
-Radius = ((tan(degreeRadius*(2*pi)/360))*(DistToScreen*10))./conv_factor; % get number of pixels
+Radius = (tan(degreeRadius*(2*pi)/360)*(DistToScreen*10))./conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
 Radius = round(Radius);
+checkSize = (tan(checkSize*(2*pi)/360)*(DistToScreen*10))./conv_factor;
+checkSize = round(checkSize);
 
 if strcmp(Hemisphere,'LH') == 1
     centerX = round(w_pixels/2)-50:2*Radius:w_pixels-Radius;
@@ -100,8 +103,9 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
 % create all textures in the same window (win), each of the appropriate
 % size
-Color = [0,0,0,0;1,1,1,1];
-
+Grey = 0.5;
+Black = 0;
+White = 1;
 
 % Perform initial flip to gray background and sync us to the retrace:
 vbl = Screen('Flip', win);
@@ -112,13 +116,12 @@ WaitSecs(startPause);
 % Animation loop
 for zz = 1:reps
     for ii=1:length(centerVals)
-        
+        random = round(rand*checkSize);
         % Draw the procedural texture as any other texture via 'DrawTexture'
-        value = 2;
         Screen('DrawTexture', win,gratingTex, [],[],...
-            [],[],[],[0 0 0 0],...
-            [], [],[Color(value,1),Color(value,2),Color(value,3),Color(value,4),...
-            Radius,centerVals(ii,1),centerVals(ii,2),0]);
+            [],[],[],[Grey Grey Grey Grey],...
+            [], [],[White,Black,...
+            Radius,centerVals(ii,1),centerVals(ii,2),checkSize,random,0]);
         % Request stimulus onset
         usb.strobe;
         vbl = Screen('Flip', win, vbl + ifi/2);
@@ -126,9 +129,9 @@ for zz = 1:reps
         vbl = vbl+stimLen;
         
         Screen('DrawTexture', win,gratingTex, [],[],...
-            [],[],[],[0 0 0 0],...
-            [], [],[Color(1,1),Color(1,2),Color(1,3),Color(1,4),...
-            Radius,centerVals(ii,1),centerVals(ii,2),0]);
+            [],[],[],[Black Black Black Black],...
+            [], [],[Black,Black,Radius,centerVals(ii,1),centerVals(ii,2),checkSize,...
+            random,0]);
         vbl = Screen('Flip', win, vbl + ifi/2);
         WaitSecs(waitTime);
         vbl = vbl+waitTime;

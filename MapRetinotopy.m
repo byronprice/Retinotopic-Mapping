@@ -75,7 +75,7 @@ stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
 N = 1000; % number of bootstrap samples
 noStimLen = startPause*sampleFreq;
 
-bootPrctile = zeros(numChans,1); % 99.0 percentile
+bootPrctile = zeros(numChans,1); % 99.9 percentile
 for ii=1:numChans
     Tboot = zeros(N,1);
     indeces = randperm(noStimLen-stimLength*2,N);
@@ -84,7 +84,7 @@ for ii=1:numChans
         Tboot(jj) = max(temp)-min(temp);
     end
     %figure();histogram(Tboot);
-    bootPrctile(ii) = quantile(Tboot,0.99);
+    bootPrctile(ii) = quantile(Tboot,1-1/1000);
 end
 
 % CALCULATE STATISTIC IN PRESENCE OF VISUAL STIMULI
@@ -126,16 +126,16 @@ for ii=1:numChans
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
         tempy = centerVals(jj,2);
-        for kk=(tempx-Radius):(tempx+Radius)
-            for ll=(tempy-Radius):(tempy+Radius)
-                pointx = kk-tempx;
-                pointy = ll-tempy;
-                if pointx*pointx+pointy*pointy <= Radius*Radius
-                    stimVals(ii,kk,ll) = significantStimuli(ii,jj);
-                end
-            end
-        end
-        %stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
+%         for kk=(tempx-Radius):(tempx+Radius)
+%             for ll=(tempy-Radius):(tempy+Radius)
+%                 pointx = kk-tempx;
+%                 pointy = ll-tempy;
+%                 if pointx*pointx+pointy*pointy <= Radius*Radius
+%                     stimVals(ii,kk,ll) = significantStimuli(ii,jj);
+%                 end
+%             end
+%         end
+        stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
     figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');colorbar;
 end

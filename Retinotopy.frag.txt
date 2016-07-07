@@ -3,11 +3,14 @@
 const float twopi = 2.0*3.141592653589793;
 
 /* Values passed from vertex shader: */
-varying vec4 Color;
-varying vec4 Background;
+varying vec4 White;
+varying vec4 Grey;
+varying vec4 Black;
 varying float CenterX;
 varying float CenterY;
 varying float Radius;
+varying float checkSize;
+varying float random;
 
 void main()
 {
@@ -18,11 +21,16 @@ void main()
     float x = pos[0]-CenterX;
     float y = pos[1]-CenterY;
 
-     if (x*x+y*y <= Radius*Radius) {
-         gl_FragColor = Color;
+     if (abs(x) <= Radius && abs(y) <= Radius) {
+         if (mod(floor((x+random)/(checkSize))+floor((y+random)/(checkSize)),2.0) <= 0.5) {
+            gl_FragColor = Grey;
+            }
+         else {
+            gl_FragColor = White;
+            }
          }
     else {
-         gl_FragColor = Background;
+         gl_FragColor = Black;
          }
 
 

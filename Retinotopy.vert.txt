@@ -5,11 +5,14 @@ attribute vec4 auxParameters0;
 attribute vec4 auxParameters1;
 attribute vec4 modulateColor;
 
-varying vec4 Color;
-varying vec4 Background;
+varying vec4 White;
+varying vec4 Grey;
+varying vec4 Black;
 varying float Radius;
 varying float CenterX;
 varying float CenterY;
+varying float checkSize;
+varying float random;
 
 void main()
 {
@@ -19,11 +22,14 @@ void main()
     gl_TexCoord[0] = (gl_TextureMatrix[0] * gl_MultiTexCoord0) + vec4(-0.5, 0.5, 0.0, 0.0);
 
     /* Pass first and second color to fragment shader: */
-    Background = modulateColor;
-    Color = auxParameters0;
+    Grey = modulateColor;
+    White = vec4(auxParameters0[0],auxParameters0[0],auxParameters0[0],auxParameters0[0]);
+    Black = vec4(auxParameters0[1],auxParameters0[1],auxParameters0[1],auxParameters0[1]);
 
     /* Pass variables to the fragment shader for control of grating: */
-    Radius = auxParameters1[0];
-    CenterX = auxParameters1[1];
-    CenterY = auxParameters1[2];
+    Radius = auxParameters0[2];
+    CenterX = auxParameters0[3];
+    CenterY = auxParameters1[0];
+    checkSize = auxParameters1[1];
+    random = auxParameters1[2];
 }
