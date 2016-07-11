@@ -52,8 +52,10 @@ strobeStart = 33;
 dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
+preAmpGain = 1;
 for ii=1:numChans
-    temp = smooth(allad{1,strobeStart+Chans(ii)-1},0.05*sampleFreq);
+    voltage = ((allad{1,strobeStart+Chans(ii)-1}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(strobeStart+Chans(ii)-1)*preAmpGain);
+    temp = smooth(voltage,0.05*sampleFreq);
     n = 30;
     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
@@ -69,6 +71,10 @@ if length(timeStamps) ~= dataLength
 end
 strobeData = tsevs{1,strobeStart};
 stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
+
+% STATISTIC OF INTEREST is T = max(LFP)-min(LFP)  in the interval from 0 to
+% ~ 0.5 seconds after an image is flashed on the screen, this is a measure
+% of the size of a VEP
 
 % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
 %  started trial with 30 seconds of a blank screen
