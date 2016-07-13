@@ -1,39 +1,45 @@
 function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %Retinotopy.m
-%  Display a series of flashing circles to determine retinotopy of
+%  Display a series of flashing squares to determine retinotopy of
 %   LFP recording electrode.
-%  Each circle will occupy a 4-degree radius of visual space
-% INPUT: DistToScreen - physical distance of observer from the screen, in
-%           units of cm
+%  Each square will occupy a 7-degree radius of visual space
+% INPUT: Obligatory-
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
-%        degreeRadius - degrees of visual field that radius of circle will occupy
-%        Hemisphere - hemisphere where electrodes are placed, 'LH' for
-%           left, 'RH' for right, 'both' for both, defaults to 'LH'
 %
+%        Optional- 
+%        Hemisphere - hemisphere where electrodes are placed, 'LH' for
+%           left, 'RH' for right, 'both' for both, defaults to 'both'
+%        DistToScreen - physical distance of observer from the screen, in
+%           units of cm
+%        degreeRadius - degrees of visual field that radius of circle will occupy
+%
+% OUTPUT: a file with stimulus parameters named RetinoStimDate_AnimalName
+%           e.g. RetinoStim20160708_12345.mat to be saved in the RetinoExp
+%           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/01
+% Updated: 2016/07/08
 %  By: Byron Price
 
-directory = pwd;
+directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
 if nargin < 2
-    Hemisphere = 'LH';
+    Hemisphere = 'both';
     DistToScreen = 25;
-    degreeRadius = 5;
-    checkSize = 5;
-    reps = 20;
+    degreeRadius = 7;
+    checkSize = 7;
+    reps = 15;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 60; % 60 seconds of silence before commencing
-    numStimuli = 100;
+    numStimuli = 125;
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 20;
+    reps = 15;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 60; % 60 seconds of silence before commencing
-    numStimuli = 100;
+    numStimuli = 125;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -44,9 +50,11 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
+estimatedTime = ((waitTime+stimLen)*reps*numStimuli+startPause)/60;
 usb = usb1208FSPlusClass;
 display(usb);
-WaitSecs(5);
+display(strcat('Estimated time-',num2str(estimatedTime),' minutes'));
+WaitSecs(10);
 
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
@@ -76,10 +84,10 @@ checkSize = (tan(checkSize*(2*pi)/360)*(DistToScreen*10))./conv_factor;
 checkSize = round(checkSize);
 
 if strcmp(Hemisphere,'LH') == 1
-    centerX = round(w_pixels/2)-50:2*Radius:w_pixels-Radius;
+    centerX = round(w_pixels/2)-100:2*Radius:w_pixels-Radius;
     centerY = Radius+1:2*Radius:h_pixels-Radius;
 elseif strcmp(Hemisphere,'RH') == 1
-    centerX = Radius+1:2*Radius:round(w_pixels/2)+50;
+    centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
     centerY = Radius+1:2*Radius:h_pixels-Radius;
 elseif strcmp(Hemisphere,'both') == 1
     centerX = Radius+1:2*Radius:w_pixels-Radius;
