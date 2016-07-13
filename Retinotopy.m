@@ -27,20 +27,18 @@ if nargin < 2
     Hemisphere = 'both';
     DistToScreen = 25;
     degreeRadius = 10;
-    reps = 40;
+    reps = 50;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 120 seconds of silence before commencing
-    numStimuli = 50;
     spatFreq = 0.05;
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 10;
-    reps = 40;
+    reps = 50;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 60 seconds of silence before commencing
-    numStimuli = 50;
     spatFreq = 0.05;
 end
 
@@ -52,10 +50,9 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-estimatedTime = ((waitTime+stimLen)*reps*numStimuli+startPause)/60;
 usb = usb1208FSPlusClass;
 display(usb);
-display(strcat('Estimated time-',num2str(estimatedTime),' minutes'));
+
 WaitSecs(10);
 
 % Choose screen with maximum id - the secondary display:
@@ -86,23 +83,34 @@ temp = (tan((1/spatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
 
 if strcmp(Hemisphere,'LH') == 1
-    centerX = round(w_pixels/2)-100:2*Radius:w_pixels-Radius;
-    centerY = Radius+1:2*Radius:h_pixels-Radius;
+    centerX = round(w_pixels/2)-100:2*Radius:w_pixels;
+    centerY = Radius+1:2*Radius:h_pixels;
 elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
-    centerY = Radius+1:2*Radius:h_pixels-Radius;
+    centerY = Radius+1:2*Radius:h_pixels;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = Radius+1:2*Radius:w_pixels-Radius;
-    centerY = Radius+1:2*Radius:h_pixels-Radius;
+    centerX = Radius+1:2*Radius:w_pixels;
+    centerY = Radius+1:2*Radius:h_pixels;
 end
+numStimuli = length(centerX)*length(centerY);
 
 centerVals = zeros(numStimuli,2);
-for ii=1:numStimuli
-    centerVals(ii,1) = centerX(randi([1,numel(centerX)],1));
-    centerVals(ii,2) = centerY(randi([1,numel(centerY)],1));
+count = 1;
+for ii=1:length(centerX)
+    for jj=1:length(centerY)
+        centerVals(count,1) = centerX(ii);
+        centerVals(count,2) = centerY(jj);
+        count = count+1;
+    end
 end
-%permIndeces = randperm(length(centerVals));
-%centerVals = centerVals(permIndeces,:);
+
+for ii=1:50
+    indeces = randperm(numStimuli,numStimuli);
+    centerVals = centerVals(indeces,:);
+end
+
+estimatedTime = ((waitTime+stimLen)*reps*numStimuli+startPause)/60;
+display(strcat('Estimated time-',num2str(estimatedTime),' minutes'));
 
 dgshader = [directory '/Retinotopy.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
@@ -153,7 +161,8 @@ usb.stopRecording;
 
 cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'centerVals','Radius','reps','stimLen','startPause','numStimuli','w_pixels','h_pixels','orientation','spatFreq')
+save(fileName,'centerVals','Radius','reps','stimLen','startPause',...
+    'numStimuli','w_pixels','h_pixels','orientation','spatFreq')
 % Close window
 Screen('CloseAll');
 

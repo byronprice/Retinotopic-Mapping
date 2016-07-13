@@ -52,7 +52,7 @@ strobeStart = 33;
 dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
-preAmpGain = 1;
+preAmpGain = 1/1000;
 for ii=1:numChans
     voltage = ((allad{1,strobeStart+Chans(ii)-1}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(strobeStart+Chans(ii)-1)*preAmpGain);
     temp = smooth(voltage,0.05*sampleFreq);
@@ -70,7 +70,7 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeData = tsevs{1,strobeStart};
-stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
+stimLength = round((stimLen+0.3)*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = zeros(numChans,numStimuli,reps,stimLength);
@@ -87,19 +87,36 @@ for ii=1:numChans
     end
 end
 
-meanResponse = squeeze(mean(Response,3));
-Statistic = abs(min(meanResponse,[],3));
-
-% STATISTIC OF INTEREST is T = abs(min(mean(LFP across stimulus repetitions)) 
-% in the interval from 0 to ~ 0.5 seconds after an image is flashed on the 
+% STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
+% in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
+meanResponse = squeeze(mean(Response,3));
+dataStat = max(meanResponse,[],3)-min(meanResponse,[],3);
+
+% BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
+N = 5000;
+dataError = zeros(numChans,numStimuli);
+for ii=1:numChans
+    for jj=1:numStimuli
+        Tboot = zeros(N,1);
+        for kk=1:N
+            indeces = random('Discrete Uniform',reps,[reps,1]);
+            group = squeeze(Response(ii,jj,indeces,:));
+            meanGroup = mean(group,1);
+            Tboot(kk) = max(meanGroup)-min(meanGroup);
+        end
+        dataError(ii,jj) = std(Tboot);
+    end
+end
 
 % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
-%  started trial with 30 seconds of a blank screen
+%  AND STANDARD ERRORS
+%  started trial with 120 seconds of a blank screen
 N = 5000; % number of bootstrap samples
 noStimLen = startPause*sampleFreq;
 
 bootPrctile = zeros(numChans,1); % 99 percentile
+bootStat = zeros(numChans,2);
 for ii=1:numChans
     Tboot = zeros(N,1);
     for jj=1:N
@@ -108,26 +125,33 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(indeces(kk):indeces(kk)+stimLength-1,ii);
         end
-        Tboot(jj) = abs(min(mean(temp,1)));
+        Tboot(jj) = max(mean(temp,1))-min(mean(temp,1));
     end
     %figure();histogram(Tboot);
     bootPrctile(ii) = quantile(Tboot,1-1/100);
+    bootStat(ii,1) = mean(Tboot);
+    bootStat(ii,2) = std(Tboot);
 end
 
-for ii=1:numChans
-    figure();histogram(Statistic(ii,:));
-    hold on; plot(bootPrctile(ii)*ones(100,1),0:99,'LineWidth',2);
-end
+% for ii=1:numChans
+%     figure();histogram(dataStat(ii,:));
+%     hold on; plot(bootPrctile(ii)*ones(100,1),0:99,'LineWidth',2);
+% end
 
+% WALD TEST - VEP magnitude significantly greater in presence of a stimulus
+%  than in the absence of a stimulus
 significantStimuli = zeros(numChans,numStimuli);
+alpha = 0.01;
 for ii=1:numChans
     for jj=1:numStimuli
-        if Statistic(ii,jj) >= bootPrctile(ii)
-            significantStimuli(ii,jj) = Statistic(ii,jj)./bootPrctile(ii);
+        W = (dataStat(ii,jj)-bootStat(ii,1))/sqrt(dataError(ii,jj)^2+bootStat(ii,2)^2);
+        c = norminv(1-alpha,0,1);
+        if W > c
+            significantStimuli(ii,jj) = W;
         end
     end    
 end
-
+figure();plot(sort(normcdf(significantStimuli(2,:))));
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
