@@ -19,7 +19,7 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
 
 if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
-    readall(EphysFileName);
+    MyReadall(EphysFileName);
 end
 
 StimulusFileName = strcat('RetinoStim',num2str(Date),'_',num2str(AnimalName),'.mat');
@@ -52,8 +52,10 @@ strobeStart = 33;
 dataLength = length(allad{1,strobeStart+Chans(1)-1});
 numChans = length(Chans);
 ChanData = zeros(dataLength,numChans);
+preAmpGain = 1;
 for ii=1:numChans
-    temp = smooth(allad{1,strobeStart+Chans(ii)-1},0.05*sampleFreq);
+    voltage = ((allad{1,strobeStart+Chans(ii)-1}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(strobeStart+Chans(ii)-1)*preAmpGain);
+    temp = smooth(voltage,0.05*sampleFreq);
     n = 30;
     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
@@ -70,6 +72,10 @@ end
 strobeData = tsevs{1,strobeStart};
 stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
 
+% STATISTIC OF INTEREST is T = max(LFP)-min(LFP)  in the interval from 0 to
+% ~ 0.5 seconds after an image is flashed on the screen, this is a measure
+% of the size of a VEP
+
 % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
 %  started trial with 30 seconds of a blank screen
 N = 1000; % number of bootstrap samples
@@ -78,7 +84,7 @@ noStimLen = startPause*sampleFreq;
 bootPrctile = zeros(numChans,1); % 99.9 percentile
 for ii=1:numChans
     Tboot = zeros(N,1);
-    indeces = randperm(noStimLen-stimLength*2,N);
+    indeces = random('Discrete Uniform',noStimLen-stimLength*2,[N,1]);
     for jj=1:N
         temp = ChanData(indeces(jj):indeces(jj)+stimLength-1,ii);
         Tboot(jj) = max(temp)-min(temp);
