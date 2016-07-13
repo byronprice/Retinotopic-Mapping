@@ -23,7 +23,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,Chans)
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
 
 if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
-    readall(EphysFileName);
+    MyReadall(EphysFileName);
 end
 
 StimulusFileName = strcat('RetinoStim',num2str(Date),'_',num2str(AnimalName),'.mat');
