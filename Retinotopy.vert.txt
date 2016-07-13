@@ -11,8 +11,8 @@ varying vec4 Black;
 varying float Radius;
 varying float CenterX;
 varying float CenterY;
-varying float checkSize;
-varying float random;
+varying float spatFreq;
+varying float orientation;
 
 void main()
 {
@@ -30,6 +30,6 @@ void main()
     Radius = auxParameters0[2];
     CenterX = auxParameters0[3];
     CenterY = auxParameters1[0];
-    checkSize = auxParameters1[1];
-    random = auxParameters1[2];
+    spatFreq = auxParameters1[1];
+    orientation = auxParameters1[2];
 }

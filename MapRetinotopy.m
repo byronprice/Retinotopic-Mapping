@@ -11,7 +11,7 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/05
+% Updated: 2016/07/13
 %  By: Byron Price
 
 
@@ -72,29 +72,8 @@ end
 strobeData = tsevs{1,strobeStart};
 stimLength = round((stimLen+0.5)*sampleFreq/2)*2;
 
-% STATISTIC OF INTEREST is T = max(LFP)-min(LFP)  in the interval from 0 to
-% ~ 0.5 seconds after an image is flashed on the screen, this is a measure
-% of the size of a VEP
-
-% BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
-%  started trial with 30 seconds of a blank screen
-N = 1000; % number of bootstrap samples
-noStimLen = startPause*sampleFreq;
-
-bootPrctile = zeros(numChans,1); % 99.9 percentile
-for ii=1:numChans
-    Tboot = zeros(N,1);
-    indeces = random('Discrete Uniform',noStimLen-stimLength*2,[N,1]);
-    for jj=1:N
-        temp = ChanData(indeces(jj):indeces(jj)+stimLength-1,ii);
-        Tboot(jj) = max(temp)-min(temp);
-    end
-    %figure();histogram(Tboot);
-    bootPrctile(ii) = quantile(Tboot,1-1/1000);
-end
-
-% CALCULATE STATISTIC IN PRESENCE OF VISUAL STIMULI
-Response = zeros(numChans,numStimuli,reps);
+% COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
+Response = zeros(numChans,numStimuli,reps,stimLength);
 for ii=1:numChans
     for jj=1:reps
         check = (jj-1)*numStimuli+1:jj*numStimuli;
@@ -102,28 +81,52 @@ for ii=1:numChans
             stimOnset = strobeData(check(kk));
             [~,index] = min(abs(timeStamps-stimOnset));
             temp = ChanData(index:index+stimLength-1,ii);
-            Response(ii,kk,jj) = max(temp)-min(temp);
+            Response(ii,kk,jj,:) = temp;
         end
         clear check;
     end
 end
 
+meanResponse = squeeze(mean(Response,3));
+Statistic = abs(min(meanResponse,[],3));
+
+% STATISTIC OF INTEREST is T = abs(min(mean(LFP across stimulus repetitions)) 
+% in the interval from 0 to ~ 0.5 seconds after an image is flashed on the 
+% screen, this is a measure of the size of a VEP
+
+% BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
+%  started trial with 30 seconds of a blank screen
+N = 5000; % number of bootstrap samples
+noStimLen = startPause*sampleFreq;
+
+bootPrctile = zeros(numChans,1); % 99 percentile
 for ii=1:numChans
-    figure();histogram(reshape(squeeze(Response(ii,:,:)),[numStimuli*reps,1]));
-    hold on; plot(bootPrctile(ii)*ones(500,1),0:499,'LineWidth',2);
+    Tboot = zeros(N,1);
+    for jj=1:N
+        indeces = random('Discrete Uniform',noStimLen-stimLength*2,[reps,1]);
+        temp = zeros(reps,stimLength);
+        for kk=1:reps
+            temp(kk,:) = ChanData(indeces(kk):indeces(kk)+stimLength-1,ii);
+        end
+        Tboot(jj) = abs(min(mean(temp,1)));
+    end
+    %figure();histogram(Tboot);
+    bootPrctile(ii) = quantile(Tboot,1-1/100);
+end
+
+for ii=1:numChans
+    figure();histogram(Statistic(ii,:));
+    hold on; plot(bootPrctile(ii)*ones(100,1),0:99,'LineWidth',2);
 end
 
 significantStimuli = zeros(numChans,numStimuli);
 for ii=1:numChans
     for jj=1:numStimuli
-        for kk=1:reps
-            if Response(ii,jj,kk) >= bootPrctile(ii)
-                significantStimuli(ii,jj) = significantStimuli(ii,jj)+1./reps;
-            end
+        if Statistic(ii,jj) >= bootPrctile(ii)
+            significantStimuli(ii,jj) = Statistic(ii,jj)./bootPrctile(ii);
         end
     end    
 end
-%figure();histogram(significantStimuli(1,:));figure();histogram(significantStimuli(2,:));
 
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
@@ -147,12 +150,3 @@ for ii=1:numChans
 end
 
 end
-
-
-% for ii=1:numChans
-%     for jj=x
-%         for kk=y
-%             
-%         end
-%     end
-% end
