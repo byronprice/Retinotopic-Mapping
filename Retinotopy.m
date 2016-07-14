@@ -26,20 +26,20 @@ directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
 if nargin < 2
     Hemisphere = 'both';
     DistToScreen = 25;
-    degreeRadius = 10;
-    reps = 50;
+    degreeRadius = 5;
+    reps = 25;
     stimLen = 50/1000;
     waitTime = 1;
-    startPause = 120; % 120 seconds of silence before commencing
-    spatFreq = 0.05;
+    startPause = 0; % 120 seconds of silence before commencing
+    spatFreq = 0.1;
 elseif nargin < 3
     DistToScreen = 25;
-    degreeRadius = 10;
-    reps = 50;
+    degreeRadius = 5;
+    reps = 25;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 60 seconds of silence before commencing
-    spatFreq = 0.05;
+    spatFreq = 0.1;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -53,7 +53,7 @@ AssertOpenGL;
 usb = usb1208FSPlusClass;
 display(usb);
 
-WaitSecs(10);
+WaitSecs(0);
 
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
@@ -89,7 +89,7 @@ elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
     centerY = Radius+1:2*Radius:h_pixels;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = Radius+1:2*Radius:w_pixels;
+    centerX = 4*Radius:2*Radius:w_pixels-4*Radius;
     centerY = Radius+1:2*Radius:h_pixels;
 end
 numStimuli = length(centerX)*length(centerY);
