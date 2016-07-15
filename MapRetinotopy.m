@@ -151,7 +151,9 @@ for ii=1:numChans
         end
     end    
 end
-figure();plot(sort(normcdf(significantStimuli(2,:))));
+for ii=1:numChans
+    figure();plot(sort(normcdf(significantStimuli(ii,:))));
+end
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
