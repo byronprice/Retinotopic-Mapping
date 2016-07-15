@@ -27,11 +27,11 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 
 directory = pwd;
 if nargin < 2
-    DistToScreen = 20;
-    barDegree = 10;
+    DistToScreen = 25;
+    barDegree = 5;
     reps = 20;
 end
-checkDegree = 15; % width or height in degrees of checkerboard squares
+checkDegree = 10; % width or height in degrees of checkerboard squares
 checkRefresh = 0.1667; % seconds to flash the checkerboard in one color
 driftTime = 5;
 %driftSpeed = 12; % drift speed in degrees/second
