@@ -30,7 +30,7 @@ if nargin < 2
     reps = 25;
     stimLen = 50/1000;
     waitTime = 1;
-    startPause = 0; % 120 seconds of silence before commencing
+    startPause = 120; % 120 seconds of silence before commencing
     spatFreq = 0.1;
 elseif nargin < 3
     DistToScreen = 25;
@@ -53,7 +53,7 @@ AssertOpenGL;
 usb = usb1208FSPlusClass;
 display(usb);
 
-WaitSecs(0);
+WaitSecs(10);
 
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
