@@ -197,4 +197,6 @@ centerMass(2,1)
 centerMass(2,2)
 pdX.mu
 pdY.mu
+
+save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'centerVals','significantStimuli','centerMass');
 end
