@@ -125,7 +125,7 @@ Grey = 0.5;
 Black = 0;
 White = 1;
 
-orientation = (rand([numStimuli,1])*360)*pi/180;
+%orientation = (rand([numStimuli,1])*360)*pi/180;
 % Perform initial flip to gray background and sync us to the retrace:
 vbl = Screen('Flip', win);
 
@@ -135,7 +135,7 @@ WaitSecs(startPause);
 % Animation loop
 for zz = 1:reps
     for ii=1:numStimuli
-        orient = orientation(ii);
+        orient = rand*2*pi;
         % Draw the procedural texture as any other texture via 'DrawTexture'
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[Grey Grey Grey Grey],...
