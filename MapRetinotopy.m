@@ -141,7 +141,7 @@ end
 % WALD TEST - VEP magnitude significantly greater in presence of a stimulus
 %  than in the absence of a stimulus
 significantStimuli = zeros(numChans,numStimuli);
-alpha = 0.01;
+alpha = 0.05/numStimuli;
 for ii=1:numChans
     for jj=1:numStimuli
         W = (dataStat(ii,jj)-bootStat(ii,1))/sqrt(dataError(ii,jj)^2+bootStat(ii,2)^2);
@@ -173,6 +173,7 @@ for ii=1:numChans
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
     figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');colorbar;
+    
 end
 
 end
