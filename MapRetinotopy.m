@@ -11,7 +11,7 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/15
+% Updated: 2016/07/18
 %  By: Byron Price
 
 
@@ -147,13 +147,14 @@ for ii=1:numChans
         W = (dataStat(ii,jj)-bootStat(ii,1))/sqrt(dataError(ii,jj)^2+bootStat(ii,2)^2);
         c = norminv(1-alpha,0,1);
         if W > c
-            significantStimuli(ii,jj) = W;
+            significantStimuli(ii,jj) = dataStat(ii,jj);
         end
     end    
 end
-for ii=1:numChans
-    figure();plot(sort(normcdf(significantStimuli(ii,:))));
-end
+% for ii=1:numChans
+%     figure();plot(sort(normcdf(significantStimuli(ii,:))));
+% end
+
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
@@ -172,8 +173,28 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
-    figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');colorbar;
-    
+    figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
+    title(sprintf('Retinotopic Heat Map of Significant Stimuli for Channel %d',Chans(ii)));ylabel(h,'VEP Magnitude (\muV)');
+    xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
 end
 
+
+centerMass = zeros(numChans,4);
+for ii=1:numChans
+    dataX = [];dataY = [];
+    for jj=1:numStimuli
+        dataX = [dataX;repmat(centerVals(jj,1),[significantStimuli(ii,jj),1])];
+        dataY = [dataY;repmat(centerVals(jj,2),[significantStimuli(ii,jj),1])];
+    end
+    pdX = fitdist(dataX,'normal');pdY = fitdist(dataY,'normal');
+    centerMass(ii,1) = sum(significantStimuli(ii,:).*centerVals(:,1)')/sum(significantStimuli(ii,:));
+    centerMass(ii,2) = sum(significantStimuli(ii,:).*centerVals(:,2)')/sum(significantStimuli(ii,:));
+    centerMass(ii,3) = pdX.sigma;
+    centerMass(ii,4) = pdY.sigma;
+end
+
+centerMass(2,1)
+centerMass(2,2)
+pdX.mu
+pdY.mu
 end
