@@ -178,7 +178,6 @@ for ii=1:numChans
     xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
 end
 
-
 centerMass = zeros(numChans,4);
 for ii=1:numChans
     dataX = [];dataY = [];

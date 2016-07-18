@@ -127,11 +127,12 @@ White = 1;
 
 orientation = (rand([numStimuli,1])*360)*pi/180;
 % Perform initial flip to gray background and sync us to the retrace:
-vbl = Screen('Flip', win);
+Priority(9);
 
 usb.startRecording;
 WaitSecs(startPause);
 
+vbl = Screen('Flip', win);
 % Animation loop
 for zz = 1:reps
     for ii=1:numStimuli
@@ -158,6 +159,7 @@ for zz = 1:reps
 end
 WaitSecs(2);
 usb.stopRecording;
+Priority(0);
 
 cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
