@@ -147,7 +147,7 @@ for ii=1:numChans
         W = (dataStat(ii,jj)-bootStat(ii,1))/sqrt(dataError(ii,jj)^2+bootStat(ii,2)^2);
         c = norminv(1-alpha,0,1);
         if W > c
-            significantStimuli(ii,jj) = dataStat(ii,jj);
+            significantStimuli(ii,jj) = dataStat(ii,jj); % or equals W itself
         end
     end    
 end
