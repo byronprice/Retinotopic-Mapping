@@ -1,4 +1,4 @@
-function [] = MapRetinotopy(AnimalName,Date,Chans)
+function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 % MapRetinotopy.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
@@ -6,12 +6,16 @@ function [] = MapRetinotopy(AnimalName,Date,Chans)
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
 %       Date - date of the experiment, e.g. 20160525
-%       Chans - channel numbers, input as [6,8], defaults to 6 and 8
-%OUTPUT:
+%       yesNo - 1 if you are running this code as is, 0 if it is being run
+%        through MapRetWrapper.m
+%OUTPUT: stimVals
+%        x -
+%        y -
+%        centerMass - 
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/18
+% Updated: 2016/07/19
 %  By: Byron Price
 
 
@@ -28,7 +32,7 @@ load(EphysFileName)
 load(StimulusFileName)
 
 if nargin < 3
-    Chans = [6,8];
+    yesNo = 1;
 end
 
 sampleFreq = adfreq;
@@ -45,16 +49,16 @@ sampleFreq = adfreq;
 %totalAD = size(allad,2);
 %totalSEVS = size(tsevs,2);
 
-%x = find(~cellfun(@isempty,tsevs));
+Chans = find(~cellfun(@isempty,allad));numChans = length(Chans);
 strobeStart = 33;
 
 % lowpass filter the data
-dataLength = length(allad{1,strobeStart+Chans(1)-1});
-numChans = length(Chans);
+dataLength = length(allad{1,Chans(1)});
+
 ChanData = zeros(dataLength,numChans);
 preAmpGain = 1/1000;
 for ii=1:numChans
-    voltage = ((allad{1,strobeStart+Chans(ii)-1}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(strobeStart+Chans(ii)-1)*preAmpGain);
+    voltage = ((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
     temp = smooth(voltage,0.05*sampleFreq);
     n = 30;
     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
@@ -70,7 +74,7 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeData = tsevs{1,strobeStart};
-stimLength = round((stimLen+0.3)*sampleFreq);
+stimLength = round((stimLen+0.2)*sampleFreq); % about 250 milliseconds
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = zeros(numChans,numStimuli,reps,stimLength);
@@ -158,7 +162,9 @@ end
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
-figure();
+if yesNo == 1
+    figure();
+end
 for ii=1:numChans
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
@@ -174,14 +180,18 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
-    subplot(numChans,1,ii);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
-    title(sprintf('Retinotopic Heat Map of Significant Stimuli for Channel %d',Chans(ii)));ylabel(h,'VEP Magnitude (\muV)');
-    xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
-    colormap('jet');
+    if yesNo == 1
+        subplot(numChans,1,ii);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
+        title(sprintf('Retinotopic Heat Map of Significant Stimuli for Channel %d',ii));ylabel(h,'VEP Magnitude (\muV)');
+        xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
+        colormap('jet');
+    end
 end
-savefig(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
+if yesNo == 1
+    savefig(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
+end
 
-centerMass = struct('mean',zeros(numChans,2),'std',zeros(numChans,2));
+centerMass = zeros(numChans,4);
 for ii=1:numChans
     dataX = [];dataY = [];
     for jj=1:numStimuli
@@ -190,13 +200,13 @@ for ii=1:numChans
     end
     if length(dataX) > 2 && length(dataY) > 2
         pdX = fitdist(dataX,'normal');pdY = fitdist(dataY,'normal');
-        centerMass.mean(ii,1) = sum(significantStimuli(ii,:).*centerVals(:,1)')/sum(significantStimuli(ii,:));
-        centerMass.mean(ii,2) = sum(significantStimuli(ii,:).*centerVals(:,2)')/sum(significantStimuli(ii,:));
-        centerMass.std(ii,1) = pdX.sigma;
-        centerMass.std(ii,2) = pdY.sigma;
+        centerMass(ii,1) = sum(significantStimuli(ii,:).*centerVals(:,1)')/sum(significantStimuli(ii,:));
+        centerMass(ii,2) = sum(significantStimuli(ii,:).*centerVals(:,2)')/sum(significantStimuli(ii,:));
+        centerMass(ii,3) = pdX.sigma;
+        centerMass(ii,4) = pdY.sigma;
     end
 end
 
-save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'centerVals','significantStimuli','centerMass');
+save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans','centerVals','significantStimuli','centerMass','stimVals');
 
 end
