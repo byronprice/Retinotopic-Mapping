@@ -73,7 +73,9 @@ ifi = Screen('GetFlipInterval', win);
 
 % screen size in millimeters and a conversion factor to get from mm to pixels
 [w_mm,h_mm] = Screen('DisplaySize',screenid);
-conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;conv_factor = 1/conv_factor;
+conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
+mmPerPixel = conv_factor;
+conv_factor = 1/conv_factor;
 
 % perform unit conversions
 Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
@@ -125,7 +127,7 @@ Grey = 0.5;
 Black = 0;
 White = 1;
 
-orientation = (rand([numStimuli,1])*360)*pi/180;
+%orientation = (rand([numStimuli,1])*360)*pi/180;
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
 
@@ -136,7 +138,7 @@ vbl = Screen('Flip', win);
 % Animation loop
 for zz = 1:reps
     for ii=1:numStimuli
-        orient = orientation(ii);
+        orient = rand*2*pi;
         % Draw the procedural texture as any other texture via 'DrawTexture'
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[Grey Grey Grey Grey],...
@@ -164,7 +166,7 @@ Priority(0);
 cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimLen','startPause',...
-    'numStimuli','w_pixels','h_pixels','orientation','spatFreq')
+    'numStimuli','w_pixels','h_pixels','orientation','spatFreq','mmPerPixel')
 % Close window
 Screen('CloseAll');
 
