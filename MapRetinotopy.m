@@ -158,6 +158,7 @@ end
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
+figure();
 for ii=1:numChans
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
@@ -173,28 +174,30 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
     end
-    figure();imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
+    subplot(numChans,1,ii);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
     title(sprintf('Retinotopic Heat Map of Significant Stimuli for Channel %d',Chans(ii)));ylabel(h,'VEP Magnitude (\muV)');
     xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
+    colormap('jet');
 end
+savefig(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
 
 
-centerMass = zeros(numChans,4);
+centerMass = struct('mean',zeros(numChans,2),'std',zeros(numChans,2));
 for ii=1:numChans
     dataX = [];dataY = [];
     for jj=1:numStimuli
-        dataX = [dataX;repmat(centerVals(jj,1),[significantStimuli(ii,jj),1])];
-        dataY = [dataY;repmat(centerVals(jj,2),[significantStimuli(ii,jj),1])];
+        dataX = [dataX;repmat(centerVals(jj,1),[round(significantStimuli(ii,jj)),1])];
+        dataY = [dataY;repmat(centerVals(jj,2),[round(significantStimuli(ii,jj)),1])];
     end
-    pdX = fitdist(dataX,'normal');pdY = fitdist(dataY,'normal');
-    centerMass(ii,1) = sum(significantStimuli(ii,:).*centerVals(:,1)')/sum(significantStimuli(ii,:));
-    centerMass(ii,2) = sum(significantStimuli(ii,:).*centerVals(:,2)')/sum(significantStimuli(ii,:));
-    centerMass(ii,3) = pdX.sigma;
-    centerMass(ii,4) = pdY.sigma;
+    if length(dataX) > 2 && length(dataY) > 2
+        pdX = fitdist(dataX,'normal');pdY = fitdist(dataY,'normal');
+        centerMass.mean(ii,1) = sum(significantStimuli(ii,:).*centerVals(:,1)')/sum(significantStimuli(ii,:));
+        centerMass.mean(ii,2) = sum(significantStimuli(ii,:).*centerVals(:,2)')/sum(significantStimuli(ii,:));
+        centerMass.std(ii,1) = pdX.sigma;
+        centerMass.std(ii,2) = pdY.sigma;
+    end
 end
 
-centerMass(2,1)
-centerMass(2,2)
-pdX.mu
-pdY.mu
+fileName = strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat');
+save(fileName,'centerMass','stimVals');
 end

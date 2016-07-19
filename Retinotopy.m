@@ -74,6 +74,7 @@ ifi = Screen('GetFlipInterval', win);
 % screen size in millimeters and a conversion factor to get from mm to pixels
 [w_mm,h_mm] = Screen('DisplaySize',screenid);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;conv_factor = 1/conv_factor;
+mmPerPixel = 1/conv_factor;
 
 % perform unit conversions
 Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
@@ -162,7 +163,7 @@ usb.stopRecording;
 cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimLen','startPause',...
-    'numStimuli','w_pixels','h_pixels','orientation','spatFreq')
+    'numStimuli','w_pixels','h_pixels','orientation','spatFreq','mmPerPixel')
 % Close window
 Screen('CloseAll');
 
