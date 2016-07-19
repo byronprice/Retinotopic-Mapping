@@ -19,7 +19,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/08
+% Updated: 2016/07/19
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
@@ -164,7 +164,7 @@ usb.stopRecording;
 cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimLen','startPause',...
-    'numStimuli','w_pixels','h_pixels','orientation','spatFreq','mmPerPixel')
+    'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')
 % Close window
 Screen('CloseAll');
 
