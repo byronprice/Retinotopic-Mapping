@@ -198,15 +198,17 @@ for ii=1:numChans
         dataX = [dataX;repmat(centerVals(jj,1),[round(significantStimuli(ii,jj)),1])];
         dataY = [dataY;repmat(centerVals(jj,2),[round(significantStimuli(ii,jj)),1])];
     end
-    if length(dataX) > 2 && length(dataY) > 2
-        pdX = fitdist(dataX,'normal');pdY = fitdist(dataY,'normal');
-        centerMass(ii,1) = sum(significantStimuli(ii,:).*centerVals(:,1)')/sum(significantStimuli(ii,:));
-        centerMass(ii,2) = sum(significantStimuli(ii,:).*centerVals(:,2)')/sum(significantStimuli(ii,:));
-        centerMass(ii,3) = pdX.sigma;
-        centerMass(ii,4) = pdY.sigma;
+    data = [dataX,dataY];
+    if length(data) > 2
+        mnPDF = fitgmdist(data,1);
+        centerMass(ii,1) = mnPDF.mu(1);
+        centerMass(ii,2) = mnPDF.mu(2);
+        centerMass(ii,3) = mnPDF.Sigma(1,1);
+        centerMass(ii,4) = mnPDF.Sigma(2,2);
     end
 end
 
-save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans','centerVals','significantStimuli','centerMass','stimVals');
+save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...
+    'centerVals','significantStimuli','centerMass','stimVals','mnPDF');
 
 end
