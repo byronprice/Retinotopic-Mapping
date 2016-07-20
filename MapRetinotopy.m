@@ -155,9 +155,6 @@ for ii=1:numChans
         end
     end    
 end
-% for ii=1:numChans
-%     figure();plot(sort(normcdf(significantStimuli(ii,:))));
-% end
 
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
@@ -199,13 +196,18 @@ for ii=1:numChans
         dataY = [dataY;repmat(centerVals(jj,2),[round(significantStimuli(ii,jj)),1])];
     end
     data = [dataX,dataY];
-    if length(data) > 2
+
+    try
         mnPDF = fitgmdist(data,1);
         centerMass(ii,1) = mnPDF.mu(1);
         centerMass(ii,2) = mnPDF.mu(2);
         centerMass(ii,3) = mnPDF.Sigma(1,1);
         centerMass(ii,4) = mnPDF.Sigma(2,2);
+    catch exception
+        display(sprintf('Error on Channel %d. Do not trust centerMass values.',ii));
+        centerMass(ii,:) = NaN;
     end
+
 end
 
 save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...

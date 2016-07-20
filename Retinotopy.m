@@ -27,7 +27,7 @@ if nargin < 2
     Hemisphere = 'both';
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 25;
+    reps = 20;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 120 seconds of silence before commencing
@@ -35,7 +35,7 @@ if nargin < 2
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 25;
+    reps = 20;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 60 seconds of silence before commencing
@@ -91,7 +91,7 @@ elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
     centerY = Radius+1:2*Radius:h_pixels;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = 4*Radius:2*Radius:w_pixels-4*Radius;
+    centerX = 4*Radius:2*Radius:w_pixels-3*Radius;
     centerY = Radius+1:2*Radius:h_pixels;
 end
 numStimuli = length(centerX)*length(centerY);
