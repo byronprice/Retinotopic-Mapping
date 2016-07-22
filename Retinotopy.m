@@ -71,6 +71,11 @@ Screen('ColorRange', win, 1);
 % Retrieve monitor refresh duration
 ifi = Screen('GetFlipInterval', win);
 
+dgshader = [directory '/Retinotopy.vert.txt'];
+GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
+gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
+    h_pixels, 1, GratingShader);
+
 % screen size in millimeters and a conversion factor to get from mm to pixels
 [w_mm,h_mm] = Screen('DisplaySize',screenid);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
@@ -86,13 +91,13 @@ spatFreq = 1/temp;
 
 if strcmp(Hemisphere,'LH') == 1
     centerX = round(w_pixels/2)-100:2*Radius:w_pixels;
-    centerY = Radius+1:2*Radius:h_pixels;
+    centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
-    centerY = Radius+1:2*Radius:h_pixels;
+    centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = 4*Radius:2*Radius:w_pixels-3*Radius;
-    centerY = Radius+1:2*Radius:h_pixels;
+    centerX = 3*Radius:2*Radius:w_pixels-3*Radius;
+    centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 end
 numStimuli = length(centerX)*length(centerY);
 
@@ -114,10 +119,6 @@ end
 estimatedTime = ((waitTime+stimLen)*reps*numStimuli+startPause)/60;
 display(strcat('Estimated time-',num2str(estimatedTime),' minutes'));
 
-dgshader = [directory '/Retinotopy.vert.txt'];
-GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
-gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
-    h_pixels, 1, GratingShader);
 
 % Define first and second ring color as RGBA vector with normalized color
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -134,9 +135,9 @@ Priority(9);
 usb.startRecording;
 WaitSecs(startPause);
 
-vbl = Screen('Flip', win);
 % Animation loop
 for zz = 1:reps
+    vbl = Screen('Flip', win);
     for ii=1:numStimuli
         orient = rand*2*pi;
         % Draw the procedural texture as any other texture via 'DrawTexture'
@@ -145,19 +146,11 @@ for zz = 1:reps
             [], [],[White,Black,...
             Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient,0]);
         % Request stimulus onset
-        usb.strobe;
-        vbl = Screen('Flip', win, vbl + ifi/2);
-        WaitSecs(stimLen);
-        vbl = vbl+stimLen;
-        
-        Screen('DrawTexture', win,gratingTex, [],[],...
-            [],[],[],[Black Black Black Black],...
-            [], [],[Black,Black,Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,...
-            orient,0]);
-        vbl = Screen('Flip', win, vbl + ifi/2);
-        WaitSecs(waitTime);
-        vbl = vbl+waitTime;
+        vbl = Screen('Flip', win, vbl + ifi/2);usb.strobe;
+        vbl = Screen('Flip',win,vbl+ifi/2+stimLen);
+        vbl = Screen('Flip',win,vbl+ifi/2+waitTime);
     end
+    WaitSecs(2);
 end
 WaitSecs(2);
 usb.stopRecording;
