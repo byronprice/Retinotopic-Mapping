@@ -189,6 +189,7 @@ if yesNo == 1
 end
 
 centerMass = zeros(numChans,4);
+Sigma = zeros(numChans,2,2);
 for ii=1:numChans
     dataX = [];dataY = [];
     for jj=1:numStimuli
@@ -203,14 +204,16 @@ for ii=1:numChans
         centerMass(ii,2) = mnPDF.mu(2);
         centerMass(ii,3) = mnPDF.Sigma(1,1);
         centerMass(ii,4) = mnPDF.Sigma(2,2);
+        Sigma(ii,:,:) = mnPDF.Sigma;
     catch exception
         display(sprintf('Error on Channel %d. Do not trust centerMass values.',ii));
         centerMass(ii,:) = NaN;
+        Sigma(ii,:,:) = NaN;
     end
 
 end
 
 save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...
-    'centerVals','significantStimuli','centerMass','stimVals','mnPDF');
+    'centerVals','significantStimuli','centerMass','stimVals','Sigma');
 
 end
