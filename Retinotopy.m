@@ -19,7 +19,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/20
+% Updated: 2016/07/22
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
@@ -27,7 +27,7 @@ if nargin < 2
     Hemisphere = 'both';
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 20;
+    reps = 15;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 120 seconds of silence before commencing
@@ -35,7 +35,7 @@ if nargin < 2
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 20;
+    reps = 15;
     stimLen = 50/1000;
     waitTime = 1;
     startPause = 120; % 60 seconds of silence before commencing
