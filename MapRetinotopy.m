@@ -216,4 +216,7 @@ end
 save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...
     'centerVals','significantStimuli','centerMass','stimVals','Sigma');
 
+% obj = gmdistribution(centerMass(chan,1:2),squeeze(Sigma(chan,:,:)));
+% figure();
+% h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,[0 h_pixels]);
 end
