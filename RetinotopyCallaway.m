@@ -117,7 +117,6 @@ for zz = 1:4
     for ii=1:reps
       vbl = Screen('Flip', win);
       count = 1;
-      usb.strobe;
       for jj=centers
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...

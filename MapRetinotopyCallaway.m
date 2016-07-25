@@ -82,7 +82,7 @@ numDirs = 4;
 Response = cell(numChans,numDirs);
 numFlashes = zeros(numDirs,1);
 
-diffs(1) = 1;diffs = abs(diffs);
+diffs = abs(diffs);
 for ii=1:numChans
     for jj=1:numDirs
         numFlashes(jj) = sum(diffs);
