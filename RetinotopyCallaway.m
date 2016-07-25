@@ -22,15 +22,15 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/06/30
+% Updated: 2016/07/25
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
 if nargin < 2
     DistToScreen = 25;
     barDegree = 5;
-    reps = 20;
-    startPause = 120;
+    reps = 30;
+    startPause = 0;
 end
 checkDegree = 10; % width or height in degrees of checkerboard squares
 checkRefresh = 0.150; % seconds to flash the checkerboard in one color
@@ -99,12 +99,12 @@ centerPos{2} = w_pixels:-driftSpeed(1):1;
 centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
 
+estimatedTime = ((driftTime+1)*reps+5)*4/60;
+display(sprintf('Estimated time: %3.2f minutes',estimatedTime));
 usb.startRecording;
 WaitSecs(startPause);
 
 % Animation loop
-
-% Perform initial flip to gray background:
 for zz = 1:4
     centers = centerPos{zz};
     if zz == 1 || zz == 2
@@ -143,7 +143,8 @@ stimFreq = 1/driftTime;
 
 cd('/home/jglab/Documents/MATLAB/Byron/RetinoExp/')
 fileName = strcat('RetinoCallStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels','h_pixels','reps','checkRefresh')
+save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
+    'h_pixels','reps','checkRefresh','startPause','centerPos','diffs')
 
 % Close window
 Screen('CloseAll');

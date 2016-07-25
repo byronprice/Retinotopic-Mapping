@@ -179,7 +179,7 @@ for ii=1:numChans
     end
     if yesNo == 1
         subplot(numChans,1,ii);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
-        title(sprintf('Retinotopic Heat Map of Significant Stimuli for Channel %d',ii));ylabel(h,'VEP Magnitude (\muV)');
+        title(sprintf('Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
         xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
         colormap('jet');
     end
