@@ -30,7 +30,7 @@ if nargin < 2
     reps = 40;
     stimLen = 50/1000;
     waitTime = 0.5;
-    startPause = 0; % 120 seconds of silence before commencing
+    startPause = 120; % 120 seconds of silence before commencing
     spatFreq = 0.3;
 elseif nargin < 3
     DistToScreen = 25;
