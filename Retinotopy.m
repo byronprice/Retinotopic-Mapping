@@ -27,19 +27,19 @@ if nargin < 2
     Hemisphere = 'both';
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 20;
+    reps = 40;
     stimLen = 50/1000;
-    waitTime = 1;
-    startPause = 120; % 120 seconds of silence before commencing
-    spatFreq = 0.1;
+    waitTime = 0.5;
+    startPause = 0; % 120 seconds of silence before commencing
+    spatFreq = 0.3;
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
-    reps = 20;
+    reps = 40;
     stimLen = 50/1000;
-    waitTime = 1;
-    startPause = 120; % 60 seconds of silence before commencing
-    spatFreq = 0.1;
+    waitTime = 0.5;
+    startPause = 120; % 120 seconds of silence before commencing
+    spatFreq = 0.3;
 end
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -117,7 +117,7 @@ for ii=1:50
 end
 
 estimatedTime = ((waitTime+stimLen)*reps*numStimuli+startPause)/60;
-display(strcat('Estimated time-',num2str(estimatedTime),' minutes'));
+display(sprintf('Estimated time: %3.2f minutes',estimatedTime));
 
 
 % Define first and second ring color as RGBA vector with normalized color
