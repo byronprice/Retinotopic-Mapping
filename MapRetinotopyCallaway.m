@@ -56,10 +56,10 @@ strobeStart = 33;
 dataLength = length(allad{1,Chans(1)});
 
 ChanData = zeros(dataLength,numChans);
-preAmpGain = 1/1000;
+preAmpGain = 1;
 for ii=1:numChans
-    voltage = ((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-    temp = smooth(voltage,0.05*sampleFreq);
+    voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
+    temp = smooth(voltage,0.013*sampleFreq);
     n = 30;
     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
@@ -73,7 +73,7 @@ if length(timeStamps) ~= dataLength
     display('Error: Review allad cell array and timing')
     return;
 end
-strobeData = tsevs{1,strobeStart};
+strobeTimes = tsevs{1,strobeStart};
 stimStart = round(0.05*sampleFreq);
 stimLen = round(0.05*sampleFreq);
 
@@ -95,7 +95,7 @@ for ii=1:numChans
     for jj=1:numDirs
         for kk=1:reps
             for ll=1:numFlashes(jj)
-                stimOnset = strobeData(count);
+                stimOnset = strobeTimes(count);
                 [~,index] = min(abs(timeStamps-stimOnset));
                 temp = ChanData(index+stimStart:index+stimStart+stimLen-1,ii);
                 Response{ii,jj}(kk,ll,:) = temp;

@@ -15,7 +15,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/19
+% Updated: 2016/07/25
 %  By: Byron Price
 
 
@@ -56,16 +56,15 @@ strobeStart = 33;
 dataLength = length(allad{1,Chans(1)});
 
 ChanData = zeros(dataLength,numChans);
-preAmpGain = 1/1000;
+preAmpGain = 1;
 for ii=1:numChans
-    voltage = ((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-    temp = smooth(voltage,0.05*sampleFreq);
+    voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
+    temp = smooth(voltage,0.013*sampleFreq);
     n = 30;
     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
     ChanData(:,ii) = filter(blo,1,temp);
 end
-
 
 timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
 
@@ -73,7 +72,7 @@ if length(timeStamps) ~= dataLength
     display('Error: Review allad cell array and timing')
     return;
 end
-strobeData = tsevs{1,strobeStart};
+strobeTimes = tsevs{1,strobeStart};
 stimLength = round((stimLen+0.2)*sampleFreq); % about 250 milliseconds
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
@@ -82,7 +81,7 @@ for ii=1:numChans
     for jj=1:reps
         check = (jj-1)*numStimuli+1:jj*numStimuli;
         for kk=1:numStimuli
-            stimOnset = strobeData(check(kk));
+            stimOnset = strobeTimes(check(kk));
             [~,index] = min(abs(timeStamps-stimOnset));
             temp = ChanData(index:index+stimLength-1,ii);
             Response(ii,kk,jj,:) = temp;
