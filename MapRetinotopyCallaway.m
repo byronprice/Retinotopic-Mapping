@@ -16,7 +16,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/25
+% Updated: 2016/07/27
 %  By: Byron Price
 
 % read in the .plx file
@@ -78,24 +78,23 @@ stimStart = round(0.05*sampleFreq);
 stimLen = round(0.05*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
-numDirs = 4;
 Response = cell(numChans,numDirs);
 numFlashes = zeros(numDirs,1);
 
-diffs = abs(diffs);
 for ii=1:numChans
     for jj=1:numDirs
-        numFlashes(jj) = sum(diffs);
+        numFlashes(jj) = sum(svStrobed == jj);
         Response{ii,jj} = zeros(reps,numFlashes(jj),stimLen);
     end
 end
 
 for ii=1:numChans
-    count = 1;
     for jj=1:numDirs
+        dirStrobes = strobeTimes(svStrobed==jj);
+        count = 1;
         for kk=1:reps
             for ll=1:numFlashes(jj)
-                stimOnset = strobeTimes(count);
+                stimOnset = dirStrobes(count);
                 [~,index] = min(abs(timeStamps-stimOnset));
                 temp = ChanData(index+stimStart:index+stimStart+stimLen-1,ii);
                 Response{ii,jj}(kk,ll,:) = temp;
@@ -109,17 +108,19 @@ end
 %  AND STANDARD ERRORS
 %  started trial with 120 seconds of a blank screen
 N = 5000; % number of bootstrap samples
-noStimLen = startPause*sampleFreq;
+noStimLen = startPause*sampleFreq-(stimLen+stimStart)*2;
+pauseOnset = strobeTimes(svStrobed == 0);
+[~,index] = min(abs(timeStamps-pauseOnset(1)));
 
 bootPrctile = zeros(numChans,1); % 99 percentile
 bootStat = zeros(numChans,2);
 for ii=1:numChans
     Tboot = zeros(N,1);
     for jj=1:N
-        indeces = random('Discrete Uniform',noStimLen-(stimLen+stimStart)*2,[reps,1]);
+        indeces = random('Discrete Uniform',noStimLen,[reps,1]);
         temp = zeros(reps,stimLen);
         for kk=1:reps
-            temp(kk,:) = ChanData(indeces(kk)+stimStart:indeces(kk)+stimStart+stimLen-1,ii);
+            temp(kk,:) = ChanData(index+indeces(kk)+stimStart:index+indeces(kk)+stimStart+stimLen-1,ii);
         end
         Tboot(jj) = abs(min(mean(temp,1)));
     end

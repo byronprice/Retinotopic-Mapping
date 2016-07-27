@@ -15,7 +15,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/25
+% Updated: 2016/07/27
 %  By: Byron Price
 
 
@@ -73,18 +73,18 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeTimes = tsevs{1,strobeStart};
-stimLength = round((stimLen+0.2)*sampleFreq); % about 250 milliseconds
+stimLen = round((stimTime+0.2)*sampleFreq); % about 250 milliseconds
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
-Response = zeros(numChans,numStimuli,reps,stimLength);
+Response = zeros(numChans,numStimuli,reps,stimLen);
 for ii=1:numChans
-    for jj=1:reps
-        check = (jj-1)*numStimuli+1:jj*numStimuli;
-        for kk=1:numStimuli
-            stimOnset = strobeTimes(check(kk));
+    for jj=1:numStimuli
+        stimStrobes = strobeTimes(svStrobed == jj);
+        for kk=1:reps
+            stimOnset = stimStrobes(kk);
             [~,index] = min(abs(timeStamps-stimOnset));
-            temp = ChanData(index:index+stimLength-1,ii);
-            Response(ii,kk,jj,:) = temp;
+            temp = ChanData(index:index+stimLen-1,ii);
+            Response(ii,jj,kk,:) = temp;
         end
         clear check;
     end
@@ -116,17 +116,19 @@ end
 %  AND STANDARD ERRORS
 %  started trial with 120 seconds of a blank screen
 N = 5000; % number of bootstrap samples
-noStimLen = startPause*sampleFreq;
+noStimLen = startPause*sampleFreq-stimLen*2;
+pauseOnset = strobeTimes(svStrobed == 0);
+[~,index] = min(abs(timeStamps-pauseOnset(1)));
 
 bootPrctile = zeros(numChans,1); % 99 percentile
 bootStat = zeros(numChans,2);
 for ii=1:numChans
     Tboot = zeros(N,1);
     for jj=1:N
-        indeces = random('Discrete Uniform',noStimLen-stimLength*2,[reps,1]);
-        temp = zeros(reps,stimLength);
+        indeces = random('Discrete Uniform',noStimLen,[reps,1]);
+        temp = zeros(reps,stimLen);
         for kk=1:reps
-            temp(kk,:) = ChanData(indeces(kk):indeces(kk)+stimLength-1,ii);
+            temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
         Tboot(jj) = max(mean(temp,1))-min(mean(temp,1));
     end

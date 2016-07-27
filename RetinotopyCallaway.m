@@ -22,7 +22,7 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/25
+% Updated: 2016/07/27
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
@@ -30,10 +30,10 @@ if nargin < 2
     DistToScreen = 25;
     barDegree = 5;
     reps = 30;
-    startPause = 0;
+    startPause = 120;
 end
 checkDegree = 10; % width or height in degrees of checkerboard squares
-checkRefresh = 0.150; % seconds to flash the checkerboard in one color
+checkRefresh = .2; % seconds to flash the checkerboard in one color
 driftTime = 10;
 %driftSpeed = 12; % drift speed in degrees/second
 
@@ -93,19 +93,21 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
 Color = [0,0,0,0;1,1,1,1];
 
 % define center positions for bar at each screen refresh
-centerPos = cell(1,4);
+numDirs = 4;
+centerPos = cell(1,numDirs);
 centerPos{1} = 1:driftSpeed(1):w_pixels;
 centerPos{2} = w_pixels:-driftSpeed(1):1;
 centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
 
 estimatedTime = ((driftTime+1)*reps+5)*4/60;
-display(sprintf('Estimated time: %3.2f minutes',estimatedTime));
-usb.startRecording;
+display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
+
+usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(startPause);
 
 % Animation loop
-for zz = 1:4
+for zz = 1:numDirs
     centers = centerPos{zz};
     if zz == 1 || zz == 2
         vertOhorz = 1;
@@ -124,9 +126,9 @@ for zz = 1:4
             Color(2,1),Color(2,2),Color(2,3),Color(2,4),Width,jj,vertOhorz,checkSize, ...
             values(count),0,0,0]);
             % Request stimulus onset
-            vbl = Screen('Flip', win, vbl + ifi/2);
+            vbl = Screen('Flip', win);
             if abs(diffs(count)) > 0 
-                usb.strobe;
+                usb.strobeEventWord(zz);
             end
             count = count+1;
       end
@@ -143,7 +145,7 @@ stimFreq = 1/driftTime;
 cd('/home/jglab/Documents/MATLAB/Byron/RetinoExp/')
 fileName = strcat('RetinoCallStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
-    'h_pixels','reps','checkRefresh','startPause','centerPos','diffs')
+    'h_pixels','reps','checkRefresh','startPause','centerPos','diffs','numDirs')
 
 % Close window
 Screen('CloseAll');
