@@ -31,7 +31,7 @@ void main()
 
            float orient_vec = cos(orientation)*x+sin(orientation)*y;
            float mix_coeff = 0.5+0.5*sin(twopi*spatFreq*orient_vec);
-           float kernel = 2*exp(-(x*x+y*y)/(Radius*Radius/6));
+           float kernel = 1.5*exp(-(x*x+y*y)/(Radius*Radius/5)); /* divide by 5 multiply by 1.5 */
            gl_FragColor = mix_coeff*White*kernel;
          }
     else {
