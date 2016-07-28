@@ -19,7 +19,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/22
+% Updated: 2016/07/27
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
