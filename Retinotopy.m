@@ -28,19 +28,22 @@ if nargin < 2
     DistToScreen = 25;
     degreeRadius = 5;
     reps = 40;
+    blocks = 4;
     stimTime = 50/1000;
-    waitTime = 0.5;
-    startPause = 120; % 120 seconds of silence before commencing
+    waitTime = 0.05;
+    holdTime = 30; % 30 seconds of silence to start and between blocks
     spatFreq = 0.3;
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
     reps = 40;
+    blocks = 4;
     stimTime = 50/1000;
     waitTime = 0.5;
-    startPause = 120; % 120 seconds of silence before commencing
+    holdTime = 30; 
     spatFreq = 0.3;
 end
+reps = reps-mod(reps,blocks);
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');
@@ -116,7 +119,7 @@ for ii=1:50
     centerVals = centerVals(indeces,:);
 end
 
-estimatedTime = ((waitTime+stimTime)*reps*numStimuli+startPause)/60;
+estimatedTime = ((waitTime+stimTime)*reps*numStimuli+blocks*holdTime)/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
 
@@ -133,24 +136,30 @@ White = 1;
 Priority(9);
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
-WaitSecs(startPause);
+WaitSecs(holdTime);
 
 % Animation loop
-for zz = 1:reps
-    vbl = Screen('Flip', win);
-    for ii=1:numStimuli
-        orient = rand*2*pi;
-        % Draw the procedural texture as any other texture via 'DrawTexture'
-        Screen('DrawTexture', win,gratingTex, [],[],...
-            [],[],[],[Grey Grey Grey Grey],...
-            [], [],[White,Black,...
-            Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient,0]);
-        % Request stimulus onset
-        vbl = Screen('Flip', win);usb.strobeEventWord(ii);
-        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-        vbl = Screen('Flip',win,vbl-ifi/2+waitTime);
+for yy = 1:blocks
+    vbl = Screen('Flip',win);
+    for zz = 1:reps/blocks
+        for ii=1:numStimuli
+            orient = rand*2*pi;
+            % Draw the procedural texture as any other texture via 'DrawTexture'
+            Screen('DrawTexture', win,gratingTex, [],[],...
+                [],[],[],[Grey Grey Grey Grey],...
+                [], [],[White,Black,...
+                Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient,0]);
+            % Request stimulus onset
+            vbl = Screen('Flip', win);usb.strobeEventWord(ii);
+            vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+            vbl = Screen('Flip',win,vbl-ifi/2+waitTime);
+        end
+        vbl = Screen('Flip',win,vbl-ifi/2+2);
     end
-    WaitSecs(2);
+    if yy ~= blocks
+        usb.strobeEventWord(0);
+        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
+    end
 end
 WaitSecs(2);
 usb.stopRecording;
@@ -158,7 +167,7 @@ Priority(0);
 
 cd('~/Documents/MATLAB/Byron/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
-save(fileName,'centerVals','Radius','reps','stimTime','startPause',...
+save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
     'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')
 % Close window
 Screen('CloseAll');

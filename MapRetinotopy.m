@@ -15,7 +15,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/27
+% Updated: 2016/07/29
 %  By: Byron Price
 
 
@@ -74,6 +74,8 @@ if length(timeStamps) ~= dataLength
 end
 strobeTimes = tsevs{1,strobeStart};
 stimLen = round((stimTime+0.2)*sampleFreq); % about 250 milliseconds
+minWin = round(0.04*sampleFreq):1:round(0.1*sampleFreq);
+maxWin = round(.1*sampleFreq):1:round(0.2*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -94,7 +96,7 @@ end
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
 meanResponse = squeeze(mean(Response,3));
-dataStat = max(meanResponse,[],3)-min(meanResponse,[],3);
+dataStat = max(meanResponse(:,:,maxWin),[],3)-min(meanResponse(:,:,minWin),[],3);
 
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 5000;
@@ -106,7 +108,7 @@ for ii=1:numChans
             indeces = random('Discrete Uniform',reps,[reps,1]);
             group = squeeze(Response(ii,jj,indeces,:));
             meanGroup = mean(group,1);
-            Tboot(kk) = max(meanGroup)-min(meanGroup);
+            Tboot(kk) = max(meanGroup(maxWin))-min(meanGroup(minWin));
         end
         dataError(ii,jj) = std(Tboot);
     end
@@ -114,11 +116,13 @@ end
 
 % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
 %  AND STANDARD ERRORS
-%  started trial with 120 seconds of a blank screen
+%  interspersed stimulus repetitions with holdTime seconds of a blank
+%  screen
 N = 5000; % number of bootstrap samples
-noStimLen = startPause*sampleFreq-stimLen*2;
-pauseOnset = strobeTimes(svStrobed == 0);
-[~,index] = min(abs(timeStamps-pauseOnset(1)));
+if exist('startPause','var') == 1
+    holdTime = startPause;
+end
+noStimLen = holdTime*sampleFreq-stimLen*2;
 
 bootPrctile = zeros(numChans,1); % 99 percentile
 bootStat = zeros(numChans,2);
@@ -127,10 +131,14 @@ for ii=1:numChans
     for jj=1:N
         indeces = random('Discrete Uniform',noStimLen,[reps,1]);
         temp = zeros(reps,stimLen);
+        pauseOnset = strobeTimes(svStrobed == 0);
+        num = length(pauseOnset);num = random('Discrete Uniform',num);
+        [~,index] = min(abs(timeStamps-pauseOnset(num)));
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        Tboot(jj) = max(mean(temp,1))-min(mean(temp,1));
+        meanTrace = mean(temp,1);
+        Tboot(jj) = max(meanTrace(maxWin))-min(meanTrace(minWin));
     end
     %figure();histogram(Tboot);
     bootPrctile(ii) = quantile(Tboot,1-1/100);
