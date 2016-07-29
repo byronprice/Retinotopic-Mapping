@@ -33,6 +33,7 @@ if nargin < 2
     waitTime = 0.5;
     holdTime = 30; % 30 seconds of silence to start and between blocks
     spatFreq = 0.3;
+    gamma = 2.4;
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
@@ -42,6 +43,7 @@ elseif nargin < 3
     waitTime = 0.5;
     holdTime = 30; 
     spatFreq = 0.3;
+    gamma = 2.4;
 end
 reps = reps-mod(reps,blocks);
 
@@ -63,7 +65,8 @@ screenid = max(Screen('Screens'));
 
 % Open a fullscreen onscreen window on that display, choose a background
 % color of 128 = gray with 50% max intensity; 0 = black
-[win,~] = Screen('OpenWindow', screenid,128);
+background = 128; % gray, mean luminance
+[win,~] = Screen('OpenWindow', screenid,background);
 
 % Switch color specification to use the 0.0 - 1.0 range
 Screen('ColorRange', win, 1);
@@ -131,6 +134,7 @@ Grey = 0.5;
 Black = 0;
 White = 1;
 
+Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 %orientation = (rand([numStimuli,1])*360)*pi/180;
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
@@ -150,7 +154,7 @@ for yy = 1:blocks
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
-                Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient,0]);
+                Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient,gamma]);
             % Request stimulus onset
             vbl = Screen('Flip', win);usb.strobeEventWord(ii);
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
