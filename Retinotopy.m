@@ -30,7 +30,7 @@ if nargin < 2
     reps = 40;
     blocks = 4;
     stimTime = 50/1000;
-    waitTime = 0.05;
+    waitTime = 0.5;
     holdTime = 30; % 30 seconds of silence to start and between blocks
     spatFreq = 0.3;
 elseif nargin < 3
@@ -63,7 +63,7 @@ screenid = max(Screen('Screens'));
 
 % Open a fullscreen onscreen window on that display, choose a background
 % color of 128 = gray with 50% max intensity; 0 = black
-[win,~] = Screen('OpenWindow', screenid,0);
+[win,~] = Screen('OpenWindow', screenid,128);
 
 % Switch color specification to use the 0.0 - 1.0 range
 Screen('ColorRange', win, 1);
@@ -145,6 +145,8 @@ for yy = 1:blocks
         for ii=1:numStimuli
             orient = rand*2*pi;
             % Draw the procedural texture as any other texture via 'DrawTexture'
+%             blendType = GL_ONE_MINUS_SRC_ALPHA; 
+%             Screen('BlendFunction',win,GL_SRC_ALPHA,blendType);
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
