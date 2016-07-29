@@ -19,7 +19,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/27
+% Updated: 2016/07/29
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
@@ -119,7 +119,7 @@ for ii=1:50
     centerVals = centerVals(indeces,:);
 end
 
-estimatedTime = ((waitTime+stimTime)*reps*numStimuli+blocks*holdTime)/60;
+estimatedTime = ((waitTime+stimTime)*reps*numStimuli+reps*2+blocks*holdTime)/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
 
