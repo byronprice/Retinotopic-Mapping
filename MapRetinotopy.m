@@ -168,10 +168,19 @@ end
 stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
+
+xtot = stimLen/max(diff(sort(centerVals(:,1))));
+ytot = max(max(dataStat))/max(diff(sort(centerVals(:,2))));
+
 if yesNo == 1
-    figure();
+    h(1) = figure;
+    h(2) = figure;
+    A = cell(numChans,1);
 end
 for ii=1:numChans
+    if yesNo == 1 
+        figure(h(1));A{ii} = subplot(numChans,1,ii);hold(A{ii},'on');
+    end
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
         tempy = centerVals(jj,2);
@@ -185,16 +194,24 @@ for ii=1:numChans
 %             end
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
+        if yesNo == 1
+            plot(1:stimLen+centerVals(ii,1)*xtot-...
+                max(diff(sort(centerVals(jj,1))))*xtot,squeeze(meanResponse(ii,jj,:))...
+                +centerVals(jj,1)*ytot);
+        end
     end
     if yesNo == 1
+        hold(A{ii},'off');
+        figure(h(2));
         subplot(numChans,1,ii);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
         title(sprintf('Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
         xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
         colormap('jet');
+        
     end
 end
 if yesNo == 1
-    savefig(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
+    savefig(h,strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
 end
 
 centerMass = zeros(numChans,4);
