@@ -1,6 +1,6 @@
 function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %Retinotopy.m
-%  Display a series of flashing squares to determine retinotopy of
+%  Display a series of flashing sine-wave gratings to determine retinotopy of
 %   LFP recording electrode.
 %  Each square will occupy a 7-degree radius of visual space
 % INPUT: Obligatory-
@@ -22,7 +22,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 % Updated: 2016/07/29
 %  By: Byron Price
 
-directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
+directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping';
 if nargin < 2
     Hemisphere = 'both';
     DistToScreen = 25;
@@ -33,7 +33,7 @@ if nargin < 2
     waitTime = 0.5;
     holdTime = 30; % 30 seconds of silence to start and between blocks
     spatFreq = 0.3;
-    gamma = 2.4;
+    gamma = 2.1806;
 elseif nargin < 3
     DistToScreen = 25;
     degreeRadius = 5;
@@ -43,7 +43,7 @@ elseif nargin < 3
     waitTime = 0.5;
     holdTime = 30; 
     spatFreq = 0.3;
-    gamma = 2.4;
+    gamma = 2.1806;
 end
 reps = reps-mod(reps,blocks);
 
@@ -135,7 +135,8 @@ Black = 0;
 White = 1;
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-%orientation = (rand([numStimuli,1])*360)*pi/180;
+
+orient = rand([numStimuli*reps,1]).*(2*pi);
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
 
@@ -143,22 +144,21 @@ usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(holdTime);
 
 % Animation loop
+count = 1;
 for yy = 1:blocks
     vbl = Screen('Flip',win);
     for zz = 1:reps/blocks
         for ii=1:numStimuli
-            orient = rand*2*pi;
             % Draw the procedural texture as any other texture via 'DrawTexture'
-%             blendType = GL_ONE_MINUS_SRC_ALPHA; 
-%             Screen('BlendFunction',win,GL_SRC_ALPHA,blendType);
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
-                Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient,gamma]);
+                Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient(count),gamma]);
             % Request stimulus onset
-            vbl = Screen('Flip', win);usb.strobeEventWord(ii);
+            vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(ii);
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             vbl = Screen('Flip',win,vbl-ifi/2+waitTime);
+            count = count+1;
         end
         vbl = Screen('Flip',win,vbl-ifi/2+2);
     end
