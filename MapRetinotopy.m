@@ -173,13 +173,16 @@ xtot = stimLen/max(diff(sort(centerVals(:,1))));
 ytot = max(max(dataStat))/max(diff(sort(centerVals(:,2))));
 
 if yesNo == 1
-    h(1) = figure;
-    h(2) = figure;
-    A = cell(numChans,1);
+    for ii=1:numChans
+        h(ii) = figure;
+    end
+    A = cell(2,1);
 end
 for ii=1:numChans
     if yesNo == 1 
-        figure(h(1));A{ii} = subplot(numChans,1,ii);hold(A{ii},'on');
+        figure(h(ii));A{1} = subplot(2,1,1);
+        title(sprintf('VEP Retinotopy, Channel %d, Animal %d',ii,AnimalName));
+        hold(A{ii},'on');
     end
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
@@ -195,16 +198,14 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
         if yesNo == 1
-            plot(1:stimLen+centerVals(ii,1)*xtot-...
-                max(diff(sort(centerVals(jj,1))))*xtot,squeeze(meanResponse(ii,jj,:))...
-                +centerVals(jj,1)*ytot);
+            plot(((1:1:stimLen)+centerVals(jj,1)*xtot-max(diff(sort(centerVals(:,1))))*xtot),...
+                (squeeze(meanResponse(ii,jj,:))'+centerVals(jj,2)*ytot));
         end
     end
     if yesNo == 1
         hold(A{ii},'off');
-        figure(h(2));
-        subplot(numChans,1,ii);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');h=colorbar;
-        title(sprintf('Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
+        subplot(2,1,2);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');w=colorbar;
+        title(sprintf('Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(w,'VEP Magnitude (\muV)');
         xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
         colormap('jet');
         
