@@ -55,8 +55,8 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-usb = ttlInterfaceClass.getTTLInterface;
-% usb = usb1208FSPlusClass;
+% usb = ttlInterfaceClass.getTTLInterface;
+usb = usb1208FSPlusClass;
 display(usb);
 
 WaitSecs(10);
@@ -65,8 +65,8 @@ WaitSecs(10);
 screenid = max(Screen('Screens'));
 
 % Open a fullscreen onscreen window on that display, choose a background
-% color of 128 = gray with 50% max intensity; 0 = black
-background = 128; % gray, mean luminance
+% color of 127 = gray with 50% max intensity; 0 = black
+background = 127; % gray, mean luminance
 [win,~] = Screen('OpenWindow', screenid,background);
 
 % Switch color specification to use the 0.0 - 1.0 range
@@ -172,7 +172,7 @@ WaitSecs(2);
 usb.stopRecording;
 Priority(0);
 
-cd('~/Documents/MATLAB/Byron/RetinoExp')
+cd('~/CloudStation/ByronExp/RetinoExp')
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
     'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')

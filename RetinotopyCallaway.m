@@ -22,7 +22,7 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/27
+% Updated: 2016/08/01
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
@@ -142,7 +142,7 @@ usb.stopRecording;
 driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
 stimFreq = 1/driftTime;
 
-cd('/home/jglab/Documents/MATLAB/Byron/RetinoExp/')
+cd('~/CloudStation/ByronExp/RetinoExp/')
 fileName = strcat('RetinoCallStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
     'h_pixels','reps','checkRefresh','startPause','centerPos','diffs','numDirs')
