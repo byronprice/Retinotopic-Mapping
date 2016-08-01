@@ -15,7 +15,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/07/29
+% Updated: 2016/08/01
 %  By: Byron Price
 
 
@@ -169,20 +169,20 @@ stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
 
-xtot = stimLen/max(diff(sort(centerVals(:,1))));
-ytot = max(max(dataStat))/max(diff(sort(centerVals(:,2))));
+xconv = stimLen/max(diff(sort(centerVals(:,1))));
+yconv = max(max(dataStat))/max(diff(sort(centerVals(:,2))));
 
 if yesNo == 1
     for ii=1:numChans
         h(ii) = figure;
     end
-    A = cell(2,1);
 end
 for ii=1:numChans
     if yesNo == 1 
-        figure(h(ii));A{1} = subplot(2,1,1);
+        figure(h(ii));axis([0 w_pixels 0 h_pixels]);
         title(sprintf('VEP Retinotopy, Channel %d, Animal %d',ii,AnimalName));
-        hold(A{ii},'on');
+        xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
+        hold on;
     end
     for jj=1:numStimuli
         tempx = centerVals(jj,1);
@@ -198,17 +198,14 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
         if yesNo == 1
-            plot(((1:1:stimLen)+centerVals(jj,1)*xtot-max(diff(sort(centerVals(:,1))))*xtot),...
-                (squeeze(meanResponse(ii,jj,:))'+centerVals(jj,2)*ytot));
+            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-max(diff(sort(centerVals(:,1))))),...
+                (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'LineWidth',2);
         end
     end
     if yesNo == 1
-        hold(A{ii},'off');
-        subplot(2,1,2);imagesc(x,y,squeeze(stimVals(ii,:,:))');set(gca,'YDir','normal');w=colorbar;
-        title(sprintf('Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(w,'VEP Magnitude (\muV)');
-        xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
-        colormap('jet');
-        
+        imagesc(x,y,squeeze(stimVals(ii,:,:))','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+        ylabel(w,'VEP Magnitude (\muV)');colormap('jet');
+        hold off;
     end
 end
 if yesNo == 1

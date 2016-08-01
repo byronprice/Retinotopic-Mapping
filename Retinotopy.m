@@ -19,7 +19,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/29
+% Updated: 2016/08/01
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping';
@@ -55,7 +55,8 @@ global GL;
 % Make sure this is running on OpenGL Psychtoolbox:
 AssertOpenGL;
 
-usb = usb1208FSPlusClass;
+usb = ttlInterfaceClass.getTTLInterface;
+% usb = usb1208FSPlusClass;
 display(usb);
 
 WaitSecs(10);
@@ -102,7 +103,7 @@ elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
     centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = 3*Radius:2*Radius:w_pixels-3*Radius;
+    centerX = 4*Radius:2*Radius:w_pixels-3*Radius;
     centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 end
 numStimuli = length(centerX)*length(centerY);
