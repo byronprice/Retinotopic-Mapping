@@ -198,8 +198,8 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
         if yesNo == 1
-            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-max(diff(sort(centerVals(:,1))))),...
-                (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'LineWidth',2);
+            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-Radius-max(diff(sort(centerVals(:,1))))),...
+                (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
         end
     end
     if yesNo == 1
