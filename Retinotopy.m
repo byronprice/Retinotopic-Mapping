@@ -1,4 +1,4 @@
-function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
+function [] = Retinotopy(AnimalName,holdTime)
 %Retinotopy.m
 %  Display a series of flashing sine-wave gratings to determine retinotopy of
 %   LFP recording electrode.
@@ -7,44 +7,24 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %
 %        Optional- 
-%        holdTime - time between blocks of 10 stimuli
-%        Hemisphere - hemisphere where electrodes are placed, 'LH' for
-%           left, 'RH' for right, 'both' for both, defaults to 'both'
-%        DistToScreen - physical distance of observer from the screen, in
-%           units of cm
-%        degreeRadius - degrees of visual field that radius of square will occupy
-%        spatFreq - spatial frequency of oriented sinusoidal grating
+%        holdTime - time between blocks of stimuli
+%  
+%        see file RetinotopyVars.mat for other changeable presets
 %
 % OUTPUT: a file with stimulus parameters named RetinoStimDate_AnimalName
 %           e.g. RetinoStim20160708_12345.mat to be saved in the RetinoExp
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/01
+% Updated: 2016/08/02
 %  By: Byron Price
+
+cd('~/CloudStation/ByronExp/RetinoExp');
+load('RetinotopyVars.mat');
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping';
 if nargin < 2
-    Hemisphere = 'both';
-    DistToScreen = 25;
-    degreeRadius = 5;
-    reps = 40;
-    blocks = 4;
-    stimTime = 50/1000;
-    waitTime = 0.5;
-    holdTime = 30; % 30 seconds of silence to start and between blocks
-    spatFreq = 0.3;
-    gamma = 2.1806;
-elseif nargin < 3
-    DistToScreen = 25;
-    degreeRadius = 5;
-    reps = 40;
-    blocks = 4;
-    stimTime = 50/1000;
-    waitTime = 0.5;
-    holdTime = 30; 
-    spatFreq = 0.3;
-    gamma = 2.1806;
+    holdTime = 30; % 30 second pauses between blocks
 end
 reps = reps-mod(reps,blocks);
 
@@ -173,7 +153,6 @@ WaitSecs(2);
 usb.stopRecording;
 Priority(0);
 
-cd('~/CloudStation/ByronExp/RetinoExp');
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
     'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')
