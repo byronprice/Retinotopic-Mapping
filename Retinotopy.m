@@ -7,6 +7,7 @@ function [] = Retinotopy(AnimalName,Hemisphere,DistToScreen,degreeRadius)
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %
 %        Optional- 
+%        holdTime - time between blocks of 10 stimuli
 %        Hemisphere - hemisphere where electrodes are placed, 'LH' for
 %           left, 'RH' for right, 'both' for both, defaults to 'both'
 %        DistToScreen - physical distance of observer from the screen, in
