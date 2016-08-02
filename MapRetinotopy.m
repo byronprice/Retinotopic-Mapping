@@ -18,7 +18,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 % Updated: 2016/08/01
 %  By: Byron Price
 
-
+set(0,'DefaultFigureWindowStyle','docked');
 % read in the .plx file
 EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
 
@@ -121,6 +121,7 @@ end
 N = 5000; % number of bootstrap samples
 if exist('startPause','var') == 1
     holdTime = startPause;
+    display('\nOld File');
 end
 noStimLen = holdTime*sampleFreq-stimLen*2;
 
@@ -170,7 +171,7 @@ x=1:w_pixels;
 y=1:h_pixels;
 
 xconv = stimLen/max(diff(sort(centerVals(:,1))));
-yconv = max(max(dataStat))/max(diff(sort(centerVals(:,2))));
+yconv = 1000/max(diff(sort(centerVals(:,2))));
 
 if yesNo == 1
     for ii=1:numChans
@@ -198,12 +199,12 @@ for ii=1:numChans
 %         end
         stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
         if yesNo == 1
-            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-Radius-max(diff(sort(centerVals(:,1))))),...
+            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*max(diff(sort(centerVals(:,1))))),...
                 (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
         end
     end
     if yesNo == 1
-        imagesc(x,y,squeeze(stimVals(ii,:,:))','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+        imagesc(x,y,squeeze(stimVals(ii,:,:))','AlphaData',0.7);set(gca,'YDir','normal');w=colorbar;
         ylabel(w,'VEP Magnitude (\muV)');colormap('jet');
         hold off;
     end
@@ -230,7 +231,7 @@ for ii=1:numChans
         centerMass(ii,4) = mnPDF.Sigma(2,2);
         Sigma(ii,:,:) = mnPDF.Sigma;
     catch exception
-        display(sprintf('Error on Channel %d. Do not trust centerMass values.',ii));
+        display(sprintf('Error, Animal %d , Channel %d. Do not trust centerMass values.',AnimalName,ii));
         centerMass(ii,:) = NaN;
         Sigma(ii,:,:) = NaN;
     end
@@ -240,6 +241,7 @@ end
 save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...
     'centerVals','significantStimuli','centerMass','stimVals','Sigma');
 
+set(0,'DefaultFigureWindowStyle','normal');
 % obj = gmdistribution(centerMass(chan,1:2),squeeze(Sigma(chan,:,:)));
 % figure();
 % h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,[0 h_pixels]);

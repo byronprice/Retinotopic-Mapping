@@ -172,7 +172,7 @@ WaitSecs(2);
 usb.stopRecording;
 Priority(0);
 
-cd('~/CloudStation/ByronExp/RetinoExp')
+cd('~/CloudStation/ByronExp/RetinoExp');
 fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
 save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
     'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')
