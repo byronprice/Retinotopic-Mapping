@@ -6,10 +6,7 @@ function [] = MapRetWrapper(fileStart)
 %         according to fileStart, e.g. fileStart = 'RetinoData*.plx';
 %         to get all of the files only for a single animal, write
 %         fileStart = 'RetinoData*26881*.plx';
-%OUTPUT: stimVals
-%        x -
-%        y -
-%        centerMass - 
+%OUTPUT: 
 %
 % Created: 2016/07/19, 24 Cummington, Boston
 %  Byron Price

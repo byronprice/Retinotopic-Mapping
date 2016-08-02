@@ -15,7 +15,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/01
+% Updated: 2016/08/02
 %  By: Byron Price
 
 set(0,'DefaultFigureWindowStyle','docked');
@@ -88,7 +88,7 @@ for ii=1:numChans
             temp = ChanData(index:index+stimLen-1,ii);
             Response(ii,jj,kk,:) = temp;
         end
-        clear check;
+        clear temp;
     end
 end
 
@@ -121,7 +121,7 @@ end
 N = 5000; % number of bootstrap samples
 if exist('startPause','var') == 1
     holdTime = startPause;
-    display('\nOld File');
+    display('Old File');
 end
 noStimLen = holdTime*sampleFreq-stimLen*2;
 
@@ -210,6 +210,7 @@ for ii=1:numChans
     end
 end
 if yesNo == 1
+    Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
     savefig(h,strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
 end
 
@@ -239,7 +240,7 @@ for ii=1:numChans
 end
 
 save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...
-    'centerVals','significantStimuli','centerMass','stimVals','Sigma');
+    'centerVals','significantStimuli','centerMass','stimVals','Sigma','Response','Channel');
 
 set(0,'DefaultFigureWindowStyle','normal');
 % obj = gmdistribution(centerMass(chan,1:2),squeeze(Sigma(chan,:,:)));
