@@ -2,7 +2,7 @@ function [] = Retinotopy(AnimalName,holdTime)
 %Retinotopy.m
 %  Display a series of flashing sine-wave gratings to determine retinotopy of
 %   LFP recording electrode.
-%  Each square will occupy a 7-degree radius of visual space
+%  Each square will occupy a 5-degree radius of visual space
 % INPUT: Obligatory-
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %
