@@ -27,9 +27,9 @@ datelen = 8;
 idlen = 5;
 for ii=1:numFiles
     index = regexp(fileList(ii).name,'_');
-    AnimalName = str2double(fileList(ii).name(index+1:index+idlen));
     Date = str2double(fileList(ii).name(index-datelen:index-1));
     if Date == yest
+        AnimalName = str2double(fileList(ii).name(index+1:index+idlen));
         [~,~,~] = MapRetinotopy(AnimalName,Date);
     end
 end

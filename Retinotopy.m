@@ -2,7 +2,7 @@ function [] = Retinotopy(AnimalName,holdTime)
 %Retinotopy.m
 %  Display a series of flashing sine-wave gratings to determine retinotopy of
 %   LFP recording electrode.
-%  Each square will occupy a 5-degree radius of visual space
+%  Each circle will occupy an ~ 5-degree radius of visual space
 % INPUT: Obligatory-
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %
@@ -16,7 +16,7 @@ function [] = Retinotopy(AnimalName,holdTime)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/02
+% Updated: 2016/08/03
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/RetinoExp');
@@ -29,7 +29,7 @@ end
 reps = reps-mod(reps,blocks);
 
 Date = datetime('today','Format','yyyy-MM-dd');
-Date = char(Date); Date = strrep(Date,'-','');
+Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 % Acquire a handle to OpenGL, so we can use OpenGL commands in our code:
 global GL;
 
@@ -153,7 +153,7 @@ WaitSecs(2);
 usb.stopRecording;
 Priority(0);
 
-fileName = strcat('RetinoStim',Date,'_',num2str(AnimalName),'.mat');
+fileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
     'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')
 % Close window

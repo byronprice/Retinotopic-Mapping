@@ -27,6 +27,7 @@ AnimalNames = unique(AnimalNames);
 numAnimals = length(AnimalNames);
 
 data = struct('Date',cell(numAnimals,1),'Response',cell(numAnimals,1));
+datelen = 8;
 for ii=1:numAnimals
     list = dir(strcat(fileStart,'*',num2str(AnimalNames(ii)),'*.plx'));
     numDates = length(list);
@@ -34,13 +35,34 @@ for ii=1:numAnimals
     data.Images{ii} = cell(numDates,1);
     data.Stats{ii} = cell(numDates,1);
     for jj=1:numDates
-        Date = str2double(list(jj).name(end-17:end-10));
+        index = regexp(fileList(ii).name,'_');
+        Date = str2double(fileList(ii).name(index-datelen:index-1));
         data(ii).Dates(jj,1) = Date;
         [Response] = ExtractSignal(AnimalNames(ii),Date,0);
-        
+        % think of way to store Response in a hierarchical structure. It's
+        % being output by ExtractSignal as a structure already, so a
+        % structure within a structure is really annoying. MATLAB sucks.
     end    
 end
 
+% look at the distrubtion of VEP magnitudes on individual trials ... only 
+%  in those locations that were deemed significant using MapRetinotopy.m
+%  The distribution might be uniform, such that any given VEP magnitude
+%  occurs, but I suspect it might be bimodal or at least something close.
+%  Fix a Gaussian mixture model and set a threshold between the two the
+%  groups. Any VEP magnitude below the threshold will signify, no VEP occurred
+%  and anything above will signify a VEP occurred (0 and 1). Then, split up
+%  the data in 80% and 20% and train a perceptron on the 80% to take as 
+%  input 200 ms of LFP data prior to stimulus onset and try to predict
+%  whether or not a VEP will occur. If we've already done the thresholding,
+%  then we have the ground truth. Test the model on the 20% of withheld
+%  data.
+
+% The question is: is there any information in the LFP that might help us
+% determine whether or not a VEP will appear? By setting this up as a
+% binary, yes or no, we're effectively getting the perceptron more
+% information to work with. If we tried to predict VEP magnitude, then we
+% might have only one example of a VEP of size 200 microVolts.
 
 end
 

@@ -6,27 +6,31 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
 %       Date - date of the experiment, e.g. 20160525
-%       yesNo - 1 if you are running this code as is, 0 if it is being run
-%        through MapRetWrapper.m
-%OUTPUT: stimVals
-%        x -
-%        y -
-%        centerMass - 
+%       Optional:
+%        yesNo - 1 if you are running this code as is, 0 if it is being run
+%         through MapRetWrapper.m or you don't want to output and save the
+%         figure for whatever reason
+%OUTPUT: stimVals - values used to generate the imagesc figure
+%        centerMass - for each channel, a vector with x position of the
+%         retinotopic field's center of mass, y position, x standard
+%         deviation and y standard deviation
+%        numChans - number of channels for this setup, usually 2
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/02
+% Updated: 2016/08/03
 %  By: Byron Price
 
 set(0,'DefaultFigureWindowStyle','docked');
 % read in the .plx file
-EphysFileName = strcat('RetinoData',num2str(Date),'_',num2str(AnimalName));
+EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
+                    % because MyReadall does that for us
 
 if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
     MyReadall(EphysFileName);
 end
 
-StimulusFileName = strcat('RetinoStim',num2str(Date),'_',num2str(AnimalName),'.mat');
+StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 EphysFileName = strcat(EphysFileName,'.mat');
 load(EphysFileName)
 load(StimulusFileName)
@@ -120,7 +124,8 @@ end
 %  screen
 N = 5000; % number of bootstrap samples
 if exist('startPause','var') == 1
-    holdTime = startPause;
+    holdTime = startPause; % used to do 120 second pause at the beginning,
+                        % now do holdTime second pauses, usually 30 secs
     display('Old File');
 end
 noStimLen = holdTime*sampleFreq-stimLen*2;
@@ -172,8 +177,15 @@ y=1:h_pixels;
 
 xconv = stimLen/max(diff(sort(centerVals(:,1)))); % the max(diff(sort ...
                  % is equal to the width of the mapping stimulus (the width
-                 % of the Gaussian kernel overlying the 
-yconv = 1000/max(diff(sort(centerVals(:,2))));
+                 % of the square that encloses the sinusoidal grating with
+                 % overlain 2D Gaussian kernel) ... this value is
+                 % equivalent to 2*Radius, which is output in the
+                 % RetinoStim file, so I could use that. The only issue is
+                 % that doing so would potentially preclude other types of
+                 % stimuli from being analyzed by this code. As is, the
+                 % code is fairly general to accept different types of
+                 % mapping stimuli
+yconv = 1000/max(diff(sort(centerVals(:,2)))); % for height of the stimulus
 
 if yesNo == 1
     for ii=1:numChans
@@ -213,7 +225,7 @@ for ii=1:numChans
 end
 if yesNo == 1
     Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
-    savefig(h,strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
+    savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
     %print(h,'-depsc','filename');
 end
 
@@ -224,6 +236,18 @@ for ii=1:numChans
     for jj=1:numStimuli
         dataX = [dataX;repmat(centerVals(jj,1),[round(significantStimuli(ii,jj)),1])];
         dataY = [dataY;repmat(centerVals(jj,2),[round(significantStimuli(ii,jj)),1])];
+        % this step is fairly odd. To fit the 2D Gaussian in units of pixels, 
+        % rather than in units of VEP magnitude, I make a distribution in 
+        % each dimension by creating a vector of pixel values. If the VEP
+        % magnitude at the location (1200,300), (x,y), was 250 microVolts,
+        % then the dataX vector will have 250 repetitions of the value 1200
+        % and the dataY vector will have 250 repetitions of the value 300.
+        % So, the distribution ends up being weighted more heavily by pixel
+        % values with strong VEPs. The values obtained by this method for
+        % the center of the retinotopic map are identical to those obtained
+        % by performing a center of mass calculation (center of mass
+        % exactly like those done in physics, SUM x*m / SUM m , except that
+        % m is the VEP magnitude instead of the mass).
     end
     data = [dataX,dataY];
 
@@ -234,15 +258,15 @@ for ii=1:numChans
         centerMass(ii,3) = mnPDF.Sigma(1,1);
         centerMass(ii,4) = mnPDF.Sigma(2,2);
         Sigma(ii,:,:) = mnPDF.Sigma;
-    catch exception
-        display(sprintf('Error, Animal %d , Channel %d. Do not trust centerMass values.',AnimalName,ii));
+    catch
+        display(sprintf('\nError, Animal %d , Channel %d.\n',AnimalName,ii));
         centerMass(ii,:) = NaN;
         Sigma(ii,:,:) = NaN;
     end
 
 end
 
-save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans',...
+save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'numChans',...
     'centerVals','significantStimuli','centerMass','stimVals','Sigma','Response','Channel');
 
 set(0,'DefaultFigureWindowStyle','normal');

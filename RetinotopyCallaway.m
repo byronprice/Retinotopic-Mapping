@@ -22,7 +22,7 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/01
+% Updated: 2016/08/03
 %  By: Byron Price
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
@@ -38,7 +38,7 @@ driftTime = 10;
 %driftSpeed = 12; % drift speed in degrees/second
 
 Date = datetime('today','Format','yyyy-MM-dd');
-Date = char(Date); Date = strrep(Date,'-','');
+Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 % Acquire a handle to OpenGL, so we can use OpenGL commands in our code:
 global GL;
 
@@ -143,7 +143,7 @@ driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
 stimFreq = 1/driftTime;
 
 cd('~/CloudStation/ByronExp/RetinoExp/')
-fileName = strcat('RetinoCallStim',Date,'_',num2str(AnimalName),'.mat');
+fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
 save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
     'h_pixels','reps','checkRefresh','startPause','centerPos','diffs','numDirs')
 

@@ -6,11 +6,11 @@ function [] = MapRetWrapper(fileStart)
 %         according to fileStart, e.g. fileStart = 'RetinoData*.plx';
 %         to get all of the files only for a single animal, write
 %         fileStart = 'RetinoData*26881*.plx';
-%OUTPUT: 
+%OUTPUT: figures
 %
 % Created: 2016/07/19, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/19
+% Updated: 2016/08/03
 %  By: Byron Price 
 
 fileList = dir(fileStart);
@@ -26,6 +26,7 @@ numAnimals = length(AnimalNames);
 
 data = struct('Dates',{cell(numAnimals,1)},'Images',{cell(numAnimals,1)},...
     'Stats',{cell(numAnimals,1)},'numChans',zeros(numAnimals,1));
+datelen = 8;
 for ii=1:numAnimals
     list = dir(strcat(fileStart,'*',num2str(AnimalNames(ii)),'*.plx'));
     numDates = length(list);
@@ -33,7 +34,8 @@ for ii=1:numAnimals
     data.Images{ii} = cell(numDates,1);
     data.Stats{ii} = cell(numDates,1);
     for jj=1:numDates
-        Date = str2double(list(jj).name(end-17:end-10));
+        index = regexp(fileList(ii).name,'_');
+        Date = str2double(fileList(ii).name(index-datelen:index-1));
         data.Dates{ii}(jj,1) = Date;
         [stimVals,centerMass,numChans] = MapRetinotopy(AnimalNames(ii),Date,0);
         data.Images{ii}{jj} = stimVals;
