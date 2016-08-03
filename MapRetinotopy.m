@@ -170,7 +170,9 @@ stimVals = zeros(numChans,w_pixels,h_pixels);
 x=1:w_pixels;
 y=1:h_pixels;
 
-xconv = stimLen/max(diff(sort(centerVals(:,1))));
+xconv = stimLen/max(diff(sort(centerVals(:,1)))); % the max(diff(sort ...
+                 % is equal to the width of the mapping stimulus (the width
+                 % of the Gaussian kernel overlying the 
 yconv = 1000/max(diff(sort(centerVals(:,2))));
 
 if yesNo == 1
@@ -212,6 +214,7 @@ end
 if yesNo == 1
     Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
     savefig(h,strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
+    %print(h,'-depsc','filename');
 end
 
 centerMass = zeros(numChans,4);
@@ -245,5 +248,5 @@ save(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.mat'),'numChans'
 set(0,'DefaultFigureWindowStyle','normal');
 % obj = gmdistribution(centerMass(chan,1:2),squeeze(Sigma(chan,:,:)));
 % figure();
-% h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,[0 h_pixels]);
+% h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,0 h_pixels]);
 end
