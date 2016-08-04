@@ -18,7 +18,7 @@ yest = datetime('yesterday','Format','yyyy-MM-dd');
 yest = char(yest); yest = strrep(yest,'-','');
 yest = str2double(yest);
 
-fileStart = 'RetinoData*.plx';
+fileStart = sprintf('RetinoData*%d*.plx',yest);
 
 fileList = dir(fileStart);
 numFiles = size(fileList,1);
@@ -28,8 +28,6 @@ idlen = 5;
 for ii=1:numFiles
     index = regexp(fileList(ii).name,'_');
     Date = str2double(fileList(ii).name(index-datelen:index-1));
-    if Date == yest
-        AnimalName = str2double(fileList(ii).name(index+1:index+idlen));
-        [~,~,~] = MapRetinotopy(AnimalName,Date);
-    end
+    AnimalName = str2double(fileList(ii).name(index+1:index+idlen));
+    [~,~,~] = MapRetinotopy(AnimalName,Date);
 end
