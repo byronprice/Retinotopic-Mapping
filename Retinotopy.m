@@ -155,7 +155,8 @@ Priority(0);
 
 fileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
-    'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel')
+    'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel',...
+    'DistToScreen')
 % Close window
 Screen('CloseAll');
 
