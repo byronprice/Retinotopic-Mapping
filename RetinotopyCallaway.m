@@ -3,8 +3,8 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 %  Display drifting horizontal and vertical bars with counter-phase
 %   checkerboard patterns to map retinotopy of LFP recording electrodes or
 %   single units
-%  The bar will occupy 10 degrees of visual space, with an overlain checkerboard
-%   pattern at 15-degree-per-side squares flashed every 167 ms, drifting so
+%  The bar will occupy ~10 degrees of visual space, with an overlain checkerboard
+%   pattern at 15-degree-per-side squares flashed every 200 ms, drifting so
 %   that it traverses the screen in 10 seconds
 %
 % INPUT: AnimalName - animal's unique identifier as a number/double, e.g. 45602
@@ -27,14 +27,12 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 cd('~/CloudStation/ByronExp/RetinoExp');
 load('RetinotopyCallawayVars.mat');
 
-% directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
-directory = '~/Documents/Current-Projects/Retinotopic-Mapping';
+directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
+%directory = '~/Documents/Current-Projects/Retinotopic-Mapping';
 
 if nargin < 2
    holdTime = 30;
 end
-
-reps = 5;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
@@ -108,12 +106,12 @@ display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-% usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
+usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(holdTime);
 
 % Animation loop
+vbl = Screen('Flip', win);
 for zz = 1:numDirs
-    vbl = Screen('Flip', win);
     centers = centerPos{zz};
     if zz == 1 || zz == 2
         vertOhorz = 1;
@@ -123,15 +121,16 @@ for zz = 1:numDirs
     values = mod(0:length(centers)-1,checkRefresh1) < checkRefresh1/2;
     diffs = diff(values);diffs = [0,diffs];
     for ii=1:reps
+        vbl = Screen('Flip',win,vbl+ifi/2);
       for jj=1:length(centers)
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
             [], [],[Color(1),Color(2),Width,centers(jj),vertOhorz,checkSize, ...
             values(jj),0]);
             % Request stimulus onset
-%             if abs(diffs(jj)) > 0 
-%                 usb.strobeEventWord(zz);
-%             end
+            if abs(diffs(jj)) > 0 
+                usb.strobeEventWord(zz);
+            end
             vbl = Screen('Flip', win,vbl+ifi/2);
       end
       vbl = Screen('Flip', win,vbl+ifi/2);
@@ -148,7 +147,7 @@ stimFreq = 1/driftTime;
 cd('~/CloudStation/ByronExp/RetinoExp/')
 fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
 save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
-    'h_pixels','reps','checkRefresh','startPause','centerPos','diffs','numDirs')
+    'h_pixels','reps','checkRefresh','holdTime','centerPos','diffs','numDirs')
 
 % Close window
 Screen('CloseAll');

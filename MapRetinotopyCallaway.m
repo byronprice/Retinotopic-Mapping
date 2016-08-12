@@ -16,7 +16,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/07/27
+% Updated: 2016/08/12
 %  By: Byron Price
 
 % read in the .plx file

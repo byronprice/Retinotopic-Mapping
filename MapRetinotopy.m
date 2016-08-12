@@ -78,7 +78,7 @@ if length(timeStamps) ~= dataLength
 end
 strobeTimes = tsevs{1,strobeStart};
 stimLen = round((stimTime+0.2)*sampleFreq); % about 250 milliseconds
-minWin = round(0.04*sampleFreq):1:round(0.1*sampleFreq);
+minWin = round(0.05*sampleFreq):1:round(0.15*sampleFreq);
 maxWin = round(.1*sampleFreq):1:round(0.2*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI

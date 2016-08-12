@@ -130,9 +130,10 @@ WaitSecs(holdTime);
 
 % Animation loop
 count = 1;
+vbl = Screen('Flip',win);
 for yy = 1:blocks
-    vbl = Screen('Flip',win);
     for zz = 1:reps/blocks
+        vbl = Screen('Flip',win,vbl+ifi/2);
         for ii=1:numStimuli
             % Draw the procedural texture as any other texture via 'DrawTexture'
             Screen('DrawTexture', win,gratingTex, [],[],...
