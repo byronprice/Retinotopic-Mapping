@@ -27,11 +27,14 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 cd('~/CloudStation/ByronExp/RetinoExp');
 load('RetinotopyCallawayVars.mat');
 
-directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
+% directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
+directory = '~/Documents/Current-Projects/Retinotopic-Mapping';
 
 if nargin < 2
    holdTime = 30;
 end
+
+reps = 5;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
@@ -77,7 +80,7 @@ checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor
 driftSpeed = [w_pixels,h_pixels]./driftTime;
 %driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
                   % drift speed in pixels / second
-driftSpeed = driftSpeed*ifi; % pixels / screen refresh
+driftSpeed = driftSpeed.*ifi; % pixels / screen refresh
 
 checkRefresh1 = round(checkRefresh/ifi);
 
@@ -90,7 +93,7 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
 % create all textures in the same window (win), each of the appropriate
 % size
-Color = [0,0,0,0;1,1,1,1];
+Color = [0,1];
 
 % define center positions for bar at each screen refresh
 numDirs = 4;
@@ -103,11 +106,14 @@ centerPos{4} = h_pixels:-driftSpeed(2):1;
 estimatedTime = ((driftTime+1)*reps+5)*4/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
-usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
+Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+% usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(holdTime);
 
 % Animation loop
 for zz = 1:numDirs
+    vbl = Screen('Flip', win);
     centers = centerPos{zz};
     if zz == 1 || zz == 2
         vertOhorz = 1;
@@ -117,22 +123,18 @@ for zz = 1:numDirs
     values = mod(0:length(centers)-1,checkRefresh1) < checkRefresh1/2;
     diffs = diff(values);diffs = [0,diffs];
     for ii=1:reps
-      vbl = Screen('Flip', win);
-      count = 1;
-      for jj=centers
+      for jj=1:length(centers)
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
-            [], [],[Color(1,1),Color(1,2),Color(1,3),Color(1,4),...
-            Color(2,1),Color(2,2),Color(2,3),Color(2,4),Width,jj,vertOhorz,checkSize, ...
-            values(count),0,0,0]);
+            [], [],[Color(1),Color(2),Width,centers(jj),vertOhorz,checkSize, ...
+            values(jj),0]);
             % Request stimulus onset
-            if abs(diffs(count)) > 0 
-                usb.strobeEventWord(zz);
-            end
+%             if abs(diffs(jj)) > 0 
+%                 usb.strobeEventWord(zz);
+%             end
             vbl = Screen('Flip', win,vbl+ifi/2);
-            count = count+1;
       end
-      vbl = Screen('Flip', win);
+      vbl = Screen('Flip', win,vbl+ifi/2);
       vbl = Screen('Flip',win,vbl-ifi/2+1);
     end
     usb.strobeEventWord(0);

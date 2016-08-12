@@ -4,11 +4,10 @@
 attribute vec4 auxParameters0;
 attribute vec4 auxParameters1;
 attribute vec4 auxParameters2;
-attribute vec4 auxParameters3;
 attribute vec4 modulateColor;
 
-varying vec4 Black;
-varying vec4 White;
+varying float Black;
+varying float White;
 varying vec4 Grey;
 varying float Width;
 varying float Center;
@@ -25,13 +24,13 @@ void main()
 
     /* Pass first and second color to fragment shader: */
     Grey = modulateColor;
-    Black = auxParameters0;
-    White = auxParameters1;
+    Black = auxParameters0[0];
+    White = auxParameters0[1];
 
     /* Pass variables to the fragment shader for control of grating: */
-    Width = auxParameters2[0];
-    Center = auxParameters2[1];
-    vertOhorz = auxParameters2[2];
-    checkSize = auxParameters2[3];
-    checkPhase = auxParameters3[0];
+    Width = auxParameters0[2];
+    Center = auxParameters0[3];
+    vertOhorz = auxParameters1[0];
+    checkSize = auxParameters1[1];
+    checkPhase = auxParameters1[2];
 }
