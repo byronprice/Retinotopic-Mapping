@@ -46,6 +46,6 @@ void main()
             }
      }
     else {
-         gl_FragColor = Black;
+         gl_FragColor = Grey;
          }
 }

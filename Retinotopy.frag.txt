@@ -11,7 +11,6 @@ varying float CenterY;
 varying float Radius;
 varying float spatFreq;
 varying float orientation;
-varying float gamma;
 
 void main()
 {
@@ -30,7 +29,7 @@ void main()
         /*    }         */
     
     float orient_vec = cos(orientation)*x+sin(orientation)*y;
-    float mix_coeff = pow(0.5+0.5*sin(twopi*spatFreq*orient_vec),1.0/gamma);
+    float mix_coeff = 0.5+0.5*sin(twopi*spatFreq*orient_vec);
     float kernel = exp(-(x*x+y*y)/(Radius*Radius/3.0)); /* divide by 5 multiply by 1.5 */
     gl_FragColor = vec4(mix_coeff,mix_coeff,mix_coeff,kernel);
     

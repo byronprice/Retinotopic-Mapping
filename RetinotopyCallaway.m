@@ -1,4 +1,4 @@
-function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
+function [] = RetinotopyCallaway(AnimalName,holdTime)
 %RetinotopyCallaway.m
 %  Display drifting horizontal and vertical bars with counter-phase
 %   checkerboard patterns to map retinotopy of LFP recording electrodes or
@@ -9,10 +9,9 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %
 % INPUT: AnimalName - animal's unique identifier as a number/double, e.g. 45602
 %     OPTIONAL INPUTS:
-%        DistToScreen - physical distance of observer from the screen, in
-%           units of cm, defaults to 20 cm
-%        barDegree - degrees of visual field that width of bar will
-%         occupy, defaults to 10 degrees
+%        holdTime - amount of time to wait at the beginning and between
+%        changes in direction
+%      other changeable variables in the file RetinotopyCallawayVars.mat
 % OUTPUT: a file named ' RetinoStim20160531_01234.mat ' where the date will be
 %          adjusted for the current date and the last five digits are the
 %          animal's unique ID
@@ -22,20 +21,17 @@ function [] = RetinotopyCallaway(AnimalName,DistToScreen,barDegree,reps)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/03
+% Updated: 2016/08/12
 %  By: Byron Price
 
+cd('~/CloudStation/ByronExp/RetinoExp');
+load('RetinotopyCallawayVars.mat');
+
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping/';
+
 if nargin < 2
-    DistToScreen = 25;
-    barDegree = 5;
-    reps = 30;
-    startPause = 120;
+   holdTime = 30;
 end
-checkDegree = 10; % width or height in degrees of checkerboard squares
-checkRefresh = .2; % seconds to flash the checkerboard in one color
-driftTime = 10;
-%driftSpeed = 12; % drift speed in degrees/second
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
@@ -51,9 +47,13 @@ WaitSecs(10);
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
 
-% Open a fullscreen onscreen window on that display, choose a background
-% color of 128 = gray with 50% max intensity:
-[win,~] = Screen('OpenWindow', screenid,0);
+% % Open a fullscreen onscreen window on that display, choose a background
+% % color of 127 = gray with 50% max intensity; 0 = black;255 = white
+background = 127;
+[win,~] = Screen('OpenWindow', screenid,background);
+
+gammaTable = makeGrayscaleGammaTable(gama,0,255);
+Screen('LoadNormalizedGammaTable',win,gammaTable);
 
 % Switch color specification to use the 0.0 - 1.0 range
 Screen('ColorRange', win, 1);
@@ -104,7 +104,7 @@ estimatedTime = ((driftTime+1)*reps+5)*4/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
-WaitSecs(startPause);
+WaitSecs(holdTime);
 
 % Animation loop
 for zz = 1:numDirs
@@ -126,16 +126,17 @@ for zz = 1:numDirs
             Color(2,1),Color(2,2),Color(2,3),Color(2,4),Width,jj,vertOhorz,checkSize, ...
             values(count),0,0,0]);
             % Request stimulus onset
-            vbl = Screen('Flip', win);
             if abs(diffs(count)) > 0 
                 usb.strobeEventWord(zz);
             end
+            vbl = Screen('Flip', win,vbl+ifi/2);
             count = count+1;
       end
       vbl = Screen('Flip', win);
-      WaitSecs(1);
+      vbl = Screen('Flip',win,vbl-ifi/2+1);
     end
-    WaitSecs(5);
+    usb.strobeEventWord(0);
+    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
 WaitSecs(5);
 usb.stopRecording;
@@ -150,4 +151,26 @@ save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
 % Close window
 Screen('CloseAll');
 
+end
+
+
+function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
+% Generates a 256x3 gamma lookup table suitable for use with the
+% psychtoolbox Screen('LoadNormalizedGammaTable',win,gammaTable) command
+% 
+% gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
+%
+%   gamma defines the level of gamma correction (1.8 or 2.2 common)
+%   blackSetPoint should be the highest value that results in a non-unique
+%   luminance value on the monitor being used (sometimes values 0,1,2, all
+%   produce the same black pixel value; set to zero if this is not a
+%   concern)
+%   whiteSetPoint should be the lowest value that returns a non-unique
+%   luminance value (deal with any saturation at the high end)
+% 
+%   Both black and white set points should be defined on a 0:255 scale
+
+gamma = max([gamma 1e-4]); % handle zero gamma case
+gammaVals = linspace(blackSetPoint/255,whiteSetPoint/255,256).^(1./gamma);
+gammaTable = repmat(gammaVals(:),1,3);
 end
