@@ -47,7 +47,9 @@ screenid = max(Screen('Screens'));
 
 % Open a fullscreen onscreen window on that display, choose a background
 % color of 127 = gray with 50% max intensity; 0 = black
-background = 127; % gray, mean luminance
+colorRange = 0:1:255;
+[~,index] = min(abs(colorRange.^gama-255^gama/2));
+background = colorRange(index)-6;
 [win,~] = Screen('OpenWindow', screenid,background);
 
 % Switch color specification to use the 0.0 - 1.0 range
