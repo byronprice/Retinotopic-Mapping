@@ -74,8 +74,8 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeTimes = tsevs{1,strobeStart};
-stimStart = round(0.05*sampleFreq);
-stimLen = round(0.05*sampleFreq);
+stimStart = round(0*sampleFreq);
+stimLen = round(0.15*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = cell(numChans,numDirs);
@@ -106,17 +106,18 @@ end
 
 % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
 %  AND STANDARD ERRORS
-%  started trial with 120 seconds of a blank screen
+%  intermixed trial with 30 seconds of grey screen
 N = 5000; % number of bootstrap samples
-noStimLen = startPause*sampleFreq-(stimLen+stimStart)*2;
-pauseOnset = strobeTimes(svStrobed == 0);
-[~,index] = min(abs(timeStamps-pauseOnset(1)));
+noStimLen = holdTime*sampleFreq-(stimLen+stimStart)*2;
 
 bootPrctile = zeros(numChans,1); % 99 percentile
 bootStat = zeros(numChans,2);
 for ii=1:numChans
     Tboot = zeros(N,1);
     for jj=1:N
+        pauseOnset = strobeTimes(svStrobed == 0);
+        val = random('Discrete Uniform',length(pauseOnset),1);
+        [~,index] = min(abs(timeStamps-pauseOnset(val)));
         indeces = random('Discrete Uniform',noStimLen,[reps,1]);
         temp = zeros(reps,stimLen);
         for kk=1:reps

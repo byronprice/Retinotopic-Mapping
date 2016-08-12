@@ -18,7 +18,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/03
+% Updated: 2016/08/12
 %  By: Byron Price
 
 set(0,'DefaultFigureWindowStyle','docked');
