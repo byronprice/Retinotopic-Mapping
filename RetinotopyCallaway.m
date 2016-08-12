@@ -101,7 +101,7 @@ centerPos{2} = w_pixels:-driftSpeed(1):1;
 centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
 
-estimatedTime = ((driftTime+1)*reps+5)*4/60;
+estimatedTime = ((driftTime+1)*reps+holdTime)*numDirs/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
@@ -136,8 +136,10 @@ for zz = 1:numDirs
       vbl = Screen('Flip', win,vbl+ifi/2);
       vbl = Screen('Flip',win,vbl-ifi/2+1);
     end
-    usb.strobeEventWord(0);
-    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
+    if zz ~= numDirs
+        usb.strobeEventWord(0);
+        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
+    end
 end
 WaitSecs(5);
 usb.stopRecording;
