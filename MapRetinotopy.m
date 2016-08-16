@@ -18,10 +18,12 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/12
+% Updated: 2016/08/15
 %  By: Byron Price
 
+cd('~/CloudStation/ByronExp/RetinoExp');
 set(0,'DefaultFigureWindowStyle','docked');
+
 % read in the .plx file
 EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
                     % because MyReadall does that for us
@@ -100,11 +102,12 @@ end
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
 meanResponse = squeeze(mean(Response,3));
-dataStat = max(meanResponse(:,:,maxWin),[],3)-min(meanResponse(:,:,minWin),[],3);
+dataStats = struct;
+dataStats.mean = max(meanResponse(:,:,maxWin),[],3)-min(meanResponse(:,:,minWin),[],3);
+dataStats.stdError = zeros(numChans,numStimuli);
 
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 5000;
-dataError = zeros(numChans,numStimuli);
 for ii=1:numChans
     for jj=1:numStimuli
         Tboot = zeros(N,1);
@@ -114,7 +117,7 @@ for ii=1:numChans
             meanGroup = mean(group,1);
             Tboot(kk) = max(meanGroup(maxWin))-min(meanGroup(minWin));
         end
-        dataError(ii,jj) = std(Tboot);
+        dataStats.stdError(ii,jj) = std(Tboot);
     end
 end
 
@@ -130,15 +133,19 @@ if exist('startPause','var') == 1
 end
 noStimLen = holdTime*sampleFreq-stimLen*2;
 
-bootPrctile = zeros(numChans,1); % 99 percentile
-bootStat = zeros(numChans,2);
+baselineStats = struct;
+baselineStats.prctile = zeros(numChans,1);
+baselineStats.mean = zeros(numChans,1);
+baselineStats.stdError = zeros(numChans,1);
+
 for ii=1:numChans
     Tboot = zeros(N,1);
+    pauseOnset = strobeTimes(svStrobed == 0);
+    nums = length(pauseOnset);
     for jj=1:N
         indeces = random('Discrete Uniform',noStimLen,[reps,1]);
         temp = zeros(reps,stimLen);
-        pauseOnset = strobeTimes(svStrobed == 0);
-        num = length(pauseOnset);num = random('Discrete Uniform',num);
+        num = random('Discrete Uniform',nums);
         [~,index] = min(abs(timeStamps-pauseOnset(num)));
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
@@ -147,9 +154,9 @@ for ii=1:numChans
         Tboot(jj) = max(meanTrace(maxWin))-min(meanTrace(minWin));
     end
     %figure();histogram(Tboot);
-    bootPrctile(ii) = quantile(Tboot,1-1/100);
-    bootStat(ii,1) = mean(Tboot);
-    bootStat(ii,2) = std(Tboot);
+    baselineStats.prctile(ii) = quantile(Tboot,1-1/100);
+    baselineStats.mean(ii) = mean(Tboot);
+    baselineStats.stdError(ii) = std(Tboot);
 end
 
 % for ii=1:numChans
@@ -161,12 +168,13 @@ end
 %  than in the absence of a stimulus
 significantStimuli = zeros(numChans,numStimuli);
 alpha = 0.05/numStimuli;
+c = norminv(1-alpha,0,1);
 for ii=1:numChans
     for jj=1:numStimuli
-        W = (dataStat(ii,jj)-bootStat(ii,1))/sqrt(dataError(ii,jj)^2+bootStat(ii,2)^2);
-        c = norminv(1-alpha,0,1);
+        W = (dataStats.mean(ii,jj)-baselineStats.mean(ii))/...
+            sqrt(dataStats.stdError(ii,jj)^2+baselineStats.stdError(ii)^2);
         if W > c
-            significantStimuli(ii,jj) = dataStat(ii,jj); % or equals W itself
+            significantStimuli(ii,jj) = dataStats.mean(ii,jj); % or equals W itself
         end
     end    
 end
@@ -267,7 +275,8 @@ for ii=1:numChans
 end
 
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'numChans',...
-    'centerVals','significantStimuli','centerMass','stimVals','Sigma','Response','Channel');
+    'centerVals','significantStimuli','centerMass','stimVals',...
+    'Sigma','Response','Channel','dataStats','baselineStats');
 
 set(0,'DefaultFigureWindowStyle','normal');
 % obj = gmdistribution(centerMass(Channel,1:2),squeeze(Sigma(Channel,:,:)));
