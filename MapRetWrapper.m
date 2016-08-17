@@ -10,7 +10,7 @@ function [] = MapRetWrapper(fileStart)
 %
 % Created: 2016/07/19, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/03
+% Updated: 2016/08/17
 %  By: Byron Price 
 
 fileList = dir(fileStart);

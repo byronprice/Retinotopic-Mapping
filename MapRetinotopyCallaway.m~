@@ -103,7 +103,8 @@ end
 N = 1000; % number of bootstrap samples
 noStimLen = holdTime*sampleFreq-(stimLen+stimStart)*2;
 
-baseStats = struct;
+baseStats = struct('lbound',zeros(numChans,1),'ubound',zeros(numChans,1),...
+    'mean',zeros(numChans,1),'std',zeros(numChans,1));
 for ii=1:numChans
     Tboot = zeros(N,1);
     for jj=1:N
@@ -118,21 +119,19 @@ for ii=1:numChans
         Tboot(jj) = abs(min(mean(temp,1)));
     end
     %figure();histogram(Tboot);
-    baseStats(ii).lbound = quantile(Tboot,1/100);
-    baseStats(ii).ubound = quantile(Tboot,1-1/100);
-    baseStats(ii).mean = mean(Tboot);
-    baseStats(ii).sem = std(Tboot);
+    baseStats.lbound(ii) = quantile(Tboot,1/100);
+    baseStats.ubound(ii) = quantile(Tboot,1-1/100);
+    baseStats.mean(ii) = mean(Tboot);
+    baseStats.std(ii) = std(Tboot);
 end
 
 dataStats = struct;
+dataStats.mean = zeros(numChans,numDirs);
+dataStats.s = zeros(numChans,numDirs);
 for ii=1:numChans
-    dataStats(ii).mean = cell(numDirs,1);
-    dataStats(ii).sem = cell(numDirs,1);
     for jj=1:numDirs
-        for kk=1:numFlashes(jj)
-            temp = meanResponse
-            dataStats(ii = 
-        end
+        temp = squeeze(mean(Response{ii,jj},1));
+        dataStat{ii,jj} = abs(min(temp,[],2));
     end
 end
 

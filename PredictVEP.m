@@ -8,10 +8,10 @@ function [] = PredictVEP()
 %
 % Created: 2016/08/02
 %  Byron Price
-% Updated: 2016/08/02
+% Updated: 2016/08/17
 %  By: Byron Price
 
-cd('~/CloudStation/ByronExp/RetinoExp');
+cd('~/CloudStation/ByronExp/Retino');
 
 fileStart = 'RetinoData*.mat';
 
@@ -105,11 +105,10 @@ function [Response] = ExtractSignal(AnimalName,Date)
     preAmpGain = 1;
     for ii=1:numChans
         voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-        temp = smooth(voltage,0.013*sampleFreq);
         n = 30;
         lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
         blo = fir1(n,lowpass,'low',hamming(n+1));
-        ChanData(:,ii) = filter(blo,1,temp);
+        ChanData(:,ii) = filter(blo,1,voltage);
     end
 
     timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;

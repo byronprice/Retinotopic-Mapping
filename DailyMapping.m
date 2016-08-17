@@ -9,10 +9,10 @@
 %
 % Created: 2016/08/02, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/02
+% Updated: 2016/08/17
 %  By: Byron Price 
 
-cd('~/CloudStation/ByronExp/RetinoExp');
+cd('~/CloudStation/ByronExp/Retino');
 
 yest = datetime('yesterday','Format','yyyy-MM-dd');
 yest = char(yest); yest = strrep(yest,'-','');

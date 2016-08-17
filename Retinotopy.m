@@ -16,10 +16,10 @@ function [] = Retinotopy(AnimalName,holdTime)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/12
+% Updated: 2016/08/17
 %  By: Byron Price
 
-cd('~/CloudStation/ByronExp/RetinoExp');
+cd('~/CloudStation/ByronExp/Retino');
 load('RetinotopyVars.mat');
 
 directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping';

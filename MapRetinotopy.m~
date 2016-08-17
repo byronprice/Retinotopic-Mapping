@@ -173,8 +173,8 @@ for ii=1:numChans
     dataX = [];dataY = [];
     for jj=1:numStimuli
         
-        dataX = [dataX;repmat(centerVals(jj,1),[round(significantStimuli(ii,jj)),1])];
-        dataY = [dataY;repmat(centerVals(jj,2),[round(significantStimuli(ii,jj)),1])];
+        dataX = [dataX;repmat(centerVals(jj,1),[max(0,round(log(significantStimuli(ii,jj)))),1])];
+        dataY = [dataY;repmat(centerVals(jj,2),[max(0round(log(significantStimuli(ii,jj))),1])];
         % this step is fairly odd. To fit the 2D Gaussian in units of pixels, 
         % rather than in units of VEP magnitude, I make a distribution in 
         % each dimension by creating a vector of pixel values. If the VEP
