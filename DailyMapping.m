@@ -9,7 +9,7 @@
 %
 % Created: 2016/08/02, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/17
+% Updated: 2016/08/18
 %  By: Byron Price 
 
 cd('~/CloudStation/ByronExp/Retino');

@@ -16,7 +16,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/17
+% Updated: 2016/08/18
 %  By: Byron Price
 
 % read in the .plx file
@@ -62,7 +62,9 @@ if length(timeStamps) ~= dataLength
 end
 strobeTimes = tsevs{1,strobeStart};
 stimStart = round(0*sampleFreq);
-stimLen = round(0.15*sampleFreq);
+stimLen = round(0.2*sampleFreq);
+minWin = round(0.04*sampleFreq):1:round(.1*sampleFreq);
+maxWin = round(0.1*sampleFreq):1:round(.2*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = cell(numChans,numDirs);
@@ -103,7 +105,7 @@ end
 N = 1000; % number of bootstrap samples
 noStimLen = holdTime*sampleFreq-(stimLen+stimStart)*2;
 
-baseStats = struct;
+baseStats(1:numChans) = struct;
 for ii=1:numChans
     Tboot = zeros(N,1);
     for jj=1:N
@@ -115,7 +117,7 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk)+stimStart:index+indeces(kk)+stimStart+stimLen-1,ii);
         end
-        Tboot(jj) = abs(min(mean(temp,1)));
+        Tboot(jj) = abs(min(mean(temp(:,minWin),1)));
     end
     %figure();histogram(Tboot);
     baseStats(ii).lbound = quantile(Tboot,1/100);
@@ -124,33 +126,34 @@ for ii=1:numChans
     baseStats(ii).sem = std(Tboot);
 end
 
-dataStats = struct;
+dataStats(1:numChans) = struct;
 for ii=1:numChans
     dataStats(ii).mean = cell(numDirs,1);
     dataStats(ii).sem = cell(numDirs,1);
     for jj=1:numDirs
+        dataStats(ii).mean{jj} = zeros(numFlashes(jj),1);
+        dataStats(ii).sem{jj} = zeros(numFlashes(jj),1);
         for kk=1:numFlashes(jj)
-            temp = meanResponse
-            dataStats(ii = 
+            temp = squeeze(meanResponse{ii,jj}(kk,:));
+            dataStats(ii).mean{jj}(kk) = abs(min(temp(minWin)));
         end
     end
 end
 
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 1000;
-dataError = cell(numChans,numDirs);
 for ii=1:numChans
     for jj=1:numDirs
-        dataError{ii,jj} = zeros(numFlashes(jj),1);
+        dataStats(ii).sem{jj} = zeros(numFlashes(jj),1);
         for kk=1:numFlashes(jj)
             Tboot = zeros(N,1);
             for ll=1:N
                 indeces = random('Discrete Uniform',reps,[reps,1]);
                 group = squeeze(Response{ii,jj}(indeces,kk,:));
                 meanGroup = mean(group,1);
-                Tboot(ll) = abs(min(meanGroup));
+                Tboot(ll) = abs(min(meanGroup(minWin)));
             end
-            dataError{ii,jj}(kk) = std(Tboot);
+            dataStats(ii).sem{jj}(kk) = std(Tboot);
         end
     end
 end
@@ -159,14 +162,15 @@ end
 %  than in the absence of a stimulus
 significantStimuli = cell(numChans,numDirs);
 alpha = 0.05/sum(numFlashes);
+c = norminv(1-alpha,0,1);
 for ii=1:numChans
     for jj=1:numDirs
         significantStimuli{ii,jj} = zeros(numFlashes(jj),1);
         for kk=1:numFlashes(jj)
-            W = (dataStat{ii,jj}(kk)-bootStat(ii,1))/sqrt(dataError{ii,jj}(kk)^2+bootStat(ii,2)^2);
-            c = norminv(1-alpha,0,1);
+            W = (dataStats(ii).mean{jj}(kk)-baseStats(ii).mean)/...
+                sqrt(dataStats(ii).sem{jj}(kk)^2+baseStats(ii).sem^2);
             if W > c
-                significantStimuli{ii,jj}(kk) = dataStat{ii,jj}(kk); % or equals W itself
+                significantStimuli{ii,jj}(kk) = dataStats(ii).mean{jj}(kk); % or equals W itself
             end
         end
     end    

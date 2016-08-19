@@ -157,10 +157,23 @@ WaitSecs(2);
 usb.stopRecording;
 Priority(0);
 
+stimParams = RetinoStimObj;
+stimParams.centerVals = centerVals;
+stimParams.Radius = Radius;
+stimParams.reps = reps;
+stimParams.stimTime = stimTime;
+stimParams.holdTime = holdTime;
+stimParams.numStimuli = numStimuli;
+stimParams.w_pixels = w_pixels;
+stimParams.h_pixels = h_pixels;
+stimParams.spatFreq = spatFreq;
+stimParams.mmPerPixel = mmPerPixel;
+stimParams.DistToScreen = DistToScreen;
+stimParams.orient = orient;
+
+
 fileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
-save(fileName,'centerVals','Radius','reps','stimTime','holdTime',...
-    'numStimuli','w_pixels','h_pixels','spatFreq','mmPerPixel',...
-    'DistToScreen','orient')
+save(fileName,'stimParams')
 % Close window
 Screen('CloseAll');
 
