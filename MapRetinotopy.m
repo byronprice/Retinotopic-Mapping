@@ -18,7 +18,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/18
+% Updated: 2016/08/19
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -57,7 +57,7 @@ end
 % screen, this is a measure of the size of a VEP
 statFun = @(data,win) abs(min(mean(data(:,win),1)));
 
-minWin = round(0.04*sampleFreq):1:round(0.12*sampleFreq);
+minWin = round(0.04*sampleFreq):1:round(0.1*sampleFreq);
 maxWin = round(.1*sampleFreq):1:round(0.2*sampleFreq);
 dataStats = struct;
 dataStats.mean = abs(min(meanResponse(:,:,minWin),[],3)); %max(meanResponse(:,:,maxWin),[],3)-min(meanResponse(:,:,minWin),[],3);
@@ -87,20 +87,23 @@ baseStats.ci = zeros(numChans,2);
 baseStats.mean = zeros(numChans,1);
 baseStats.sem = zeros(numChans,1);
 
+pauseOnset = strobeTimes(svStrobed == 0);
+nums = length(pauseOnset);
 for ii=1:numChans
-    pauseOnset = strobeTimes(svStrobed == 0);
-    nums = length(pauseOnset);
-    indeces = random('Discrete Uniform',noStimLen,[reps,1]);
-    temp = zeros(reps,stimLen);
-    for kk=1:reps
+    Tboot = zeros(N,1);
+    for jj=1:N
+        indeces = random('Discrete Uniform',noStimLen,[reps,1]);
+        temp = zeros(reps,stimLen);
         num = random('Discrete Uniform',nums);
         [~,index] = min(abs(timeStamps-pauseOnset(num)));
-        temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
+        for kk=1:reps
+            temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
+        end
+        Tboot(jj) = statFun(temp,minWin);
     end
-    [stat,se,ci] = Bootstraps(Data,statFun,alpha,N,reps);
-    baseStats.ci(ii,:) = ci;
-    baseStats.mean(ii) = stat;
-    baseStats.sem(ii) = se;
+    baseStats.ci(ii,:) = [quantile(Tboot,alpha),quantile(Tboot,1-alpha)];
+    baseStats.mean(ii) = mean(Tboot);
+    baseStats.sem(ii) = std(Tboot);
 end
 
 % WALD TEST to determine which stimuli are significant
@@ -131,7 +134,6 @@ MapParams.baseStats = baseStats;
 
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'MapParams');
 
-set(0,'DefaultFigureWindowStyle','normal');
 % obj = gmdistribution(centerMass(Channel,1:2),squeeze(Sigma(Channel,:,:)));
 % figure();
 % h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,0 h_pixels]);

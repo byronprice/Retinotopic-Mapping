@@ -95,11 +95,21 @@ Color = [0,1];
 
 % define center positions for bar at each screen refresh
 numDirs = 4;
-centerPos = cell(1,numDirs);
+DirNames = {'Right','Left','Up','Down'};
+centerPos = cell(numDirs,1);
 centerPos{1} = 1:driftSpeed(1):w_pixels;
 centerPos{2} = w_pixels:-driftSpeed(1):1;
 centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
+
+Flashes = cell(numDirs,1);
+for ii=1:numDirs
+    centers = centerPos{ii};
+    values = mod(0:length(centers)-1,checkRefresh1) < checkRefresh1/2;
+    temp = diff(values);Flashes{ii} = [0,temp];
+end
+
+eventNums = cell(numDirs,1);
 
 estimatedTime = ((driftTime+1)*reps+holdTime)*numDirs/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
@@ -118,8 +128,6 @@ for zz = 1:numDirs
     else
         vertOhorz = 2;
     end
-    values = mod(0:length(centers)-1,checkRefresh1) < checkRefresh1/2;
-    diffs = diff(values);diffs = [0,diffs];
     for ii=1:reps
         vbl = Screen('Flip',win,vbl+ifi/2);
       for jj=1:length(centers)
@@ -128,7 +136,7 @@ for zz = 1:numDirs
             [], [],[Color(1),Color(2),Width,centers(jj),vertOhorz,checkSize, ...
             values(jj),0]);
             % Request stimulus onset
-            if abs(diffs(jj)) > 0 
+            if abs(Flashes(jj)) > 0 
                 usb.strobeEventWord(zz);
             end
             vbl = Screen('Flip', win,vbl+ifi/2);
@@ -146,10 +154,25 @@ usb.stopRecording;
 driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
 stimFreq = 1/driftTime;
 
+stimParams = RetinoCallStimObj;
+stimParams.driftSpeed = driftSpeed;
+stimParams.driftTime = driftTime;
+stimParams.stimFreq = stimFreq;
+stimParams.Width = Width;
+stimParams.w_pixels = w_pixels;
+stimParams.h_pixels = h_pixels;
+stimParams.reps = reps;
+stimParams.checkRefresh = checkRefresh;
+stimParams.holdTime = holdTime;
+stimParams.centerPos = centerPos;
+stimParams.Flashes = Flashes;
+stimParams.numDirs = numDirs;
+stimParams.DistToScreen = DistToScreen;
+stimParams.DirNames = DirNames;
+
 cd('~/CloudStation/ByronExp/Retino/')
 fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
-save(fileName,'driftSpeed','driftTime','stimFreq','Width','w_pixels',...
-    'h_pixels','reps','checkRefresh','holdTime','centerPos','diffs','numDirs')
+save(fileName,'stimParams')
 
 % Close window
 Screen('CloseAll');

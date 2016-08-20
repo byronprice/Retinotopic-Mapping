@@ -1,0 +1,29 @@
+/* SlidingBars.frag.txt */
+
+const float twopi = 2.0*3.141592653589793;
+
+/* Values passed from vertex shader: */
+varying float BarColor;
+varying float BackgroundColor;
+varying vec4 Grey;
+varying float Width;
+varying float Length;
+varying float Orientation;
+varying float centerX;
+varying float centerY;
+
+void main()
+{
+    /* Query current output texel position: */
+    vec2 pos = gl_TexCoord[0].xy;
+    float currentPos = 
+    
+    float kernel = exp(-(currentPos*currentPos)/(Width*Width/3.0));
+    if (mod(floor(pos[0]/checkSize)+floor(pos[1]/checkSize),2.0) <= 0.5) {
+        gl_FragColor = vec4(color1,color1,color1,kernel);
+        }
+    else {
+        gl_FragColor = vec4(color2,color2,color2,kernel);
+        }
+
+}

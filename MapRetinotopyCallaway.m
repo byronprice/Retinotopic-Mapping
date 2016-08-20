@@ -16,7 +16,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/18
+% Updated: 2016/08/19
 %  By: Byron Price
 
 % read in the .plx file
@@ -30,6 +30,21 @@ StimulusFileName = strcat('RetinoCallStim',num2str(Date),'_',num2str(AnimalName)
 EphysFileName = strcat(EphysFileName,'.mat');
 load(EphysFileName)
 load(StimulusFileName)
+
+% driftSpeed = stimParams.driftSpeed;
+% driftTime = stimParams.driftTime;
+% stimFreq = stimParams.stimFreq;
+% Width = stimParams.Width;
+% w_pixels = stimParams.w_pixels;
+% h_pixels = stimParams.h_pixels;
+reps = stimParams.reps;
+% checkRefresh = stimParams.checkRefresh;
+holdTime = stimParams.holdTime;
+centerPos = stimParams.centerPos; 
+Flashes = stimParams.Flashes;
+numDirs = stimParams.numDirs;
+DirNames = stimParams.DirNames;
+% DistToScreen = stimParams.DistToScreen;
 
 if nargin < 3
     yesNo = 1;
@@ -66,6 +81,8 @@ stimLen = round(0.2*sampleFreq);
 minWin = round(0.04*sampleFreq):1:round(.1*sampleFreq);
 maxWin = round(0.1*sampleFreq):1:round(.2*sampleFreq);
 
+statFun =@(data,win) abs(min(mean(data(:,win),1)));
+
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = cell(numChans,numDirs);
 meanResponse = cell(numChans,numDirs);
@@ -91,10 +108,9 @@ for ii=1:numChans
                 temp = ChanData(index+stimStart:index+stimStart+stimLen-1,ii);
                 Response{ii,jj}(kk,ll,:) = temp;
                 count = count+1;
-                clear temp;
             end
-            temp = mean(squeeze(Response{ii,jj}(kk,:,:)),1);
-            meanResponse{ii,jj}(kk,:) = smooth(temp,smoothKernel);
+            temp2 = mean(squeeze(Response{ii,jj}(kk,:,:)),1);
+            meanResponse{ii,jj}(kk,:) = smooth(temp2,smoothKernel);
         end
     end
 end
@@ -117,7 +133,7 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk)+stimStart:index+indeces(kk)+stimStart+stimLen-1,ii);
         end
-        Tboot(jj) = abs(min(mean(temp(:,minWin),1)));
+        Tboot(jj) = statFun(temp,minWin);
     end
     %figure();histogram(Tboot);
     baseStats(ii).lbound = quantile(Tboot,1/100);
@@ -150,8 +166,7 @@ for ii=1:numChans
             for ll=1:N
                 indeces = random('Discrete Uniform',reps,[reps,1]);
                 group = squeeze(Response{ii,jj}(indeces,kk,:));
-                meanGroup = mean(group,1);
-                Tboot(ll) = abs(min(meanGroup(minWin)));
+                Tboot(ll) = statFun(group,minWin);
             end
             dataStats(ii).sem{jj}(kk) = std(Tboot);
         end
@@ -161,7 +176,7 @@ end
 % WALD TEST - VEP magnitude significantly greater in presence of a stimulus
 %  than in the absence of a stimulus
 significantStimuli = cell(numChans,numDirs);
-alpha = 0.05/sum(numFlashes);
+alpha = 0.001;
 c = norminv(1-alpha,0,1);
 for ii=1:numChans
     for jj=1:numDirs
@@ -182,7 +197,7 @@ end
 count = 1;
 for ii=1:numChans
     for jj=1:2
-        x = centerPos{jj}(logical(diffs));y = centerPos{jj+2}(logical(diffs));
+        x = centerPos{jj}(logical(Flashes{jj}));y = centerPos{jj+2}(logical(Flashes{jj+2}));
         stimVals = log(significantStimuli{ii,jj}*significantStimuli{ii,jj+2}');
         if yesNo == 1 && jj==1
             subplot(numChans,2,count);imagesc(x,y,stimVals);set(gca,'YDir','normal');h=colorbar;
@@ -199,6 +214,35 @@ for ii=1:numChans
         count = count+1;
     end
 end
+
+xx=1:w_pixels;
+yy=1:h_pixels;
+
+figure();
+count = 1;
+for ii=1:numChans
+    for jj=1:numDirs
+        FlashedPos = centerPos{jj}(logical(Flashes{jj}));
+        subplot(jj,ii,count);axis([0 w_pixels 0 h_pixels]);
+            title(strcat(sprintf('VEP Retinotopy, Channel %d, Animal %d, Direction-',ii,AnimalName),DirNames{jj}));
+            xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
+            hold on;
+        for kk=1:numFlashes(jj)
+            if jj==1 || jj==2
+                xconv = stimLen/max(diff(FlashedPos));
+                yconv = 1000/(h_pixels/4);
+                plot(((1:stimLen)./xconv+FlashedPos(kk)-0.5*max(diff(FlashedPos))),...
+                    (squeeze(meanResponse{ii,jj}(kk,:))'./yconv+h_pixels/2),'k','LineWidth',2);
+            else
+                plot(((1:stimLen)./xconv+w_pixels/2),...
+                    (squeeze(meanResponse{ii,jj}(kk,:))'./yconv+FlashedPos(kk)),'k','LineWidth',2);
+            end
+        end
+        hold off
+        count = count+1;
+    end
+end
+
 % if yesNo == 1
 %     savefig(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
 % end
