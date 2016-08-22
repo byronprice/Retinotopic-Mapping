@@ -16,7 +16,7 @@ function [] = SlidingBars(Length,Width,Orientation,Foreground,Background,DistToS
 % Updated: 2016/08/19
 %  By: Byron Price
 
-directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
+directory = '~/Documents/Current-Projects/Retinotopic-Mapping';
 
 % Acquire a handle to OpenGL, so we can use OpenGL commands in our code:
 global GL;
@@ -24,6 +24,8 @@ global GL;
 if nargin < 6
     DistToScreen = 25;
 end
+
+gama = 2.1806;
 
 % if strcmp(Checkered,'yes') == 1
 %     Checkered = 1;
@@ -38,7 +40,7 @@ screenid = max(Screen('Screens'));
 
 % % Open a fullscreen onscreen window on that display, choose a background
 % % color of 127 = gray with 50% max intensity; 0 = black;255 = white
-background = 127;
+background = round(Background*255);
 [win,~] = Screen('OpenWindow', screenid,background);
 
 gammaTable = makeGrayscaleGammaTable(gama,0,255);
@@ -63,7 +65,7 @@ Width = round(((tan(Width*(2*pi)/360))*(DistToScreen*10))./conv_factor); % get n
                  
 Length = round(((tan(Length*(2*pi)/360))*(DistToScreen*10))./conv_factor);
                  
-checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
+%checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
 
 dgshader = [directory '/SlidingBars.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/SlidingBars.frag.txt'] }, 1);
@@ -76,27 +78,37 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
 % size
 
 % define center positions for bar at each screen refresh
-centerPos = struct('x',w_pixels/2,'y',h_pixels/2);
+centerPos = [w_pixels/2 h_pixels/2];
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-WaitSecs(holdTime);
-
+floatSpeed = 5;
+target = [rand*w_pixels rand*h_pixels];
+runTime = 60; % seconds
+randVals = rand([round((1/(ifi/1000)*runTime)),2]);
+randVals = randVals*[w_pixels,0;0,h_pixels];
 % Animation loop
+count = 1;
 vbl = Screen('Flip', win);
 while ~KbCheck
-    vbl = Screen('Flip',win,vbl+ifi/2);
     Screen('DrawTexture', win,gratingTex, [],[],...
         [],[],[],[0.5 0.5 0.5 0.5],...
-        [], [],[Foreground,Background,Width,Length,centerPos.x,centerPos.y,...
+        [], [],[Foreground,Background,Width,Length,centerPos(1),centerPos(2),...
         Orientation,0]);
     % Request stimulus onset
     vbl = Screen('Flip', win,vbl+ifi/2);
-    centerPos.x = min(centerPos.x+rand,w_pixels);
-    centerPos.y = min(centerPos.y+rand,h_pixels);
+    vec = target-centerPos;
+    mag = norm(vec);
+    centerPos = centerPos+(vec./mag)*floatSpeed;
     
+    if mag <= floatSpeed/2
+        target(1) = randVals(count,1);
+        target(2) = randVals(count,2);
+    end
+    Orientation = Orientation+1;
+    count = count+1;
 end
-WaitSecs(5);
+WaitSecs(2);
 
 % Close window
 Screen('CloseAll');

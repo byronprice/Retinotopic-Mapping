@@ -6,7 +6,7 @@ attribute vec4 auxParameters1;
 attribute vec4 modulateColor;
 
 varying float BarColor;
-varying float BackgroundColor;
+varying float BackColor;
 varying vec4 Grey;
 varying float Width;
 varying float Length;
@@ -24,7 +24,7 @@ void main()
     /* Pass first and second color to fragment shader: */
     Grey = modulateColor;
     BarColor = auxParameters0[0];
-    BackgroundColor = auxParameters0[1];
+    BackColor = auxParameters0[1];
 
     /* Pass variables to the fragment shader for control of grating: */
     Width = auxParameters0[2];
