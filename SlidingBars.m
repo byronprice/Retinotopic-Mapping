@@ -82,10 +82,10 @@ centerPos = [w_pixels/2 h_pixels/2];
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-floatSpeed = 5;
+floatSpeed = 10;
 target = [rand*w_pixels rand*h_pixels];
-runTime = 60; % seconds
-randVals = rand([round((1/(ifi/1000)*runTime)),2]);
+
+randVals = rand([1000,2]);
 randVals = randVals*[w_pixels,0;0,h_pixels];
 % Animation loop
 count = 1;
