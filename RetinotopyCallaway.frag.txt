@@ -36,7 +36,7 @@ void main()
         currentPos = pos[1]-Center;
         }
     
-    float kernel = exp(-(currentPos*currentPos)/(Width*Width/3.0));
+    float kernel = exp(-(currentPos*currentPos)/(Width*Width/8.0));
     if (mod(floor(pos[0]/checkSize)+floor(pos[1]/checkSize),2.0) <= 0.5) {
         gl_FragColor = vec4(color1,color1,color1,kernel);
         }
