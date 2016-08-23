@@ -1,4 +1,4 @@
-function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
+function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date)
 % MapRetinotopy.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
@@ -6,10 +6,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
 %       Date - date of the experiment, e.g. 20160525
-%       Optional:
-%        yesNo - 1 if you are running this code as is, 0 if it is being run
-%         through MapRetWrapper.m or you don't want to output and save the
-%         figure for whatever reason
+
 %OUTPUT: stimVals - values used to generate the imagesc figure
 %        centerMass - for each channel, a vector with x position of the
 %         retinotopic field's center of mass, y position, x standard
@@ -18,7 +15,7 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date,yesNo)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/19
+% Updated: 2016/08/23
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -27,7 +24,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen minWin maxWin yesNo; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen minWin maxWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -42,9 +39,6 @@ w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
 
-if nargin < 3
-    yesNo = 1; %#ok<*NASGU>
-end
 
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
@@ -55,12 +49,12 @@ end
 % STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
-statFun = @(data,win) abs(min(mean(data(:,win),1)));
+statFun = @(data,win1,win2) (-min(mean(data(:,win2),1)));
 
 minWin = round(0.04*sampleFreq):1:round(0.1*sampleFreq);
 maxWin = round(.1*sampleFreq):1:round(0.2*sampleFreq);
 dataStats = struct;
-dataStats.mean = abs(min(meanResponse(:,:,minWin),[],3)); %max(meanResponse(:,:,maxWin),[],3)-min(meanResponse(:,:,minWin),[],3);
+dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
 dataStats.sem = zeros(numChans,numStimuli);
 dataStats.ci = zeros(numChans,numStimuli,2);
 
@@ -96,10 +90,11 @@ for ii=1:numChans
         temp = zeros(reps,stimLen);
         num = random('Discrete Uniform',nums);
         [~,index] = min(abs(timeStamps-pauseOnset(num)));
+        index = index+stimLen;
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        Tboot(jj) = statFun(temp,minWin);
+        Tboot(jj) = statFun(temp,maxWin,minWin);
     end
     baseStats.ci(ii,:) = [quantile(Tboot,alpha),quantile(Tboot,1-alpha)];
     baseStats.mean(ii) = mean(Tboot);
@@ -114,11 +109,10 @@ end
 
 [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName); 
 
-if yesNo == 1
-    Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
-    savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
-    %print(h,'-depsc','filename');
-end
+Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
+savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
+%print(h,'-depsc','filename');
+
 
 MapParams = RetinoMapObj;
 MapParams.numChans = numChans;
@@ -228,7 +222,7 @@ function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
 %  Byron Price
 %Updated: 2016/08/18
 % By: Byron Price
-global minWin;
+global maxWin minWin;
 
 if nargin < 3
     alpha = 0.05;
@@ -246,7 +240,7 @@ ci = zeros(2,1);
 for ii=1:N
     indeces = random('Discrete Uniform',n,[n,1]);
     temp = Data(indeces,:);
-    Tboot(ii) = myFun(temp,minWin);
+    Tboot(ii) = myFun(temp,maxWin,minWin);
 end
 stat = mean(Tboot);
 se = std(Tboot);
@@ -311,8 +305,7 @@ function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
 end
 
 function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName)
-    global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen ...
-        yesNo;
+    global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen;
     sigma = Radius;
     halfwidth = 3*sigma;
     [xx,yy] = meshgrid(-halfwidth:halfwidth,-halfwidth:halfwidth);
@@ -333,30 +326,28 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
                      % mapping stimuli
     yconv = 1000/max(diff(sort(centerVals(:,2)))); % for height of the stimulus
 
-    if yesNo == 1
-        for ii=1:numChans
-            h(ii) = figure;
-        end
-    end
+
     for ii=1:numChans
-        if yesNo == 1 
-            figure(h(ii));axis([0 w_pixels 0 h_pixels]);
-            title(sprintf('VEP Retinotopy, Channel %d, Animal %d',ii,AnimalName));
-            xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
-            hold on;
-        end
+        h(ii) = figure;
+    end
+
+    for ii=1:numChans
+        figure(h(ii));axis([0 w_pixels 0 h_pixels]);
+        title(sprintf('VEP Retinotopy, Channel %d, Animal %d',ii,AnimalName));
+        xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
+        hold on;
+
         for jj=1:numStimuli
             tempx = centerVals(jj,1);
             tempy = centerVals(jj,2);
             stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
-            if yesNo == 1
-                plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*max(diff(sort(centerVals(:,1))))),...
-                    (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
-                plot((tempx-Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
-                plot((tempx+Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
-                plot((tempx-Radius):(tempx+Radius),(tempy-Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
-                plot((tempx-Radius):(tempx+Radius),(tempy+Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
-            end
+            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*max(diff(sort(centerVals(:,1))))),...
+                (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
+            plot((tempx-Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
+            plot((tempx+Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
+            plot((tempx-Radius):(tempx+Radius),(tempy-Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
+            plot((tempx-Radius):(tempx+Radius),(tempy+Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
+
         end
         if isnan(centerMass.x(ii)) ~= 1
     %         obj = gmdistribution(centerMass(ii,1:2),squeeze(Sigma(ii,:,:)));
@@ -375,11 +366,10 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
             temp = squeeze(stimVals(ii,:,:))';
             blurred = conv2(temp,gaussian,'same');
             blurred = (blurred./max(max(blurred))).*max(max(temp));
-            if yesNo == 1
-                imagesc(x,y,blurred,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
-                ylabel(w,'VEP Negativity (\muV)');colormap('jet');
-                hold off;
-            end
+            imagesc(x,y,blurred,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+            ylabel(w,'VEP Negativity (\muV)');colormap('jet');
+            hold off;
+
         end
     end
 end

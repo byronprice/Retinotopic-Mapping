@@ -22,10 +22,11 @@ function [] = Retinotopy(AnimalName,holdTime)
 cd('~/CloudStation/ByronExp/Retino');
 load('RetinotopyVars.mat');
 
-directory = '/home/jglab/Documents/MATLAB/Byron/Retinotopic-Mapping';
+directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 if nargin < 2
     holdTime = 30; % 30 second pauses between blocks
 end
+
 reps = reps-mod(reps,blocks);
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -87,8 +88,8 @@ elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
     centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = Radius+1:2*Radius:w_pixels-(Radius+1);
-    centerY = Radius+1:2*Radius:h_pixels-(Radius/2);
+    centerX = 2*Radius:2*Radius:w_pixels-Radius;
+    centerY = Radius+1:2*Radius:h_pixels-Radius;
 end
 numStimuli = length(centerX)*length(centerY);
 
@@ -122,6 +123,7 @@ White = 1;
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 orient = rand([numStimuli*reps,1]).*(2*pi);
+
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
 
