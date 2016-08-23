@@ -103,13 +103,25 @@ centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
 
 Flashes = cell(numDirs,1);
+eventNums = cell(numDirs,1);
+centerLen = cell(numDirs,1);
 for ii=1:numDirs
     centers = centerPos{ii};
-    values = mod(0:length(centers)-1,checkRefresh1) < checkRefresh1/2;
+    centerLen{ii} = length(centers);
+    values = mod(0:centerLen{ii}-1,checkRefresh1) < checkRefresh1/2;
     temp = diff(values);Flashes{ii} = [0,temp];
+    eventNums{ii} = zeros(centerLen{ii},1);
 end
 
-eventNums = cell(numDirs,1);
+for ii=1:numDirs
+    for jj=1:centerLen{ii}
+        if abs(Flashes{ii}(jj)) > 0 
+            eventNums{ii}(jj) = str2double(sprintf('%d%d',ii,1));
+        else
+            eventNums{ii}(jj) = str2double(sprintf('%d%d',ii,0));
+        end
+    end
+end
 
 estimatedTime = ((driftTime+1)*reps+holdTime)*numDirs/60;
 display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
@@ -122,24 +134,20 @@ WaitSecs(holdTime);
 % Animation loop
 vbl = Screen('Flip', win);
 for zz = 1:numDirs
-    centers = centerPos{zz};
     if zz == 1 || zz == 2
         vertOhorz = 1;
     else
         vertOhorz = 2;
     end
     for ii=1:reps
-        vbl = Screen('Flip',win,vbl+ifi/2);
-      for jj=1:length(centers)
+      for jj=1:centerLen{zz}
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
-            [], [],[Color(1),Color(2),Width,centers(jj),vertOhorz,checkSize, ...
-            values(jj),0]);
+            [], [],[Color(1),Color(2),Width,centerPos{zz}(jj),vertOhorz,checkSize, ...
+            Flashes{zz}(jj),0]);
             % Request stimulus onset
-            if abs(Flashes(jj)) > 0 
-                usb.strobeEventWord(zz);
-            end
             vbl = Screen('Flip', win,vbl+ifi/2);
+            usb.strobeEventWord(eventNums{zz}(jj));
       end
       vbl = Screen('Flip', win,vbl+ifi/2);
       vbl = Screen('Flip',win,vbl-ifi/2+1);

@@ -1,4 +1,4 @@
-function [] = MapRetinotopyCallaway(AnimalName,Date,yesNo)
+function [] = MapRetinotopyCallaway(AnimalName,Date)
 % MapRetinotopyCallaway.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
@@ -12,11 +12,11 @@ function [] = MapRetinotopyCallaway(AnimalName,Date,yesNo)
 %       Date - date of the experiment input as a number yearMonthDay, 
 %            e.g. 20160525
 %       Chans - channel numbers, input as [6,8], defaults to 6 and 8
-%OUTPUT: a plot
+%OUTPUT: plots
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/19
+% Updated: 2016/08/22
 %  By: Byron Price
 
 % read in the .plx file
@@ -35,8 +35,8 @@ load(StimulusFileName)
 % driftTime = stimParams.driftTime;
 % stimFreq = stimParams.stimFreq;
 % Width = stimParams.Width;
-% w_pixels = stimParams.w_pixels;
-% h_pixels = stimParams.h_pixels;
+w_pixels = stimParams.w_pixels;
+h_pixels = stimParams.h_pixels;
 reps = stimParams.reps;
 % checkRefresh = stimParams.checkRefresh;
 holdTime = stimParams.holdTime;
@@ -45,10 +45,6 @@ Flashes = stimParams.Flashes;
 numDirs = stimParams.numDirs;
 DirNames = stimParams.DirNames;
 % DistToScreen = stimParams.DistToScreen;
-
-if nargin < 3
-    yesNo = 1;
-end
 
 sampleFreq = adfreq;
 
@@ -91,7 +87,8 @@ smoothKernel = 4;
 
 for ii=1:numChans
     for jj=1:numDirs
-        numFlashes(jj) = sum(svStrobed == jj);
+        strobeNum = str2double(sprintf('%d%d',jj,1));
+        numFlashes(jj) = sum(svStrobed == strobeNum)/reps;
         Response{ii,jj} = zeros(numFlashes(jj),reps,stimLen);
         meanResponse{ii,jj} = zeros(numFlashes(jj),stimLen);
     end
@@ -99,7 +96,8 @@ end
 
 for ii=1:numChans
     for jj=1:numDirs
-        dirStrobes = strobeTimes(svStrobed==jj);
+        strobeNum = str2double(sprintf('%d%d',jj,1));
+        dirStrobes = strobeTimes(svStrobed==strobeNum);
         count = 1;
         for kk=1:numFlashes(jj)
             for ll=1:reps
@@ -165,7 +163,7 @@ for ii=1:numChans
             Tboot = zeros(N,1);
             for ll=1:N
                 indeces = random('Discrete Uniform',reps,[reps,1]);
-                group = squeeze(Response{ii,jj}(indeces,kk,:));
+                group = squeeze(Response{ii,jj}(kk,indeces,:));
                 Tboot(ll) = statFun(group,minWin);
             end
             dataStats(ii).sem{jj}(kk) = std(Tboot);
@@ -191,21 +189,19 @@ for ii=1:numChans
     end    
 end
 
-if yesNo == 1
-    figure();
-end
+figure;
 count = 1;
 for ii=1:numChans
     for jj=1:2
         x = centerPos{jj}(logical(Flashes{jj}));y = centerPos{jj+2}(logical(Flashes{jj+2}));
         stimVals = log(significantStimuli{ii,jj}*significantStimuli{ii,jj+2}');
-        if yesNo == 1 && jj==1
+        if jj==1
             subplot(numChans,2,count);imagesc(x,y,stimVals);set(gca,'YDir','normal');h=colorbar;
             title(sprintf('Right/Up Sweep Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
             xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
             colormap('jet');
         end
-        if yesNo == 1 && jj==2
+        if jj==2
             subplot(numChans,2,count);imagesc(x,y,stimVals);set(gca,'YDir','normal');h=colorbar;
             title(sprintf('Left/Down Sweep Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
             xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
@@ -223,17 +219,19 @@ count = 1;
 for ii=1:numChans
     for jj=1:numDirs
         FlashedPos = centerPos{jj}(logical(Flashes{jj}));
-        subplot(jj,ii,count);axis([0 w_pixels 0 h_pixels]);
+        subplot(numDirs,numChans,count);axis([0 w_pixels 0 h_pixels]);
             title(strcat(sprintf('VEP Retinotopy, Channel %d, Animal %d, Direction-',ii,AnimalName),DirNames{jj}));
             xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
             hold on;
         for kk=1:numFlashes(jj)
             if jj==1 || jj==2
                 xconv = stimLen/max(diff(FlashedPos));
-                yconv = 1000/(h_pixels/4);
+                yconv = 1000/(h_pixels/2);
                 plot(((1:stimLen)./xconv+FlashedPos(kk)-0.5*max(diff(FlashedPos))),...
                     (squeeze(meanResponse{ii,jj}(kk,:))'./yconv+h_pixels/2),'k','LineWidth',2);
             else
+                xconv = stimLen/(w_pixels/2);
+                yconv = 1000/max(diff(FlashedPos));
                 plot(((1:stimLen)./xconv+w_pixels/2),...
                     (squeeze(meanResponse{ii,jj}(kk,:))'./yconv+FlashedPos(kk)),'k','LineWidth',2);
             end
