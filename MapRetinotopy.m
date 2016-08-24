@@ -128,6 +128,12 @@ MapParams.baseStats = baseStats;
 
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'MapParams');
 
+yesNo = input('Save as principal map parameter file? (y/n): ','s');
+
+if strcmp(yesNo,'y') == 1
+    save(sprintf('RetinoMap%d.mat',AnimalName),'MapParams');
+end
+
 % obj = gmdistribution(centerMass(Channel,1:2),squeeze(Sigma(Channel,:,:)));
 % figure();
 % h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,0 h_pixels]);
