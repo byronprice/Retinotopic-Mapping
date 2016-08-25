@@ -12,5 +12,5 @@ The lab implants one microelectrode (3mm tip) into binocular primary visual cort
 #
 4) In order to do subsequent analyses or stimulus generation targeting the retinotopic map, you need to choose a map. If there are multiple, it's probably best to select the most recent one. Save the final map as RetinoMap26881.mat and see Sequence-Learning repository, specifically SequenceStim.m .
 #
-5) If you would like to run the MapRetinotopy.m function for many animals, the best way is to use MapRetWrapper.m .  If you place all of the RetinoData and RetinoStim files into a common folder, this can easily be done by calling MapRetWrapper('RetinoData*'). If you want to only do so for a single animal, call MapRetWrapper('RetinoData*26881*') . Be careful with this function, as it will take forever to run all of the data at once. It is also a work in progress.
+5) If you would like to run the MapRetinotopy.m function for many animals, the best way is to use MapRetWrapper.m .  If you place all of the RetinoData and RetinoStim files into a common folder, this can easily be done by calling MapRetWrapper('RetinoData\*'). If you want to only do so for a single animal, call MapRetWrapper('RetinoData\*26881\*') . Be careful with this function, as it will take forever to run all of the data at once. It is also a work in progress.
 
