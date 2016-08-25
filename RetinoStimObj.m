@@ -2,6 +2,7 @@ classdef RetinoStimObj
     properties
         centerVals
         Radius
+        degreeRadius
         reps
         stimTime
         holdTime

@@ -161,6 +161,7 @@ Priority(0);
 stimParams = RetinoStimObj;
 stimParams.centerVals = centerVals;
 stimParams.Radius = Radius;
+stimParams.degreeRadius = degreeRadius;
 stimParams.reps = reps;
 stimParams.stimTime = stimTime;
 stimParams.holdTime = holdTime;
