@@ -1,4 +1,4 @@
-function [] = SlidingBars(Length,Width,Orientation,Foreground,Background,DistToScreen)
+function [] = SlidingBars(Length,Width,Orientation,Foreground,Background,floatSpeed,DistToScreen)
 %SlidingBars.m
 %  Display drifting bars with the option to add a checkered pattern
 %
@@ -7,21 +7,24 @@ function [] = SlidingBars(Length,Width,Orientation,Foreground,Background,DistToS
 %        Orientation - bar orientation (degrees)
 %        Foreground - color of the bar (0 to 1, 0 is black, 1 is white)
 %        Background - color of the background (as above)
-%        Checkered - 'yes' or 'no'
+%        floatSpeed - speed of drifting bars, in degrees per second
+%        Optional:
+%         DistToScreen - distance to the screen in centimeters, defaults to
+%         25 cm
 % OUTPUT: none
 %
 %
 % Created: 2016/08/19, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/19
+% Updated: 2016/08/25
 %  By: Byron Price
 
-directory = '~/Documents/Current-Projects/Retinotopic-Mapping';
+directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 
 % Acquire a handle to OpenGL, so we can use OpenGL commands in our code:
 global GL;
 
-if nargin < 6
+if nargin < 7
     DistToScreen = 25;
 end
 
@@ -60,10 +63,10 @@ ifi = Screen('GetFlipInterval', win);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 
 % perform unit conversions
-Width = round(((tan(Width*(2*pi)/360))*(DistToScreen*10))./conv_factor); % get number of pixels
+Width = round(((tan(Width*pi/180))*(DistToScreen*10))./conv_factor); % get number of pixels
                  % that Width degrees of visual space will occupy
                  
-Length = round(((tan(Length*(2*pi)/360))*(DistToScreen*10))./conv_factor);
+Length = round(((tan(Length*pi/180))*(DistToScreen*10))./conv_factor);
                  
 %checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
 
@@ -82,11 +85,14 @@ centerPos = [w_pixels/2 h_pixels/2];
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-floatSpeed = 10;
+% float speed in degrees / second converted to pixels / refresh
+floatSpeed = (tan(floatSpeed*pi/180)*(DistToScreen*10)./conv_factor)*ifi;
 target = [rand*w_pixels rand*h_pixels];
 
-randVals = rand([1000,2]);
-randVals = randVals*[w_pixels,0;0,h_pixels];
+numTargets = 10000;
+centerTargets = rand([numTargets,2]);
+centerTargets = centerTargets*[w_pixels,0;0,h_pixels];
+
 % Animation loop
 count = 1;
 vbl = Screen('Flip', win);
@@ -102,11 +108,14 @@ while ~KbCheck
     centerPos = centerPos+(vec./mag)*floatSpeed;
     
     if mag <= floatSpeed/2
-        target(1) = randVals(count,1);
-        target(2) = randVals(count,2);
+        target(1) = centerTargets(count,1);
+        target(2) = centerTargets(count,2);
     end
     Orientation = Orientation+1;
     count = count+1;
+    if count == numTargets
+        break;
+    end
 end
 WaitSecs(2);
 
