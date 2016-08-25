@@ -88,8 +88,8 @@ elseif strcmp(Hemisphere,'RH') == 1
     centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
     centerY = Radius+1:2*Radius:h_pixels-Radius/2;
 elseif strcmp(Hemisphere,'both') == 1
-    centerX = 2*Radius:2*Radius:w_pixels-Radius;
-    centerY = Radius+1:2*Radius:h_pixels-Radius;
+    centerX = 3*Radius:2*Radius:w_pixels-3*Radius;
+    centerY = Radius+1:2*Radius:h_pixels-4*Radius;
 end
 numStimuli = length(centerX)*length(centerY);
 
