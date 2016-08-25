@@ -1,4 +1,4 @@
-function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date)
+function [] = MapRetinotopy(AnimalName,Date)
 % MapRetinotopy.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
@@ -7,15 +7,12 @@ function [stimVals,centerMass,numChans] = MapRetinotopy(AnimalName,Date)
 %            12345
 %       Date - date of the experiment, e.g. 20160525
 
-%OUTPUT: stimVals - values used to generate the imagesc figure
-%        centerMass - for each channel, a vector with x position of the
-%         retinotopic field's center of mass, y position, x standard
-%         deviation and y standard deviation
-%        numChans - number of channels for this setup, usually 2
+%OUTPUT: saved files and figures with info regarding retinotopy of each
+%         channel
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/23
+% Updated: 2016/08/25
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
