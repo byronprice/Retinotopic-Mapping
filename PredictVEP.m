@@ -8,7 +8,7 @@ function [] = PredictVEP()
 %
 % Created: 2016/08/02
 %  Byron Price
-% Updated: 2016/08/17
+% Updated: 2016/08/29
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -18,10 +18,12 @@ fileStart = 'RetinoData*.mat';
 fileList = dir(fileStart);
 numFiles = size(fileList,1);
 
-fileStart = fileList(1).name(1:end-18);
+index = regexp(fileStart,'*');
+fileStart = fileStart(1:index-1);
 AnimalNames = zeros(numFiles,1);
 for ii=1:numFiles
-    AnimalNames(ii) = str2double(fileList(ii).name(end-8:end-4));
+    index = regexp(fileList(ii).name,'_');
+    AnimalNames(ii) = str2double(fileList(ii).name(index+1:index+5));
 end
 AnimalNames = unique(AnimalNames);
 numAnimals = length(AnimalNames);
@@ -118,7 +120,7 @@ function [Response] = ExtractSignal(AnimalName,Date)
         return;
     end
     strobeTimes = tsevs{1,strobeStart};
-    stimAfter = round((stimTime+0.2)*sampleFreq); % about 250 milliseconds
+    stimAfter = round(0.25*sampleFreq); %250 milliseconds
     stimBefore = round(0.1*sampleFreq); %100 milliseconds
 
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
