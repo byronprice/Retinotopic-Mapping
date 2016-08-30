@@ -21,7 +21,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen minWin maxWin; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen minWin maxWin baseWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -36,22 +36,23 @@ w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
 
-
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
 % get LFP response to each stimulus (the VEPs)
-[Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
+[Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
 
 % STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
-statFun = @(data,win1,win2) (-min(mean(data(:,win2),1)));
+statMin = @(data,win1,win2) (mean(mean(data(:,win1),1))-min(mean(data(:,win2),1)));
+statMax = @(data,win1,win2) (max(mean(data(:,win2),1))-mean(mean(data(:,win1),1)));
 
-minWin = round(0.04*sampleFreq):1:round(0.1*sampleFreq);
-maxWin = round(.1*sampleFreq):1:round(0.2*sampleFreq);
+baseWin = 1:round(0.04*sampleFreq);
+minWin = round(0.05*sampleFreq):1:round(0.15*sampleFreq);
+maxWin = round(.1*sampleFreq):1:round(0.3*sampleFreq);
 dataStats = struct;
-dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
+dataStats.mean = mean(meanResponse(:,:,baseWin),3)-min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
 dataStats.sem = zeros(numChans,numStimuli);
 dataStats.ci = zeros(numChans,numStimuli,2);
 
@@ -61,7 +62,7 @@ alpha = 0.01;
 for ii=1:numChans
     for jj=1:numStimuli
         Data = squeeze(Response(ii,jj,:,:));
-        [~,se,ci] = Bootstraps(Data,statFun,alpha,N,reps);
+        [~,se,ci] = Bootstraps(Data,statMin,0.05,N,reps);
         dataStats.sem(ii,jj) = se;
         dataStats.ci(ii,jj,:) = ci;
     end
@@ -91,9 +92,9 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        Tboot(jj) = statFun(temp,maxWin,minWin);
+        Tboot(jj) = statMin(temp,baseWin,minWin);
     end
-    baseStats.ci(ii,:) = [quantile(Tboot,alpha),quantile(Tboot,1-alpha)];
+    baseStats.ci(ii,:) = [quantile(Tboot,0.05),quantile(Tboot,1-0.05)];
     baseStats.mean(ii) = mean(Tboot);
     baseStats.sem(ii) = std(Tboot);
 end
@@ -104,7 +105,7 @@ end
 % Calculate the center of mass of the receptive field
 [centerMass] = GetReceptiveField(significantStimuli,AnimalName);
 
-[stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName); 
+[stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName,dataStats,minLatency); 
 
 Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
 savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
@@ -122,6 +123,8 @@ MapParams.meanResponse = meanResponse;
 MapParams.Channel = Channel;
 MapParams.dataStats = dataStats;
 MapParams.baseStats = baseStats;
+MapParams.minLatency = minLatency;
+MapParams.maxLatency = maxLatency;
 
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'MapParams');
 
@@ -176,11 +179,11 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
     
 end
 
-function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
-    global numChans numStimuli reps stimLen stimTime sampleFreq;
+function [Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
+    global numChans numStimuli reps stimLen stimTime sampleFreq minWin maxWin;
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
-    stimLen = round((stimTime+0.2)*sampleFreq); % about 250 milliseconds
+    stimLen = round(0.3*sampleFreq); % about 250 milliseconds
     smoothKernel = 4;
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
     Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -197,7 +200,10 @@ function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,t
             meanResponse(ii,jj,:) = smooth(mean(squeeze(Response(ii,jj,:,:)),1),smoothKernel);
         end
     end
-
+    [~,minLatency] = min(meanResponse(:,:,minWin),[],3);
+    [~,maxLatency] = max(meanResponse(:,:,maxWin),[],3);
+    minLatency = (minLatency+minWin(1))./sampleFreq;
+    maxLatency = (maxLatency+maxWin(1))./sampleFreq;
 end
 
 function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
@@ -225,7 +231,7 @@ function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
 %  Byron Price
 %Updated: 2016/08/18
 % By: Byron Price
-global maxWin minWin;
+global maxWin minWin baseWin;
 
 if nargin < 3
     alpha = 0.05;
@@ -243,12 +249,12 @@ ci = zeros(2,1);
 for ii=1:N
     indeces = random('Discrete Uniform',n,[n,1]);
     temp = Data(indeces,:);
-    Tboot(ii) = myFun(temp,maxWin,minWin);
+    Tboot(ii) = myFun(temp,baseWin,minWin);
 end
 stat = mean(Tboot);
 se = std(Tboot);
-ci(1) = quantile(Tboot,alpha/2);
-ci(2) = quantile(Tboot,1-alpha/2);
+ci(1) = stat-quantile(Tboot,alpha/2);
+ci(2) = quantile(Tboot,1-alpha/2)-stat;
 end
 
 function [significantStimuli] = WaldTest(dataStats,baseStats,alpha)
@@ -307,8 +313,8 @@ function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
     end
 end
 
-function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName)
-    global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen;
+function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName,dataStats,minLatency)
+    global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen sampleFreq baseWin minWin;
     sigma = Radius;
     halfwidth = 3*sigma;
     [xx,yy] = meshgrid(-halfwidth:halfwidth,-halfwidth:halfwidth);
@@ -316,8 +322,13 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
     stimVals = zeros(numChans,w_pixels,h_pixels);
     x=1:w_pixels;
     y=1:h_pixels;
-
-    xconv = stimLen/max(diff(sort(centerVals(:,1)))); % the max(diff(sort ...
+    minLatency = round(minLatency.*sampleFreq);
+    xPos = unique(centerVals(:,1));
+    yPos = unique(centerVals(:,2));
+    
+    xDiff = mean(diff(xPos));
+    yDiff = mean(diff(yPos));
+    xconv = stimLen/xDiff; % the max(diff(sort ...
                      % is equal to the width of the mapping stimulus (the width
                      % of the square that encloses the sinusoidal grating with
                      % overlain 2D Gaussian kernel) ... this value is
@@ -327,9 +338,9 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
                      % stimuli from being analyzed by this code. As is, the
                      % code is fairly general to accept different types of
                      % mapping stimuli
-    yconv = 1000/max(diff(sort(centerVals(:,2)))); % for height of the stimulus
-
-
+    yconv = 1000/yDiff; % for height of the stimulus
+    
+    removeBase = mean(meanResponse(:,:,baseWin),3)-dataStats.mean;
     for ii=1:numChans
         h(ii) = figure;
     end
@@ -343,9 +354,15 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
         for jj=1:numStimuli
             tempx = centerVals(jj,1);
             tempy = centerVals(jj,2);
+            yErrors = round(removeBase(ii,jj)-dataStats.ci(ii,jj,1)):...
+                round(removeBase(ii,jj)+dataStats.ci(ii,jj,2));
+            yErrLen = length(yErrors);
             stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
-            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*max(diff(sort(centerVals(:,1))))),...
+            plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*xDiff),...
                 (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
+            plot((ones(yErrLen,1).*minLatency(ii,jj))./xconv+centerVals(jj,1)-0.5*xDiff,...
+                yErrors./yconv...
+                +centerVals(jj,2),'k','LineWidth',2);
             plot((tempx-Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx+Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx-Radius):(tempx+Radius),(tempy-Radius)*ones(Radius*2+1,1),'k','LineWidth',2);

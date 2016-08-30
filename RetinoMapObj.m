@@ -10,5 +10,7 @@ classdef RetinoMapObj
         Channel
         dataStats
         baseStats
+        minLatency
+        maxLatency
     end
 end
