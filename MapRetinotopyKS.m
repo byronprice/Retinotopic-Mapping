@@ -1,5 +1,5 @@
-function [] = MapRetinotopy(AnimalName,Date)
-% MapRetinotopy.m
+function [] = MapRetinotopyKS(AnimalName,Date)
+% MapRetinotopyKS.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
 %   retinotopy of the LFP recording electrode.
@@ -10,7 +10,7 @@ function [] = MapRetinotopy(AnimalName,Date)
 %OUTPUT: saved files and figures with info regarding retinotopy of each
 %         channel
 %
-% Created: 2016/05/25, 8 St. Mary's Street, Boston
+% Created: 2016/08/29, 24 Cummington, Boston
 %  Byron Price
 % Updated: 2016/08/29
 %  By: Byron Price
@@ -21,7 +21,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen minWin maxWin; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen minWin maxWin baseWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -36,7 +36,7 @@ w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
 
-
+reps = reps-1;
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
@@ -46,18 +46,21 @@ DistToScreen = stimParams.DistToScreen;
 % STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
-statFun = @(data,win1,win2) (-min(mean(data(:,win2),1)));
+statFun = @(data,win1,win2) (mean(mean(data(:,win1),1))-min(mean(data(:,win2),1)));
 
 minWin = round(0.04*sampleFreq):1:round(0.1*sampleFreq);
 maxWin = round(.1*sampleFreq):1:round(0.2*sampleFreq);
+baseWin = 1:1:round(0.02*sampleFreq);
 dataStats = struct;
-dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
+[mins,inds] = min(meanResponse(:,:,minWin),[],3);
+dataStats.mean = -mins; %max(meanResponse(:,:,maxWin),[],3)
 dataStats.sem = zeros(numChans,numStimuli);
 dataStats.ci = zeros(numChans,numStimuli,2);
+dataStats.lat = 0.04+inds./sampleFreq;
 
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 2000; % number of bootstrap samples
-alpha = 0.01;
+alpha = 0.05;
 for ii=1:numChans
     for jj=1:numStimuli
         Data = squeeze(Response(ii,jj,:,:));
@@ -91,15 +94,15 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        Tboot(jj) = statFun(temp,maxWin,minWin);
+        Tboot(jj) = statFun(temp,baseWin,minWin);
     end
     baseStats.ci(ii,:) = [quantile(Tboot,alpha),quantile(Tboot,1-alpha)];
     baseStats.mean(ii) = mean(Tboot);
     baseStats.sem(ii) = std(Tboot);
 end
 
-% WALD TEST to determine which stimuli are significant
-[significantStimuli] = WaldTest(dataStats,baseStats,alpha);
+% KS TEST to determine which stimuli are significant
+[significantStimuli] = KStest(Response,dataStats,baseStats,alpha);
 
 % Calculate the center of mass of the receptive field
 [centerMass] = GetReceptiveField(significantStimuli,AnimalName);
@@ -107,7 +110,7 @@ end
 [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName); 
 
 Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
-savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
+savefig(h,sprintf('RetinoMapKS%d_%d.fig',Date,AnimalName));
 %print(h,'-depsc','filename');
 
 
@@ -123,12 +126,12 @@ MapParams.Channel = Channel;
 MapParams.dataStats = dataStats;
 MapParams.baseStats = baseStats;
 
-save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'MapParams');
+save(sprintf('RetinoMapKS%d_%d.mat',Date,AnimalName),'MapParams');
 
 yesNo = input('Save as principal map parameter file? (y/n): ','s');
 
 if strcmp(yesNo,'y') == 1
-    save(sprintf('RetinoMap%d.mat',AnimalName),'MapParams');
+    save(sprintf('RetinoMapKS%d.mat',AnimalName),'MapParams');
 end
 
 % obj = gmdistribution(centerMass(Channel,1:2),squeeze(Sigma(Channel,:,:)));
@@ -173,7 +176,6 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
         display('Error: Review allad cell array and timing')
         return;
     end
-    
 end
 
 function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
@@ -225,7 +227,7 @@ function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
 %  Byron Price
 %Updated: 2016/08/18
 % By: Byron Price
-global maxWin minWin;
+global maxWin baseWin minWin;
 
 if nargin < 3
     alpha = 0.05;
@@ -243,7 +245,7 @@ ci = zeros(2,1);
 for ii=1:N
     indeces = random('Discrete Uniform',n,[n,1]);
     temp = Data(indeces,:);
-    Tboot(ii) = myFun(temp,maxWin,minWin);
+    Tboot(ii) = myFun(temp,baseWin,minWin);
 end
 stat = mean(Tboot);
 se = std(Tboot);
@@ -251,21 +253,71 @@ ci(1) = quantile(Tboot,alpha/2);
 ci(2) = quantile(Tboot,1-alpha/2);
 end
 
-function [significantStimuli] = WaldTest(dataStats,baseStats,alpha)
-        % WALD TEST - VEP magnitude significantly greater in presence of a stimulus
-    %  than in the absence of a stimulus
-    global numChans numStimuli;
+function [significantStimuli] = KStest(Response,dataStats,baseStats,alpha)
+        % KS TEST - distribution of VEP latencies significantly different 
+        % in presence of a stimulus than a uniform distribution
+        % use Benjamini-Hochberg correction for multiple comparisons
+    global numChans numStimuli stimLen;
     significantStimuli = zeros(numChans,numStimuli);
-    c = norminv(1-alpha,0,1);
+    pvals = zeros(numChans,numStimuli);
     for ii=1:numChans
         for jj=1:numStimuli
-            W = (dataStats.mean(ii,jj)-baseStats.mean(ii))/...
-                sqrt(dataStats.sem(ii,jj)^2+baseStats.sem(ii)^2);
-            if W > c
-                significantStimuli(ii,jj) = dataStats.mean(ii,jj); 
+            times = squeeze(Latencies(ii,jj,:));
+            theoryCDF = makedist('Uniform','lower',1,'upper',stimLen);
+            [~,pvals(ii,jj)] = kstest(times,'CDF',theoryCDF,'Alpha',alpha);
+        end
+        [sortedPs,~] = sort(squeeze(pvals(ii,:)));
+        l = (1:length(sortedPs)).*alpha./length(sortedPs);
+        threshLine = max(sortedPs-l,0);
+        maxSignif = find(threshLine==0,1,'last');
+        thresh = sortedPs(maxSignif);
+        for kk=1:numStimuli
+            %medianLat = median(squeeze(Latencies(ii,kk,:)));
+            if (pvals(ii,kk) <= thresh) && (dataStats.lat(ii,kk) >= .05) && (dataStats.lat(ii,kk) <= 0.1)
+                significantStimuli(ii,kk) = dataStats.mean(ii,kk);
             end
-        end    
+        end
     end
+
+end
+
+function [Fx,x,lBound,uBound] = eCDF(Data,alpha)
+%eCDF.m
+%   Creation of the empirical distribution function (empirical cumulative
+%   distribution function) for an array of Data
+%
+%INPUT: Data - the data as a vector
+%       OPTIONAL:
+%       alpha - confidence level for nonparametric 1-alpha confidence
+%         bands, defaults to 0.05 for a 95% confidence band
+%OUTPUT: Fx - the empirical distribution function
+%        x - the points at which Fx is calculated
+%        lBound - lower bound for 1-alpha confidence interval
+%        uBound - upper bound for 1-alpha confidence interval
+% 
+%Created: 2016/07/09
+%  Byron Price
+%Updated: 2016/07/09
+%By: Byron Price
+
+if nargin < 2
+    alpha = 0.05;
+end
+
+n = length(Data);
+Fx = zeros(max(Data),1);
+lBound = zeros(max(Data),1);
+uBound = zeros(max(Data),1);
+Data = sort(Data);
+
+x = 1:max(Data);
+epsilon = sqrt((1/(2*n))*log(2/alpha));
+for ii=1:max(Data)
+    Fx(ii) = sum(Data<=ii)/n;
+    lBound(ii) = max(Fx(ii)-epsilon,0);
+    uBound(ii) = min(Fx(ii)+epsilon,1);
+end
+
 end
 
 function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
@@ -353,23 +405,10 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
 
         end
         if isnan(centerMass.x(ii)) ~= 1
-    %         obj = gmdistribution(centerMass(ii,1:2),squeeze(Sigma(ii,:,:)));
-    %         combos = zeros(w_pixels*h_pixels,2);
-    %         count = 1;
-    %         for kk=1:w_pixels
-    %             for ll=h_pixels:-1:1
-    %                 %             stimVals(ii,kk,ll) = pdfFun(kk,ll);
-    %                 combos(count,:) = [kk,ll];
-    %                 count = count+1;
-    %             end
-    %         end
-    %         temp = reshape(pdf(obj,combos),[h_pixels,w_pixels]);
-    %         temp = flipud(temp)';
-    %         stimVals(ii,:,:) = (temp./(max(max(temp)))).*max(significantStimuli(ii,:));
-            temp = squeeze(stimVals(ii,:,:))';
-            blurred = conv2(temp,gaussian,'same');
-            blurred = (blurred./max(max(blurred))).*max(max(temp));
-            imagesc(x,y,blurred,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+           temp = squeeze(stimVals(ii,:,:))';
+%             blurred = conv2(temp,gaussian,'same');
+%             blurred = (blurred./max(max(blurred))).*max(max(temp));
+            imagesc(x,y,temp,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
             ylabel(w,'VEP Negativity (\muV)');colormap('jet');
             hold off;
 
