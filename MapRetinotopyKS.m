@@ -2,7 +2,10 @@ function [] = MapRetinotopyKS(AnimalName,Date)
 % MapRetinotopyKS.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
-%   retinotopy of the LFP recording electrode.
+%   retinotopy of the LFP recording electrode using a KS test, which
+%   compares the distribution of latency to minimum and latency to maximum
+%   against a uniform distribution (under the null hypothesis that no VEP
+%   occurred, the distribution of latency times should be uniform). 
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
 %       Date - date of the experiment, e.g. 20160525
@@ -41,11 +44,44 @@ reps = reps-1;
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
 % get LFP response to each stimulus (the VEPs)
-[Response,meanResponse,~] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
+[Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
 
-alpha = 0.05;
+% BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
+noStimLen = holdTime*sampleFreq-stimLen*2;
+
+baseStats = struct;
+baseStats.ci = zeros(numChans,2);
+baseStats.mean = zeros(numChans,1);
+baseStats.sem = zeros(numChans,1);
+
+pauseOnset = strobeTimes(svStrobed == 0);
+nums = length(pauseOnset);
+N = 2000;
+alpha = 0.01;
+for ii=1:numChans
+    Tboot = zeros(N,1);
+    for jj=1:N
+        indeces = random('Discrete Uniform',noStimLen,[reps,1]);
+        temp = zeros(reps,stimLen);
+        num = random('Discrete Uniform',nums);
+        [~,index] = min(abs(timeStamps-pauseOnset(num)));
+        index = index+stimLen;
+        for kk=1:reps
+            temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
+        end
+        [~,minlats] = min(temp,[],2);
+        minCDF = makedist('Uniform','lower',1,'upper',stimLen);
+        [~,~,ksstat] = kstest(minlats,'CDF',minCDF,'Alpha',alpha);
+        Tboot(jj) = ksstat;
+    end
+    baseStats.ci(ii,:) = [quantile(Tboot,alpha),quantile(Tboot,1-alpha)];
+    baseStats.mean(ii) = mean(Tboot);
+    baseStats.sem(ii) = std(Tboot);
+end
+
+alpha = 0.01;
 % KS TEST to determine which stimuli are significant
-[significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,alpha);
+[significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,baseStats,alpha);
 
 % xPos = unique(centerVals(:,1));
 % yPos = unique(centerVals(:,2));
@@ -71,8 +107,17 @@ alpha = 0.05;
 %     w(1+2*(ii-1)) = figure();
 %     w(2+2*(ii-1)) = figure();
 %     for jj=1:numStimuli
+% %         AIC = zeros(1,4);
+% %         GMModels = cell(1,4);
+% %         options = statset('MaxIter',500);
+% %         for kk=1:3
+% %             GMModels{kk} = fitgmdist(squeeze(minLatency(ii,jj,:)),kk,'Options',options);
+% %             AIC(kk)= GMModels{kk}.AIC;
+% %         end
+% %         [~,numComponents] = min(AIC);
 %         figure(w(1+2*(ii-1)));
 %         subplot(numY,numX,position(jj));histogram(squeeze(minLatency(ii,jj,:)));
+%         legend(num2str(std(squeeze(minLatency(ii,jj,:)))));
 %         figure(w(2+2*(ii-1)));
 %         subplot(numY,numX,position(jj));histogram(squeeze(maxLatency(ii,jj,:)));
 %     end
@@ -168,10 +213,11 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
 end
 
 function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
-    global numChans numStimuli reps stimLen stimTime sampleFreq;
+    global numChans numStimuli reps stimLen maxWin sampleFreq;
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
-    stimLen = round((stimTime+0.2)*sampleFreq); % about 250 milliseconds
+    stimLen = round(0.25*sampleFreq); % about 250 milliseconds
+    maxWin = round(0.1*sampleFreq):stimLen;
     smoothKernel = 4;
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
     Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -191,12 +237,12 @@ function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,t
 
 end
 
-function [significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,alpha)
+function [significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,baseStats,alpha)
         % KS TEST - distribution of VEP latencies significantly different 
         % in presence of a stimulus than a uniform distribution
         % use Benjamini-Hochberg correction for multiple comparisons
     global numChans numStimuli stimLen sampleFreq maxWin;
-    maxWin = round(0.1*sampleFreq):stimLen;
+   
     [~,minLatency] = min(Response,[],4);
     [~,maxLatency] = max(Response(:,:,:,maxWin),[],4);
     
@@ -218,19 +264,19 @@ function [significantStimuli,minLatency,maxLatency] = KStest(Response,meanRespon
         l = (1:length(sortedPmins)).*alpha./length(sortedPmins);
         threshLine = max(sortedPmins-l,0);
         minSignif = find(threshLine==0,1,'last');
-        minthresh = sortedPmins(minSignif);
+        minthresh = min(sortedPmins(minSignif),alpha);
         
         [sortedPmaxs,~] = sort(squeeze(pmaxs(ii,:)));
         l = (1:length(sortedPmaxs)).*alpha./length(sortedPmaxs);
         threshLine = max(sortedPmaxs-l,0);
         maxSignif = find(threshLine==0,1,'last');
-        maxthresh = sortedPmins(maxSignif);
-        
+        maxthresh = min(sortedPmins(maxSignif),alpha);
+
         if isempty(minthresh) == 0 && isempty(maxthresh) == 0
             for kk=1:numStimuli
 %                 medianMin = median(minLatency(ii,kk,:));
 %                 medianMax = median(maxLatency(ii,kk,:));
-                if (pmins(ii,kk) <= minthresh) && (pmaxs(ii,kk) <= maxthresh)
+                if (pmins(ii,kk) >= minthresh) && (pmaxs(ii,kk) <= maxthresh)
                     significantStimuli(ii,kk) = minVals(ii,kk);
                 end
             end
@@ -414,3 +460,4 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
         end
     end
 end
+

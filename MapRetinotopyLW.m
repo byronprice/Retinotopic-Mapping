@@ -1,8 +1,12 @@
-function [] = MapRetinotopy(AnimalName,Date)
-% MapRetinotopy.m
+function [] = MapRetinotopyLW(AnimalName,Date)
+% MapRetinotopyLW.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
-%   retinotopy of the LFP recording electrode.
+%   retinotopy of the LFP recording electrode using a Wald test based on
+%   the width of the distribution of latency to minimum times. Under the
+%   null hypothesis that no VEP occurred, the width of the distribution of 
+%   latency times will be comparable to that same distribution as measured
+%   while the animal observed a blank screen.
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
 %       Date - date of the experiment, e.g. 20160525
@@ -10,9 +14,9 @@ function [] = MapRetinotopy(AnimalName,Date)
 %OUTPUT: saved files and figures with info regarding retinotopy of each
 %         channel
 %
-% Created: 2016/05/25, 8 St. Mary's Street, Boston
+% Created: 2016/09/01, 5920 Colchester Road, Fairfax, VA
 %  Byron Price
-% Updated: 2016/08/29
+% Updated: 2016/09/01
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -21,7 +25,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen minWin maxWin baseWin; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen maxWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -36,33 +40,31 @@ w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
 
+reps = reps-1;
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
 % get LFP response to each stimulus (the VEPs)
-baseWin = 1:round(0.04*sampleFreq);
-minWin = round(0.05*sampleFreq):1:round(0.15*sampleFreq);
-maxWin = round(.1*sampleFreq):1:round(0.3*sampleFreq);
-[Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
+[Response,meanResponse,strobeTimes,maxLatency,minLatency,minVals] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
 
 % STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
-statMin = @(data,win1,win2) -min(mean(data(:,win2),1));
-statMax = @(data,win1,win2) (max(mean(data(:,win2),1))-mean(mean(data(:,win1),1)));
+statFun = @(data) mad(data,1); %quantile(data,0.95)-quantile(data,0.05); % mad(data,1)
 
 dataStats = struct;
-dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
+dataStats.mean = zeros(numChans,numStimuli);
 dataStats.sem = zeros(numChans,numStimuli);
 dataStats.ci = zeros(numChans,numStimuli,2);
 
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 2000; % number of bootstrap samples
-alpha = 0.01;
+alpha = 0.05;
 for ii=1:numChans
     for jj=1:numStimuli
-        Data = squeeze(Response(ii,jj,:,:));
-        [~,se,ci] = Bootstraps(Data,statMin,0.05,N,reps);
+        Data = squeeze(minLatency(ii,jj,:));
+        [~,se,ci] = Bootstraps(Data,statFun,alpha,N,reps);
+        dataStats.mean(ii,jj) = statFun(Data);
         dataStats.sem(ii,jj) = se;
         dataStats.ci(ii,jj,:) = ci;
     end
@@ -92,51 +94,63 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        Tboot(jj) = statMin(temp,baseWin,minWin);
+        [~,lats] = min(temp,[],2);
+        Tboot(jj) = statFun(lats./sampleFreq);
     end
-    baseStats.ci(ii,:) = [quantile(Tboot,0.05/2),quantile(Tboot,1-0.05/2)];
+    baseStats.ci(ii,:) = [quantile(Tboot,alpha/2),quantile(Tboot,1-alpha/2)];
     baseStats.mean(ii) = mean(Tboot);
     baseStats.sem(ii) = std(Tboot);
 end
 
+% xPos = unique(centerVals(:,1));
+% yPos = unique(centerVals(:,2));
+% numX = length(xPos);
+% numY = length(yPos);
+% position = zeros(numStimuli,1);
+% 
+% mapping = zeros(numX,numY);
+% count = 1;
+% for ii=numY:-1:1
+%     for jj=1:numX
+%         mapping(jj,ii) = count;
+%         count = count+1;
+%     end
+% end
+% for ii=1:numStimuli
+%     xInd = find(logical(centerVals(ii,1) == xPos));
+%     yInd = find(logical(centerVals(ii,2) == yPos));
+%     position(ii) = mapping(xInd,yInd);
+% end
+% 
+% for ii=1:numChans
+%     w(1+2*(ii-1)) = figure();
+%     w(2+2*(ii-1)) = figure();
+%     for jj=1:numStimuli
+% %         AIC = zeros(1,4);
+% %         GMModels = cell(1,4);
+% %         options = statset('MaxIter',500);
+% %         for kk=1:3
+% %             GMModels{kk} = fitgmdist(squeeze(minLatency(ii,jj,:)),kk,'Options',options);
+% %             AIC(kk)= GMModels{kk}.AIC;
+% %         end
+% %         [~,numComponents] = min(AIC);
+%         figure(w(1+2*(ii-1)));
+%         subplot(numY,numX,position(jj));histogram(squeeze(minLatency(ii,jj,:)));
+%         legend(num2str(std(squeeze(minLatency(ii,jj,:)))));
+%         figure(w(2+2*(ii-1)));
+%         subplot(numY,numX,position(jj));histogram(squeeze(maxLatency(ii,jj,:)));
+%     end
+% end
+
 % WALD TEST to determine which stimuli are significant
-[significantStimuli] = WaldTest(dataStats,baseStats,alpha);
+alpha = 0.01;
+[significantStimuli] = WaldTest(dataStats,baseStats,minVals,alpha);
 
 % Calculate the center of mass of the receptive field
 [centerMass] = GetReceptiveField(significantStimuli,AnimalName);
 
 [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName,dataStats,minLatency); 
 
-Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
-savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
-%print(h,'-depsc','filename');
-
-
-MapParams = RetinoMapObj;
-MapParams.numChans = numChans;
-MapParams.centerVals = centerVals;
-MapParams.significantStimuli = significantStimuli;
-MapParams.centerMass = centerMass;
-MapParams.stimVals = stimVals;
-MapParams.Response = Response;
-MapParams.meanResponse = meanResponse;
-MapParams.Channel = Channel;
-MapParams.dataStats = dataStats;
-MapParams.baseStats = baseStats;
-MapParams.minLatency = minLatency;
-MapParams.maxLatency = maxLatency;
-
-save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'MapParams');
-
-yesNo = input('Save as principal map parameter file? (y/n): ','s');
-
-if strcmp(yesNo,'y') == 1
-    save(sprintf('RetinoMap%d.mat',AnimalName),'MapParams');
-end
-
-% obj = gmdistribution(centerMass(Channel,1:2),squeeze(Sigma(Channel,:,:)));
-% figure();
-% h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,0 h_pixels]);
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -151,7 +165,6 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
     EphysFileName = strcat(EphysFileName,'.mat');
     load(EphysFileName)
 
-    
     sampleFreq = adfreq;
 
     Chans = find(~cellfun(@isempty,allad));
@@ -179,11 +192,13 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
     
 end
 
-function [Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
-    global numChans numStimuli reps stimLen stimTime sampleFreq minWin maxWin;
+function [Response,meanResponse,strobeTimes,maxLatency,minLatency,minVals] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
+    global numChans numStimuli reps stimLen sampleFreq minWin maxWin;
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
-    stimLen = round(0.3*sampleFreq); % about 250 milliseconds
+    stimLen = round(0.25*sampleFreq); % about 250 milliseconds
+    minWin = 1:stimLen;
+    maxWin = round(0.05*sampleFreq):round(0.25*sampleFreq);
     smoothKernel = 4;
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
     Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -200,10 +215,11 @@ function [Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS
             meanResponse(ii,jj,:) = smooth(mean(squeeze(Response(ii,jj,:,:)),1),smoothKernel);
         end
     end
-    [~,minLatency] = min(meanResponse(:,:,minWin),[],3);
-    [~,maxLatency] = max(meanResponse(:,:,maxWin),[],3);
-    minLatency = (minLatency+minWin(1))./sampleFreq;
+    [~,minLatency] = min(Response,[],4);
+    [~,maxLatency] = max(Response(:,:,:,maxWin),[],4);
+    minLatency = minLatency./sampleFreq;
     maxLatency = (maxLatency+maxWin(1))./sampleFreq;
+    minVals = -min(meanResponse,[],3);
 end
 
 function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
@@ -231,7 +247,6 @@ function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
 %  Byron Price
 %Updated: 2016/08/18
 % By: Byron Price
-global maxWin minWin baseWin;
 
 if nargin < 3
     alpha = 0.05;
@@ -248,8 +263,8 @@ Tboot = zeros(N,1);
 ci = zeros(2,1);
 for ii=1:N
     indeces = random('Discrete Uniform',n,[n,1]);
-    temp = Data(indeces,:);
-    Tboot(ii) = myFun(temp,baseWin,minWin);
+    temp = Data(indeces);
+    Tboot(ii) = myFun(temp);
 end
 stat = mean(Tboot);
 se = std(Tboot);
@@ -257,21 +272,20 @@ ci(1) = quantile(Tboot,alpha/2);
 ci(2) = quantile(Tboot,1-alpha/2);
 end
 
-function [significantStimuli] = WaldTest(dataStats,baseStats,alpha)
-        % WALD TEST - VEP magnitude significantly greater in presence of a stimulus
-    %  than in the absence of a stimulus
+function [significantStimuli] = WaldTest(dataStats,baseStats,minVals,alpha)
+        % WALD TEST 
     global numChans numStimuli;
     significantStimuli = zeros(numChans,numStimuli);
     c = norminv(1-alpha,0,1);
     for ii=1:numChans
         for jj=1:numStimuli
-%             W = (dataStats.mean(ii,jj)-baseStats.mean(ii))/...
+%             W = (baseStats.mean(ii)-dataStats.mean(ii,jj))/...
 %                 sqrt(dataStats.sem(ii,jj)^2+baseStats.sem(ii)^2);
 %             if W > c
-%                 significantStimuli(ii,jj) = dataStats.mean(ii,jj); 
+%                 significantStimuli(ii,jj) = minVals(ii,jj); 
 %             end
-            if dataStats.ci(ii,jj,1) > baseStats.ci(ii,2)
-                significantStimuli(ii,jj) = dataStats.mean(ii,jj);
+            if dataStats.ci(ii,jj,2) < baseStats.ci(ii,1)
+                significantStimuli(ii,jj) = minVals(ii,jj);
             end
         end    
     end
@@ -325,7 +339,7 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
     stimVals = zeros(numChans,w_pixels,h_pixels);
     x=1:w_pixels;
     y=1:h_pixels;
-    minLatency = round(minLatency.*sampleFreq);
+
     xPos = unique(centerVals(:,1));
     yPos = unique(centerVals(:,2));
     
@@ -342,7 +356,7 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
                      % code is fairly general to accept different types of
                      % mapping stimuli
     yconv = 1000/yDiff; % for height of the stimulus
-    
+
     for ii=1:numChans
         h(ii) = figure;
     end
@@ -356,15 +370,9 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
         for jj=1:numStimuli
             tempx = centerVals(jj,1);
             tempy = centerVals(jj,2);
-            yErrors = round(-dataStats.ci(ii,jj,2)):...
-                round(-dataStats.ci(ii,jj,1));
-            yErrLen = length(yErrors);
             stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
             plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*xDiff),...
                 (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
-            plot((ones(yErrLen,1).*minLatency(ii,jj))./xconv+centerVals(jj,1)-0.5*xDiff,...
-                yErrors./yconv...
-                +centerVals(jj,2),'k','LineWidth',2);
             plot((tempx-Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx+Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx-Radius):(tempx+Radius),(tempy-Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
@@ -386,9 +394,9 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
     %         temp = flipud(temp)';
     %         stimVals(ii,:,:) = (temp./(max(max(temp)))).*max(significantStimuli(ii,:));
             temp = squeeze(stimVals(ii,:,:))';
-            blurred = conv2(temp,gaussian,'same');
-            blurred = (blurred./max(max(blurred))).*max(max(temp));
-            imagesc(x,y,blurred,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+%             blurred = conv2(temp,gaussian,'same');
+%             blurred = (blurred./max(max(blurred))).*max(max(temp));
+            imagesc(x,y,temp,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
             ylabel(w,'VEP Negativity (\muV)');colormap('jet');
             hold off;
 
