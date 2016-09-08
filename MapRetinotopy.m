@@ -58,11 +58,11 @@ dataStats.ci = zeros(numChans,numStimuli,2);
 
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 2000; % number of bootstrap samples
-alpha = 0.01;
+alpha = 0.05;
 for ii=1:numChans
     for jj=1:numStimuli
         Data = squeeze(Response(ii,jj,:,:));
-        [~,se,ci] = Bootstraps(Data,statMin,0.05,N,reps);
+        [~,se,ci] = Bootstraps(Data,statMin,alpha,N,reps);
         dataStats.sem(ii,jj) = se;
         dataStats.ci(ii,jj,:) = ci;
     end
@@ -94,7 +94,7 @@ for ii=1:numChans
         end
         Tboot(jj) = statMin(temp,baseWin,minWin);
     end
-    baseStats.ci(ii,:) = [quantile(Tboot,0.05/2),quantile(Tboot,1-0.05/2)];
+    baseStats.ci(ii,:) = [quantile(Tboot,alpha/2),quantile(Tboot,1-alpha/2)];
     baseStats.mean(ii) = mean(Tboot);
     baseStats.sem(ii) = std(Tboot);
 end
@@ -202,8 +202,8 @@ function [Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS
     end
     [~,minLatency] = min(meanResponse(:,:,minWin),[],3);
     [~,maxLatency] = max(meanResponse(:,:,maxWin),[],3);
-    minLatency = (minLatency+minWin(1))./sampleFreq;
-    maxLatency = (maxLatency+maxWin(1))./sampleFreq;
+    minLatency = (minLatency+minWin(1)-1)./sampleFreq;
+    maxLatency = (maxLatency+maxWin(1)-1)./sampleFreq;
 end
 
 function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
