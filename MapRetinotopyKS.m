@@ -24,7 +24,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen maxWin; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen maxWin minWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -50,16 +50,19 @@ reps = reps-1;
 noStimLen = holdTime*sampleFreq-stimLen*2;
 
 baseStats = struct;
-baseStats.ci = zeros(numChans,2);
-baseStats.mean = zeros(numChans,1);
-baseStats.sem = zeros(numChans,1);
+baseStats.minci = zeros(numChans,2);
+baseStats.min = zeros(numChans,1);
+baseStats.minsem = zeros(numChans,1);
+baseStats.maxci = zeros(numChans,2);
+baseStats.max = zeros(numChans,1);
+baseStats.maxsem = zeros(numChans,1);
 
 pauseOnset = strobeTimes(svStrobed == 0);
 nums = length(pauseOnset);
 N = 2000;
 alpha = 0.01;
 for ii=1:numChans
-    Tboot = zeros(N,1);
+    Tboot = zeros(N,2);
     for jj=1:N
         indeces = random('Discrete Uniform',noStimLen,[reps,1]);
         temp = zeros(reps,stimLen);
@@ -69,19 +72,21 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        [~,minlats] = min(temp,[],2);
-        minCDF = makedist('Uniform','lower',1,'upper',stimLen);
-        [~,~,ksstat] = kstest(minlats,'CDF',minCDF,'Alpha',alpha);
-        Tboot(jj) = ksstat;
+        [~,minlats] = min(temp(:,minWin),[],2);
+        [~,maxlats] = max(temp(:,maxWin),[],2);
+        Tboot(jj,1) = max(eCDF(minlats,minWin)-linspace(0,1,length(minWin))');
+        Tboot(jj,2) = max(eCDF(maxlats,maxWin)-linspace(0,1,length(maxWin))');
     end
-    baseStats.ci(ii,:) = [quantile(Tboot,alpha),quantile(Tboot,1-alpha)];
-    baseStats.mean(ii) = mean(Tboot);
-    baseStats.sem(ii) = std(Tboot);
+    baseStats.minci(ii,:) = [quantile(Tboot(:,1),alpha/2),quantile(Tboot(:,1),1-alpha/2)];
+    baseStats.min(ii) = mean(Tboot(:,1));
+    baseStats.minsem(ii) = std(Tboot(:,1));
+    baseStats.maxci(ii,:) = [quantile(Tboot(:,2),alpha/2),quantile(Tboot(:,1),1-alpha/2)];
+    baseStats.max(ii) = mean(Tboot(:,2));
+    baseStats.maxsem(ii) = std(Tboot(:,2));
 end
 
-alpha = 0.01;
 % KS TEST to determine which stimuli are significant
-[significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,baseStats,alpha);
+[significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,baseStats);
 
 % xPos = unique(centerVals(:,1));
 % yPos = unique(centerVals(:,2));
@@ -213,11 +218,12 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
 end
 
 function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
-    global numChans numStimuli reps stimLen maxWin sampleFreq;
+    global numChans numStimuli reps stimLen maxWin sampleFreq minWin;
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
     stimLen = round(0.25*sampleFreq); % about 250 milliseconds
     maxWin = round(0.1*sampleFreq):stimLen;
+    minWin = round(0.05*sampleFreq):round(0.2*sampleFreq);
     smoothKernel = 4;
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
     Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -237,53 +243,47 @@ function [Response,meanResponse,strobeTimes] = CollectVEPS(ChanData,timeStamps,t
 
 end
 
-function [significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,baseStats,alpha)
+function [significantStimuli,minLatency,maxLatency] = KStest(Response,meanResponse,baseStats)
         % KS TEST - distribution of VEP latencies significantly different 
         % in presence of a stimulus than a uniform distribution
         % use Benjamini-Hochberg correction for multiple comparisons
-    global numChans numStimuli stimLen sampleFreq maxWin;
+    global numChans numStimuli stimLen sampleFreq maxWin minWin;
    
-    [~,minLatency] = min(Response,[],4);
+    [~,minLatency] = min(Response(:,:,:,minWin),[],4);
     [~,maxLatency] = max(Response(:,:,:,maxWin),[],4);
     
     %baseWin = 1:round(0.02*sampleFreq);
     minVals = -min(meanResponse,[],3);
     significantStimuli = zeros(numChans,numStimuli);
-    pmins = zeros(numChans,numStimuli);
-    pmaxs = zeros(numChans,numStimuli);
+    KSmins = zeros(numChans,numStimuli);
+    KSmaxs = zeros(numChans,numStimuli);
     for ii=1:numChans
         for jj=1:numStimuli
             mintimes = squeeze(minLatency(ii,jj,:));
             maxtimes = squeeze(maxLatency(ii,jj,:));
-            minCDF = makedist('Uniform','lower',1,'upper',stimLen);
-            maxCDF = makedist('Uniform','lower',1,'upper',length(maxWin));
-            [~,pmins(ii,jj)] = kstest(mintimes,'CDF',minCDF,'Alpha',alpha);
-            [~,pmaxs(ii,jj)] = kstest(maxtimes,'CDF',maxCDF,'Alpha',alpha);
+            KSmins(ii,jj) = max(eCDF(mintimes,minWin)-linspace(0,1,length(minWin))');
+            KSmaxs(ii,jj) = max(eCDF(maxtimes,maxWin)-linspace(0,1,length(maxWin))');
         end
-        [sortedPmins,~] = sort(squeeze(pmins(ii,:)));
-        l = (1:length(sortedPmins)).*alpha./length(sortedPmins);
-        threshLine = max(sortedPmins-l,0);
-        minSignif = find(threshLine==0,1,'last');
-        minthresh = min(sortedPmins(minSignif),alpha);
         
-        [sortedPmaxs,~] = sort(squeeze(pmaxs(ii,:)));
-        l = (1:length(sortedPmaxs)).*alpha./length(sortedPmaxs);
-        threshLine = max(sortedPmaxs-l,0);
-        maxSignif = find(threshLine==0,1,'last');
-        maxthresh = min(sortedPmins(maxSignif),alpha);
+        % add bootstrap step for confidence interval on KSmins and KSmaxs
+        
+%         [sortedPmins,~] = sort(squeeze(pmins(ii,:)));
+%         l = (1:length(sortedPmins)).*alpha./length(sortedPmins);
+%         threshLine = max(sortedPmins-l,0);
+%         minSignif = find(threshLine==0,1,'last');
+%         minthresh = min(sortedPmins(minSignif),alpha);
+        
 
-        if isempty(minthresh) == 0 && isempty(maxthresh) == 0
             for kk=1:numStimuli
 %                 medianMin = median(minLatency(ii,kk,:));
 %                 medianMax = median(maxLatency(ii,kk,:));
-                if (pmins(ii,kk) >= minthresh) && (pmaxs(ii,kk) <= maxthresh)
+                if KSmins(ii,kk) > baseStats.minci(ii,2)
                     significantStimuli(ii,kk) = minVals(ii,kk);
                 end
             end
-        end
     end
     minLatency = minLatency./sampleFreq;
-    maxLatency = (maxLatency+maxWin(1))./sampleFreq;
+    maxLatency = (maxLatency+maxWin(1)-1)./sampleFreq;
 end
 
 function [stat,se,ci] = Bootmin(Data,alpha,N,n)
@@ -459,5 +459,34 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
 
         end
     end
+end
+
+function [Fx] = eCDF(Data,win)
+%eCDF.m
+%   Creation of the empirical distribution function (empirical cumulative
+%   distribution function) for an array of Data
+%
+%INPUT: Data - the data as a vector
+%       OPTIONAL:
+%       alpha - confidence level for nonparametric 1-alpha confidence
+%         bands, defaults to 0.05 for a 95% confidence band
+%OUTPUT: Fx - the empirical distribution function
+%        x - the points at which Fx is calculated
+
+%Created: 2016/07/09
+%  Byron Price
+%Updated: 2016/09/07
+%By: Byron Price
+
+n = length(Data);
+Fx = zeros(length(win),1);
+Data = sort(Data);
+
+count = 1;
+for ii=win
+    Fx(count) = sum(Data<=ii)/n;
+    count = count+1;
+end
+
 end
 

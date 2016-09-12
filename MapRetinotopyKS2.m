@@ -1,12 +1,14 @@
-function [] = MapRetinotopyLW(AnimalName,Date)
-% MapRetinotopyLW.m
+function [] = MapRetinotopyKS2(AnimalName,Date)
+% MapRetinotopyKS2.m
 %
 %  Will take data from a retinotopic mapping experiment and extract the
 %   retinotopy of the LFP recording electrode using a Wald test based on
-%   the width of the distribution of latency to minimum times. Under the
-%   null hypothesis that no VEP occurred, the width of the distribution of 
+%   the deviation of the distribution of latency to peak negativity from a 
+%   uniform distribution. Under the
+%   null hypothesis that no VEP occurred, the distribution of 
 %   latency times will be comparable to that same distribution as measured
-%   while the animal observed a blank screen.
+%   while the animal observed a blank screen (which should both be uniform
+%   distributions).
 %INPUT: AnimalName - unique identifier for the animal as a number, e.g.
 %            12345
 %       Date - date of the experiment, e.g. 20160525
@@ -16,7 +18,7 @@ function [] = MapRetinotopyLW(AnimalName,Date)
 %
 % Created: 2016/09/01, 5920 Colchester Road, Fairfax, VA
 %  Byron Price
-% Updated: 2016/09/01
+% Updated: 2016/09/11
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -25,7 +27,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen maxWin; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen maxWin minWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -40,7 +42,6 @@ w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
 
-reps = reps-1;
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
@@ -50,7 +51,7 @@ reps = reps-1;
 % STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
-statFun = @(data) mad(data,1); %quantile(data,0.95)-quantile(data,0.05); % mad(data,1)
+statFun = @(x,win) max(eCDF(x,win)-linspace(0,1,length(win))');  % mad(data,1)
 
 dataStats = struct;
 dataStats.mean = zeros(numChans,numStimuli);
@@ -64,7 +65,7 @@ for ii=1:numChans
     for jj=1:numStimuli
         Data = squeeze(minLatency(ii,jj,:));
         [~,se,ci] = Bootstraps(Data,statFun,alpha,N,reps);
-        dataStats.mean(ii,jj) = statFun(Data);
+        dataStats.mean(ii,jj) = statFun(Data,minWin);
         dataStats.sem(ii,jj) = se;
         dataStats.ci(ii,jj,:) = ci;
     end
@@ -94,8 +95,8 @@ for ii=1:numChans
         for kk=1:reps
             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
         end
-        [~,lats] = min(temp,[],2);
-        Tboot(jj) = statFun(lats./sampleFreq);
+        [~,lats] = min(temp(:,minWin),[],2);
+        Tboot(jj) = statFun(lats,minWin);
     end
     baseStats.ci(ii,:) = [quantile(Tboot,alpha/2),quantile(Tboot,1-alpha/2)];
     baseStats.mean(ii) = mean(Tboot);
@@ -143,7 +144,7 @@ end
 % end
 
 % WALD TEST to determine which stimuli are significant
-alpha = 0.01;
+alpha = 0.05;
 [significantStimuli] = WaldTest(dataStats,baseStats,minVals,alpha);
 
 % Calculate the center of mass of the receptive field
@@ -197,8 +198,8 @@ function [Response,meanResponse,strobeTimes,maxLatency,minLatency,minVals] = Col
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
     stimLen = round(0.25*sampleFreq); % about 250 milliseconds
-    minWin = 1:stimLen;
-    maxWin = round(0.05*sampleFreq):round(0.25*sampleFreq);
+    minWin = round(0.05*sampleFreq):round(0.2*sampleFreq);
+    maxWin = round(0.1*sampleFreq):round(0.25*sampleFreq);
     smoothKernel = 4;
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
     Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -215,11 +216,11 @@ function [Response,meanResponse,strobeTimes,maxLatency,minLatency,minVals] = Col
             meanResponse(ii,jj,:) = smooth(mean(squeeze(Response(ii,jj,:,:)),1),smoothKernel);
         end
     end
-    [~,minLatency] = min(Response,[],4);
+    [~,minLatency] = min(Response(:,:,:,minWin),[],4);
     [~,maxLatency] = max(Response(:,:,:,maxWin),[],4);
-    minLatency = minLatency./sampleFreq;
-    maxLatency = (maxLatency+maxWin(1))./sampleFreq;
-    minVals = -min(meanResponse,[],3);
+    minLatency = minLatency+minWin(1)-1;
+    maxLatency = maxLatency+maxWin(1)-1;
+    minVals = -min(meanResponse(:,:,minWin),[],3);
 end
 
 function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
@@ -247,7 +248,7 @@ function [stat,se,ci] = Bootstraps(Data,myFun,alpha,N,n)
 %  Byron Price
 %Updated: 2016/08/18
 % By: Byron Price
-
+global minWin;
 if nargin < 3
     alpha = 0.05;
     N = 5000;
@@ -264,7 +265,7 @@ ci = zeros(2,1);
 for ii=1:N
     indeces = random('Discrete Uniform',n,[n,1]);
     temp = Data(indeces);
-    Tboot(ii) = myFun(temp);
+    Tboot(ii) = myFun(temp,minWin);
 end
 stat = mean(Tboot);
 se = std(Tboot);
@@ -284,7 +285,7 @@ function [significantStimuli] = WaldTest(dataStats,baseStats,minVals,alpha)
 %             if W > c
 %                 significantStimuli(ii,jj) = minVals(ii,jj); 
 %             end
-            if dataStats.ci(ii,jj,2) < baseStats.ci(ii,1)
+            if dataStats.ci(ii,jj,1) > baseStats.ci(ii,2)
                 significantStimuli(ii,jj) = minVals(ii,jj);
             end
         end    
@@ -402,4 +403,33 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
 
         end
     end
+end
+
+function [Fx] = eCDF(Data,win)
+%eCDF.m
+%   Creation of the empirical distribution function (empirical cumulative
+%   distribution function) for an array of Data
+%
+%INPUT: Data - the data as a vector
+%       OPTIONAL:
+%       alpha - confidence level for nonparametric 1-alpha confidence
+%         bands, defaults to 0.05 for a 95% confidence band
+%OUTPUT: Fx - the empirical distribution function
+%        x - the points at which Fx is calculated
+
+%Created: 2016/07/09
+%  Byron Price
+%Updated: 2016/09/07
+%By: Byron Price
+
+n = length(Data);
+Fx = zeros(length(win),1);
+Data = sort(Data);
+
+count = 1;
+for ii=win
+    Fx(count) = sum(Data<=ii)/n;
+    count = count+1;
+end
+
 end

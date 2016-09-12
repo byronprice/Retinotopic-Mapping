@@ -12,7 +12,7 @@ function [] = VEPcluster(AnimalName,Date)
 %
 % Created: 2016/08/31, Orange Line Metro, DC
 %  Byron Price
-% Updated: 2016/08/31
+% Updated: 2016/09/11
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -21,7 +21,7 @@ EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
     % because MyReadall does that for us
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
-    DistToScreen numChans sampleFreq stimLen maxWin; %#ok<*REDEF>
+    DistToScreen numChans sampleFreq stimLen maxWin minWin; %#ok<*REDEF>
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
@@ -36,7 +36,7 @@ w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
 
-reps = reps-1;
+
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
@@ -70,20 +70,15 @@ for ii=1:numChans
     w(2+2*(ii-1)) = figure();
     for jj=1:numStimuli
 %         Data = squeeze(Response(ii,jj,:,:));
-%         [coeff,score] = pca(Data);
+%         [coeff,score] = pca(Data); % must do pca with the noise as well
+%        as the values from the traces
         figure(w(1+2*(ii-1)));
-        Data = squeeze(minLatency(ii,jj,:));
-        bootData = zeros(2000,2);
-        for kk=1:2000
-            indeces = random('Discrete Uniform',reps,[reps,1]);
-            bootData(kk,1) = mad(Data(indeces),1);
-            bootData(kk,2) = quantile(Data(indeces),0.75)-quantile(Data(indeces),0.25);
-        end
-        subplot(numY,numX,position(jj));histogram(bootData(:,1))
+        Data = [squeeze(minLatency(ii,jj,:)),squeeze(minVals(ii,jj,:))];
+        subplot(numY,numX,position(jj));hist3(Data)
         %scatter(score(:,1),score(:,2))
 %         scatter(squeeze(minLatency(ii,jj,:)),squeeze(minVals(ii,jj,:)));
-        figure(w(2+2*(ii-1)));
-        subplot(numY,numX,position(jj));histogram(bootData(:,2))
+%         figure(w(2+2*(ii-1)));
+%         subplot(numY,numX,position(jj));histogram(bootData(:,2))
 %         scatter(squeeze(minVals(ii,jj,:)),squeeze(minLatency(ii,jj,:)));
     end
 end
@@ -156,9 +151,10 @@ end
 
 function [minVals,maxVals,minLatency,maxLatency] = GetStats(Response)
        
-    global numChans numStimuli stimLen sampleFreq maxWin;
+    global numChans numStimuli stimLen sampleFreq maxWin minWin;
     maxWin = round(0.1*sampleFreq):stimLen;
-    [minVals,minLatency] = min(Response,[],4);
+    minWin = round(0.05*sampleFreq):round(0.2*sampleFreq);
+    [minVals,minLatency] = min(Response(:,:,:,minWin),[],4);
     [maxVals,maxLatency] = max(Response(:,:,:,maxWin),[],4);
     
 %     for ii=1:numChans
@@ -166,8 +162,8 @@ function [minVals,maxVals,minLatency,maxLatency] = GetStats(Response)
 %             
 %         end
 %     end
-    minLatency = minLatency./sampleFreq;
-    maxLatency = (maxLatency+maxWin(1))./sampleFreq;
+    minLatency = (minLatency+minWin(1)-1)./sampleFreq;
+    maxLatency = (maxLatency+maxWin(1)-1)./sampleFreq;
     
 end
 
