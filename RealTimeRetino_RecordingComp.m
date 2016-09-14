@@ -18,6 +18,11 @@ end
 
 % setup server, send signal to stim computer that this computer is ready to
 %  begin
+display('Opening TCP/IP Server ...');
+tcpipServer = tcpip('128.197.59.166',30000,'NetworkRole','server');
+bufferSize = 50000;
+set(tcpipServer,'OutputBufferSize',bufferSize);
+fopen(tcpipServer);
 
 p = PL_GetPars(s);
 %sampleFreq = p(8);
@@ -27,12 +32,11 @@ window = [round(0.06*sampleFreq),round(0.12*sampleFreq)];
 startEXP = 254;
 endEXP = 255;
 
-startRun = 252;
-endRun = 253;
+startRUN = 252;
+endRUN = 253;
 
-tsChans = [6,8];
-%adChans = tsChans+32;
-adChans = [6,8];
+tsChans = [6,8];  
+adChans = [6,8]; % channels 22 and 24 have something on them, maybe continuous spiking activity
 numChans = length(adChans);
 
 % collect some data to get a baseline of the noise
@@ -74,10 +78,10 @@ threshold = (2*k).*mad(D,1,1);
 
 display('Beginning mapping experiment ...');
 for ii=1:numChans
-    display(sprintf('Mapping channel %d',ii));
+    display(sprintf('Mapping channel %d ...',ii));
     check = 0;
     while check == 0
-       pause(5);
+       pause(4);
        [~, tEvs] = PL_GetTS(s);
        % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
        % = 257 , then tEvs(x,3) = strobed event word and tEvs(x,4) = timeStamp
@@ -109,11 +113,16 @@ for ii=1:numChans
                    data(jj,1) = sum(diff(tot)<= -2);
            end
            % send data over tcp/ip server
+           w = whos('data');
+           dataSize = [size(data),w.bytes];
+           fwrite(tcpipServer,dataSize,'double');
+           fwrite(tcpipServer,data(:),'double');
        end
-       check = sum(tEvs(:,3) == endRun);
+       check = sum(tEvs(:,3) == endRUN);
     end
 end
 
+fclose(tcpipServer);
 display('Experiment over.');
 % you need to call PL_Close(s) to close the connection
 % with the Plexon server
