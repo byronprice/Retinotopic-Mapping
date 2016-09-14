@@ -19,7 +19,7 @@ end
 % setup server, send signal to stim computer that this computer is ready to
 %  begin
 
-p = PL_GetPars(s);p(8);
+p = PL_GetPars(s);
 %sampleFreq = p(8);
 sampleFreq = p(13);
 window = [round(0.06*sampleFreq),round(0.12*sampleFreq)];
@@ -32,7 +32,7 @@ endRun = 253;
 
 tsChans = [6,8];
 %adChans = tsChans+32;
-adChans = [22,24];
+adChans = [6,8];
 numChans = length(adChans);
 
 % collect some data to get a baseline of the noise
@@ -59,7 +59,8 @@ while check == 0
     pause(1);
 end
 
-figure();plot(D(:,1));figure();plot(D(:,2));
+lastNonzero = find(D(:,1),1,'last');
+D = D(1:lastNonzero,:);
 % approximate sigma = k*MAD 
 k = 1.4826;
 threshold = (2*k).*mad(D,1,1);
