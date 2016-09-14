@@ -12,7 +12,7 @@ function [] = MapRetinotopy(AnimalName,Date)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/08/29
+% Updated: 2016/09/12
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -25,6 +25,8 @@ global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
 
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
+
+display(sprintf('Opening File: %s ...',StimulusFileName));
 
 centerVals = stimParams.centerVals;
 Radius = stimParams.Radius;
@@ -56,6 +58,7 @@ dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxW
 dataStats.sem = zeros(numChans,numStimuli);
 dataStats.ci = zeros(numChans,numStimuli,2);
 
+display('Getting bootstrap error estimates ...');
 % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 2000; % number of bootstrap samples
 alpha = 0.05;
@@ -105,6 +108,7 @@ end
 % Calculate the center of mass of the receptive field
 [centerMass] = GetReceptiveField(significantStimuli,AnimalName);
 
+display('Making plots ...');
 [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName,dataStats,minLatency); 
 
 Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
