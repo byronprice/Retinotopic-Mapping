@@ -67,8 +67,26 @@ lastNonzero = find(D(:,1),1,'last');
 D = D(1:lastNonzero,:);
 % approximate sigma = k*MAD 
 k = 1.4826;
-threshold = (2*k).*mad(D,1,1);
+threshold = (k).*mad(D,1,1);
 
+% get probability of threshold crossings during noise events
+stimLen = window(2);
+N = 2000;
+indeces = random('Discrete Uniform',lastNonzero-2*stimLen,[N,1]);
+
+Pr = zeros(numChans,1);
+for ii=1:numChans
+    for jj=1:N
+        VEP = D(indeces(jj)+window(1):indeces(jj)+window(2)-1,ii);
+        maxs = max(VEP,0);maxs = min(maxs,1);
+        mins = min(VEP,0);mins = max(mins,-1);
+        tot = maxs+mins;
+        if sum(diff(tot)<=-2) >= 1
+            Pr(ii) = Pr(ii)+1;
+        end
+    end
+end
+Pr = Pr./N;
 
 % this is the actual experiment
 %  perform simple data analysis on the VEPs to determine whether or not a
@@ -110,7 +128,9 @@ for ii=1:numChans
                    maxs = max(VEP,0);maxs = min(maxs,1);
                    mins = min(VEP,0);mins = max(mins,-1);
                    tot = maxs+mins;
-                   data(jj,1) = sum(diff(tot)<= -2);
+                   if sum(diff(tot)<=-2) >= 1
+                       data(jj,1) = 1;
+                   end
            end
            % send data over tcp/ip server
            w = whos('data');
