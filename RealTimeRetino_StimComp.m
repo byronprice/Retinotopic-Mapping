@@ -26,7 +26,7 @@ numChans = 2;
 tcpipClient = tcpip('128.197.59.169',30000,'NetworkRole','client');
 bufferSize = 50000; % bytes, a big number (won't need this much)
 set(tcpipClient,'InputBufferSize',bufferSize);
-set(tcpipClient,'Timeout',5);
+set(tcpipClient,'Timeout',1);
 fopen(tcpipClient);
 
 directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
@@ -71,7 +71,8 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 mmPerPixel = conv_factor;
 conv_factor = 1/conv_factor;
 
-degreeRadii = [40,30,20,10,5];
+degreeRadii = [40,30,20,10,5,0];
+numTests = length(degreeRadii)-1;
 degreeSpatFreq = 0.05;
 
 % perform unit conversions
@@ -79,6 +80,7 @@ Radii = (tan(degreeRadii*pi/180)*(DistToScreen*10))*conv_factor; % get number of
      % that degreeRadius degrees of visual space will occupy
 temp = (tan((1/degreeSpatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
+orient = pi/4;
 
 numStimuli = 4; % must be a perfect square
 centerVals = zeros(numStimuli,2);
@@ -94,23 +96,84 @@ for ii=1:sqrt(numStimuli)
     end
 end
 
-Data = zeros(numStimuli,1);
-WaitSecs(15);
+stimTime = 0.4;
+WaitTime = 0.1;
+repMax = 20;
+Data = zeros(numTests*numStimuli,1);
+
+strobeValues = 1:numTests*numStimuli;
+% Define first and second ring color as RGBA vector with normalized color
+% component range between 0.0 and 1.0, based on Contrast between 0 and 1
+% create all textures in the same window (win), each of the appropriate
+% size
+Grey = 0.5;
+Black = 0;
+White = 1;
+
+Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+WaitSecs(10);
 
 usb.strobeEventWord(startEXP);
 Pr = fread(tcpipClient,numChans,'double');
 
-Priority(9);
-bigData = [];
+binoThresh = zeros(numChans,repMax);
+alpha = 0.2;
 for ii=1:numChans
-    for jj=1:10
-        usb.strobeEventWord(jj);
-        dataSize = fread(tcpipClient,3,'double');
-        
-        if isempty(dataSize) == 0
-            temp = fread(tcpipClient,dataSize(1)*dataSize(2),'double');
-            data = reshape(temp,[dataSize(1),dataSize(2)]);
-            bigData = [bigData;data];
+    for jj=1:repMax
+        x = 1:jj;
+        y = binopdf(x,jj,Pr(ii));
+        [~,ind] = max(y);
+        y(1:ind) = 1;
+        Thresh = find(y<alpha,1,'first');
+        if isempty(Thresh) == 1
+            binoThresh(ii,jj) = jj+1;
+        else
+            binoThresh(ii,jj) = Thresh;
+        end
+    end
+end
+
+Priority(9);
+% Mapping Loop
+vbl = Screen('Flip',win);
+for ii=1:numChans
+    for jj=1:numTests
+        check = 0;
+        count = 1;
+        while check == 0 || count < repMax
+            vbl = Screen('Flip',win);
+            usb.strobeEventWord(startRUN);
+            for ll=1:numStimuli
+                % Draw the procedural texture as any other texture via 'DrawTexture'
+                Screen('DrawTexture', win,gratingTex, [],[],...
+                    [],[],[],[Grey Grey Grey Grey],...
+                    [], [],[White,Black,...
+                    Radii(jj),centerVals(ll,1),centerVals(ll,2),spatFreq,orient,0]);
+                % Request stimulus onset
+                vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(strobeValues((jj-1)*numStimuli+ll));
+                vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+                vbl = Screen('Flip',win,vbl-ifi/2+WaitTime);
+            end
+            dataSize = fread(tcpipClient,3,'double');
+            
+            if isempty(dataSize) == 0
+                temp = fread(tcpipClient,dataSize(1)*dataSize(2),'double');
+                temp = reshape(temp,[dataSize(1),dataSize(2)]);
+                for mm=1:size(dataSize,1)
+                    index = dataSize(mm,2);
+                    Data(index) = Data(index)+dataSize(mm,1);
+                end
+            end
+            count = count+1;
+            check = sum(Data((jj-1)*numStimuli+1:end) >= binoThresh(ii,count));
+        end
+        display(check)
+        [~,winIndex] = max(Data((jj-1)*numStimuli+1:end));
+        baseCenter = centerVals(winIndex,:);
+        for mm=1:numStimuli
+            centerVals(mm,1) = max(baseCenter(1)+cos((pi/4)*((mm-1)*2+1))*Radii(jj+1),1);
+            centerVals(mm,2) = max(baseCenter(2)+sin((pi/4)*((mm-1)*2+1))*Radii(jj+1),1);
         end
     end
     usb.strobeEventWord(endRUN);

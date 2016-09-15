@@ -50,7 +50,7 @@ check = 0;
 display('Obtaining estimate of noise ...');
 index = 1;
 while check == 0
-    pause(0.5);
+    pause(1);
     [~,tEvs] = PL_GetTS(s);
     [n,~,d] = PL_GetADV(s);
     
@@ -107,18 +107,19 @@ for ii=1:numChans
        % = 257 , then tEvs(x,3) = strobed event word and tEvs(x,4) = timeStamp
        % this can be compared against t from GetADV and t(x,4) for all of the
        % events in which tEvs(x,2) = 6 (your desired channel)
+       
        [n, t, d] = PL_GetADV(s);
+       
        % if no events were strobed, continue while loop
        % if events were strobed, perform analysis
-       if sum(tEvs(:,3) == startRUN) > 0 
-           pause(2.0);
-           [n, t, d] = PL_GetADV(s);
+       if sum(tEvs(:,3) == 3 > 0 
            timeStamps = t:1/sampleFreq:t+n/sampleFreq-1;
            d = d(:,adChans(ii))+threshold(ii);
            
            strobedEventInds = find(tEvs(:,2) == 257);
            numStrobes = length(strobedEventInds);
            
+           display(numStrobes)
            data = zeros(numStrobes,2);
            stimOnset = 0;
            for jj=1:numStrobes
