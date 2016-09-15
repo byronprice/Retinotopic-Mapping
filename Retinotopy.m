@@ -77,7 +77,7 @@ conv_factor = 1/conv_factor;
 % perform unit conversions
 Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
-Radius = round(Radius);
+Radius = Radius;
 temp = (tan((1/spatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
 

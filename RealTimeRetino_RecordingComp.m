@@ -50,6 +50,7 @@ check = 0;
 display('Obtaining estimate of noise ...');
 index = 1;
 while check == 0
+    pause(1);
     [~,tEvs] = PL_GetTS(s);
     [n,~,d] = PL_GetADV(s);
     
@@ -60,7 +61,6 @@ while check == 0
     if index >= totalHeld-n
         index = 1;
     end
-    pause(1);
 end
 
 lastNonzero = find(D(:,1),1,'last');
@@ -77,7 +77,7 @@ indeces = random('Discrete Uniform',lastNonzero-2*stimLen,[N,1]);
 Pr = zeros(numChans,1);
 for ii=1:numChans
     for jj=1:N
-        VEP = D(indeces(jj)+window(1):indeces(jj)+window(2)-1,ii);
+        VEP = D(indeces(jj)+window(1):indeces(jj)+window(2)-1,ii)+threshold(ii);
         maxs = max(VEP,0);maxs = min(maxs,1);
         mins = min(VEP,0);mins = max(mins,-1);
         tot = maxs+mins;
@@ -87,6 +87,8 @@ for ii=1:numChans
     end
 end
 Pr = Pr./N;
+
+fwrite(tcpipServer,Pr,'double');
 
 % this is the actual experiment
 %  perform simple data analysis on the VEPs to determine whether or not a
@@ -99,7 +101,7 @@ for ii=1:numChans
     display(sprintf('Mapping channel %d ...',ii));
     check = 0;
     while check == 0
-       pause(4);
+       pause(1);
        [~, tEvs] = PL_GetTS(s);
        % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
        % = 257 , then tEvs(x,3) = strobed event word and tEvs(x,4) = timeStamp
@@ -124,7 +126,9 @@ for ii=1:numChans
                    data(jj,2) = tEvs(strobedEventInds(jj),3); % event number
                    stimOnset = tEvs(strobedEventInds(jj),4); % strobe time / stimulus onset time
                    [~,index] = min(abs(timeStamps-stimOnset));
-                   VEP = d(index+window(1):index+window(2)-1);
+                   low = min(index+window(1),n);
+                   high = min(index+window(2)-1,n);
+                   VEP = d(low:high);
                    maxs = max(VEP,0);maxs = min(maxs,1);
                    mins = min(VEP,0);mins = max(mins,-1);
                    tot = maxs+mins;
