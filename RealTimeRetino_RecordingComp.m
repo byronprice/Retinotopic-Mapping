@@ -53,13 +53,14 @@ display('Obtaining estimate of noise ...');
 index = 1;
 tEvs = zeros(1,4);
 while check == 0
+    pause(1/1000);
     [~,tEvs] = PL_GetTS(s);
     [n,~,d] = PL_GetADV(s);
-    
+
     D(index:index+n-1,:) = d(:,adChans);
+    index = index+n;
     check = sum(tEvs(:,3) == startEXP);
     
-    index = index+n;
     if index >= totalHeld-n
         index = 1;
     end
@@ -69,7 +70,7 @@ lastNonzero = find(D(:,1),1,'last');
 D = D(1:lastNonzero,:).*1e6;
 % approximate sigma = k*MAD 
 k = 1.4826;
-threshold = -(1.5*k).*mad(D,1,1);
+threshold = -(2*k).*mad(D,1,1);
 display(sprintf('Noise threshold: %3.2f',threshold(1)));
 
 %figure();plot(D(:,1)+threshold(1));hold on;
@@ -100,23 +101,22 @@ for ii=1:numChans
 end
 Pr = Pr./N;
 
-display(sprintf('Probability of event with no stimulus: %3.2f',Pr(1)));
-
 fwrite(tcpipServer,Pr,'double');
 
-display(sprintf('Probability of threshold crossings: Channel 1- %3.2f, Channel 2- %3.2f',Pr(1),Pr(2)));
+display(sprintf('Probability of VEP-like event: Channel 1- %3.2f, Channel 2- %3.2f',Pr(1),Pr(2)));
 % this is the actual experiment
 %  perform simple data analysis on the VEPs to determine whether or not a
 %  significant VEP has occurred, relay the information to the stim computer
 
-
-
+D = zeros(10*sampleFreq,2);
+T = zeros(10*sampleFreq,4);
 display('Beginning mapping experiment ...');
 for ii=1:numChans
     display(sprintf('Mapping channel %d ...',ii));
-    check = 0;
+   
+    chanCheck = 0;
     tEvs = zeros(1,4);
-    while check == 0
+    while chanCheck == 0
        [n, t, d] = PL_GetADV(s);
        [~, tEvs] = PL_GetTS(s);
        % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
@@ -124,27 +124,44 @@ for ii=1:numChans
        % this can be compared against t from GetADV and t(x,4) for all of the
        % events in which tEvs(x,2) = 6 (your desired channel)
        
-       % if no events were strobed, continue while loop
-       % if events were strobed, perform analysis
+       % continue while loop
+       %  until startRUN event is strobed, perform analysis
        if sum(tEvs(:,3) == startRUN) > 0 
-           pause(4);
-           [n, t, d] = PL_GetADV(s);
-           [~,tEvs] = PL_GetTS(s);
-           timeStamps = t:1/sampleFreq:t+n/sampleFreq-1;
-           d = d(:,adChans(ii)).*1e6;
+           runCheck = 0;
+           dInd = 1;
+           tInd = 1;
+           tEvs = zeros(1,4);
+           nEvs = 0;
+           while runCheck == 0
+              pause(1/1000);
+              [n, t, d] = PL_GetADV(s);
+              [nEvs,tEvs] = PL_GetTS(s);
+              D(dInd:dInd+n-1,1) = d(:,adChans(ii));
+              D(dInd,2) = t;
+              dInd = dInd+n;
+              
+              if nEvs > 0 
+                T(tInd:tInd+nEvs-1,:) = tEvs;
+                tInd = tInd+nEvs;
+              end
+              runCheck = sum(tEvs(:,3) == endRUN);
+           end
+           t = D(find(D(:,2),1,'first'),2);
+           timeStamps = t:1/sampleFreq:t+length(D)/sampleFreq-1;
+           D(:,1) = D(:,1).*1e6;
            
-           strobedEventInds = find(tEvs(:,2) == 257);
+           strobedEventInds = find(T(:,2) == 257);
            numStrobes = length(strobedEventInds);
            
            data = zeros(numStrobes,2);
            stimOnset = 0;
            for jj=1:numStrobes
-                   data(jj,2) = tEvs(strobedEventInds(jj),3); % event number
-                   stimOnset = tEvs(strobedEventInds(jj),4); % strobe time / stimulus onset time
+                   data(jj,2) = T(strobedEventInds(jj),3); % event number
+                   stimOnset = T(strobedEventInds(jj),4); % strobe time / stimulus onset time
                    [~,index] = min(abs(timeStamps-stimOnset));
                    %low = min(index+window(1),n);
                    %high = min(index+window(2)-1,n);
-                   VEP = d(index:index+stimLen-1);%saveVEP = d(low:high);
+                   VEP = D(index:index+stimLen-1,1);%saveVEP = d(low:high);
                    %minInds = find(VEP<0);
                    %maxInds = find(VEP>=0);
                    %VEP(minInds) = -1;
@@ -160,8 +177,11 @@ for ii=1:numChans
            dataSize = [size(data),w.bytes];
            fwrite(tcpipServer,dataSize,'double');
            fwrite(tcpipServer,data(:),'double');
+           T(:) = 0;
+           D(:) = 0;
+           tEvs(:) = 0;
        end
-       check = sum(tEvs(:,3) == endCHAN);
+       chanCheck = sum(tEvs(:,3) == endCHAN);
     end
 end
 
