@@ -26,7 +26,7 @@ numChans = 2;
 tcpipClient = tcpip('128.197.59.169',30000,'NetworkRole','client');
 bufferSize = 50000; % bytes, a big number (won't need this much)
 set(tcpipClient,'InputBufferSize',bufferSize);
-set(tcpipClient,'Timeout',1);
+set(tcpipClient,'Timeout',2);
 fopen(tcpipClient);
 
 directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
@@ -48,6 +48,7 @@ screenid = max(Screen('Screens'));
 background = 127;
 [win,~] = Screen('OpenWindow', screenid,background);
 
+gama = 2.1806;
 gammaTable = makeGrayscaleGammaTable(gama,0,255);
 Screen('LoadNormalizedGammaTable',win,gammaTable);
 
@@ -71,8 +72,10 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 mmPerPixel = conv_factor;
 conv_factor = 1/conv_factor;
 
-degreeRadii = [40,30,20,10,5,0];
-numTests = length(degreeRadii)-1;
+DistToScreen = 25;
+
+degreeRadii = [30,25,20,15];
+numTests = length(degreeRadii);
 degreeSpatFreq = 0.05;
 
 % perform unit conversions
@@ -87,6 +90,8 @@ centerVals = zeros(numStimuli,2);
 xaxis = w_pixels/(numStimuli-1);
 yaxis = h_pixels/(numStimuli-1);
 
+stimVals = zeros(w_pixels,h_pixels);
+x = 1:w_pixels;y=1:h_pixels;
 count = 1;
 for ii=1:sqrt(numStimuli)
     for jj=1:sqrt(numStimuli)
@@ -96,8 +101,8 @@ for ii=1:sqrt(numStimuli)
     end
 end
 
-stimTime = 0.4;
-WaitTime = 0.1;
+stimTime = 0.15;
+WaitTime = 0.15;
 repMax = 20;
 Data = zeros(numTests*numStimuli,1);
 
@@ -112,27 +117,25 @@ White = 1;
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-WaitSecs(10);
+WaitSecs(20);
 
 usb.strobeEventWord(startEXP);
 Pr = fread(tcpipClient,numChans,'double');
 
 binoThresh = zeros(numChans,repMax);
-alpha = 0.2;
+binoThresh(:,1:5) = 5;
+alpha = 0.1;
 for ii=1:numChans
-    for jj=1:repMax
+    for jj=6:repMax
         x = 1:jj;
         y = binopdf(x,jj,Pr(ii));
         [~,ind] = max(y);
         y(1:ind) = 1;
         Thresh = find(y<alpha,1,'first');
-        if isempty(Thresh) == 1
-            binoThresh(ii,jj) = jj+1;
-        else
-            binoThresh(ii,jj) = Thresh;
-        end
+        binoThresh(ii,jj) = Thresh;
     end
 end
+binoThresh
 
 Priority(9);
 % Mapping Loop
@@ -141,39 +144,56 @@ for ii=1:numChans
     for jj=1:numTests
         check = 0;
         count = 1;
-        while check == 0 || count < repMax
+        while check == 0
             vbl = Screen('Flip',win);
             usb.strobeEventWord(startRUN);
             for ll=1:numStimuli
-                % Draw the procedural texture as any other texture via 'DrawTexture'
-                Screen('DrawTexture', win,gratingTex, [],[],...
-                    [],[],[],[Grey Grey Grey Grey],...
-                    [], [],[White,Black,...
-                    Radii(jj),centerVals(ll,1),centerVals(ll,2),spatFreq,orient,0]);
-                % Request stimulus onset
-                vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(strobeValues((jj-1)*numStimuli+ll));
-                vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-                vbl = Screen('Flip',win,vbl-ifi/2+WaitTime);
+                for nn=1:3
+                    % Draw the procedural texture as any other texture via 'DrawTexture'
+                    Screen('DrawTexture', win,gratingTex, [],[],...
+                        [],[],[],[Grey Grey Grey Grey],...
+                        [], [],[White,Black,...
+                        Radii(jj),centerVals(ll,1),centerVals(ll,2),spatFreq,orient,0]);
+                    % Request stimulus onset
+                    vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(strobeValues((jj-1)*numStimuli+ll));
+                    vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+                    vbl = Screen('Flip',win,vbl-ifi/2+WaitTime);
+                end
+                vbl = Screen('Flip',win,vbl-ifi/2+stimTime*2);
             end
             dataSize = fread(tcpipClient,3,'double');
             
             if isempty(dataSize) == 0
                 temp = fread(tcpipClient,dataSize(1)*dataSize(2),'double');
                 temp = reshape(temp,[dataSize(1),dataSize(2)]);
-                for mm=1:size(dataSize,1)
-                    index = dataSize(mm,2);
-                    Data(index) = Data(index)+dataSize(mm,1);
+                for mm=1:dataSize(1)
+                    index = temp(mm,2);
+                    if index <= numel(Data)
+                        Data(index) = Data(index)+temp(mm,1);
+                        newInd = index-(jj-1)*numStimuli;
+                        lowx = max(round(centerVals(newInd,1)-Radii(jj)),1);
+                        highx = min(round(centerVals(newInd,1)+Radii(jj)),w_pixels);
+                        lowy = max(round(centerVals(newInd,2)-Radii(jj)),1);
+                        highy = min(round(centerVals(newInd,2)+Radii(jj)),h_pixels);
+                        stimVals(lowx:highx,lowy:highy) = stimVals(lowx:highx,lowy:highy)+1;
+                    end
                 end
+                imagesc(x,y,stimVals')
             end
-            count = count+1;
             check = sum(Data((jj-1)*numStimuli+1:end) >= binoThresh(ii,count));
+            count = count+1;
+            if count == repMax
+                check = 1;
+            end
         end
-        display(check)
-        [~,winIndex] = max(Data((jj-1)*numStimuli+1:end));
-        baseCenter = centerVals(winIndex,:);
-        for mm=1:numStimuli
-            centerVals(mm,1) = max(baseCenter(1)+cos((pi/4)*((mm-1)*2+1))*Radii(jj+1),1);
-            centerVals(mm,2) = max(baseCenter(2)+sin((pi/4)*((mm-1)*2+1))*Radii(jj+1),1);
+
+        if jj < numTests
+            [~,winIndex] = max(Data((jj-1)*numStimuli+1:end));
+            baseCenter = centerVals(winIndex,:);
+            for mm=1:numStimuli
+                centerVals(mm,1) = max(baseCenter(1)+cos((pi/4)*((mm-1)*2+1))*Radii(jj+1),1);
+                centerVals(mm,2) = max(baseCenter(2)+sin((pi/4)*((mm-1)*2+1))*Radii(jj+1),1);
+            end
         end
     end
     usb.strobeEventWord(endRUN);
@@ -185,6 +205,7 @@ cd('~/CloudStation/ByronExp/Retino');
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 
+% save data
 end
 
 function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
