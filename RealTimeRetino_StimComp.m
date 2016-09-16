@@ -21,6 +21,8 @@ endEXP = 255;
 startRUN = 252;
 endRUN = 253;
 
+endCHAN = 251;
+
 numChans = 2;
 
 tcpipClient = tcpip('128.197.59.169',30000,'NetworkRole','client');
@@ -104,6 +106,7 @@ end
 stimTime = 0.15;
 WaitTime = 0.15;
 repMax = 20;
+numFlashes = 3;
 Data = zeros(numTests*numStimuli,1);
 
 strobeValues = 1:numTests*numStimuli;
@@ -123,12 +126,12 @@ usb.strobeEventWord(startEXP);
 Pr = fread(tcpipClient,numChans,'double');
 
 binoThresh = zeros(numChans,repMax);
-binoThresh(:,1:5) = 5;
-alpha = 0.1;
+binoThresh(:,1) = numFlashes+1;
+alpha = 0.05;
 for ii=1:numChans
-    for jj=6:repMax
-        x = 1:jj;
-        y = binopdf(x,jj,Pr(ii));
+    for jj=2:repMax
+        x = 1:jj*numFlashes;
+        y = binopdf(x,jj*numFlashes,Pr(ii));
         [~,ind] = max(y);
         y(1:ind) = 1;
         Thresh = find(y<alpha,1,'first');
@@ -148,7 +151,7 @@ for ii=1:numChans
             vbl = Screen('Flip',win);
             usb.strobeEventWord(startRUN);
             for ll=1:numStimuli
-                for nn=1:3
+                for nn=1:numFlashes
                     % Draw the procedural texture as any other texture via 'DrawTexture'
                     Screen('DrawTexture', win,gratingTex, [],[],...
                         [],[],[],[Grey Grey Grey Grey],...
@@ -161,6 +164,7 @@ for ii=1:numChans
                 end
                 vbl = Screen('Flip',win,vbl-ifi/2+stimTime*2);
             end
+            usb.strobeEventWord(endRUN);
             dataSize = fread(tcpipClient,3,'double');
             
             if isempty(dataSize) == 0
@@ -196,7 +200,7 @@ for ii=1:numChans
             end
         end
     end
-    usb.strobeEventWord(endRUN);
+    usb.strobeEventWord(endCHAN);
 end
 
 Priority(0);
