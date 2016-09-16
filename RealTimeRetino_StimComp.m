@@ -76,7 +76,7 @@ conv_factor = 1/conv_factor;
 
 DistToScreen = 25;
 
-degreeRadii = [30,25,20,15];
+degreeRadii = [25,20,15,10,5];
 numTests = length(degreeRadii);
 degreeSpatFreq = 0.05;
 
@@ -88,26 +88,15 @@ spatFreq = 1/temp;
 orient = pi/4;
 
 numStimuli = 4; % must be a perfect square
-centerVals = zeros(numStimuli,2);
 xaxis = w_pixels/(numStimuli-1);
 yaxis = h_pixels/(numStimuli-1);
-
-stimVals = zeros(w_pixels,h_pixels);
 x = 1:w_pixels;y=1:h_pixels;
-count = 1;
-for ii=1:sqrt(numStimuli)
-    for jj=1:sqrt(numStimuli)
-        centerVals(count,1) = xaxis*ii;
-        centerVals(count,2) = yaxis*jj;
-        count = count+1;
-    end
-end
+stimVals = zeros(numChans,w_pixels,h_pixels);
 
 stimTime = 0.15;
 WaitTime = 0.15;
 repMax = 20;
 numFlashes = 3;
-Data = zeros(numTests*numStimuli,1);
 
 strobeValues = 1:numTests*numStimuli;
 % Define first and second ring color as RGBA vector with normalized color
@@ -126,10 +115,10 @@ usb.strobeEventWord(startEXP);
 Pr = fread(tcpipClient,numChans,'double');
 
 binoThresh = zeros(numChans,repMax);
-binoThresh(:,1) = numFlashes+1;
+binoThresh(:,1:3) = 3*numFlashes+1;
 alpha = 0.05;
 for ii=1:numChans
-    for jj=2:repMax
+    for jj=4:repMax
         x = 1:jj*numFlashes;
         y = binopdf(x,jj*numFlashes,Pr(ii));
         [~,ind] = max(y);
@@ -144,11 +133,23 @@ Priority(9);
 % Mapping Loop
 vbl = Screen('Flip',win);
 for ii=1:numChans
+    Data = zeros(numTests*numStimuli,1);
+    centerVals = zeros(numStimuli,2);
+    
+    ccount = 1;
+    for ii=1:sqrt(numStimuli)
+        for jj=1:sqrt(numStimuli)
+            centerVals(ccount,1) = xaxis*ii;
+            centerVals(ccount,2) = yaxis*jj;
+            ccount = ccount+1;
+        end
+    end
     for jj=1:numTests
         check = 0;
         count = 1;
         while check == 0
             vbl = Screen('Flip',win);
+            indeces = randperm(numStimuli);
             usb.strobeEventWord(startRUN);
             for ll=1:numStimuli
                 for nn=1:numFlashes
@@ -156,9 +157,9 @@ for ii=1:numChans
                     Screen('DrawTexture', win,gratingTex, [],[],...
                         [],[],[],[Grey Grey Grey Grey],...
                         [], [],[White,Black,...
-                        Radii(jj),centerVals(ll,1),centerVals(ll,2),spatFreq,orient,0]);
+                        Radii(jj),centerVals(indeces(ll),1),centerVals(indeces(ll),2),spatFreq,orient,0]);
                     % Request stimulus onset
-                    vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(strobeValues((jj-1)*numStimuli+ll));
+                    vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(strobeValues((jj-1)*numStimuli+indeces(ll)));
                     vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
                     vbl = Screen('Flip',win,vbl-ifi/2+WaitTime);
                 end
@@ -179,10 +180,9 @@ for ii=1:numChans
                         highx = min(round(centerVals(newInd,1)+Radii(jj)),w_pixels);
                         lowy = max(round(centerVals(newInd,2)-Radii(jj)),1);
                         highy = min(round(centerVals(newInd,2)+Radii(jj)),h_pixels);
-                        stimVals(lowx:highx,lowy:highy) = stimVals(lowx:highx,lowy:highy)+1;
+                        stimVals(ii,lowx:highx,lowy:highy) = stimVals(ii,lowx:highx,lowy:highy)+1;
                     end
                 end
-                imagesc(x,y,stimVals')
             end
             check = sum(Data((jj-1)*numStimuli+1:end) >= binoThresh(ii,count));
             count = count+1;
@@ -202,6 +202,7 @@ for ii=1:numChans
     end
     usb.strobeEventWord(endCHAN);
 end
+figure();imagesc(x,y,stimVals(1,:,:)');
 
 Priority(0);
 Screen('CloseAll');
