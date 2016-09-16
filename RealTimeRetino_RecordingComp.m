@@ -27,6 +27,7 @@ fopen(tcpipServer);
 p = PL_GetPars(s);
 %sampleFreq = p(8);
 sampleFreq = p(13);
+stimLen = round(0.2*sampleFreq);
 window = [round(0.06*sampleFreq),round(0.12*sampleFreq)];
 
 startEXP = 254;
@@ -42,7 +43,6 @@ numChans = length(adChans);
 % collect some data to get a baseline of the noise
 %  wait for the signal from the stim computer that the experiment is ready
 %  to begin
-threshold = zeros(numChans,1);
 
 totalHeld = 30*sampleFreq;
 D = zeros(totalHeld,numChans);
@@ -64,29 +64,42 @@ while check == 0
 end
 
 lastNonzero = find(D(:,1),1,'last');
-D = D(1:lastNonzero,:);
+D = D(1:lastNonzero,:).*1e6;
 % approximate sigma = k*MAD 
 k = 1.4826;
-threshold = (k).*mad(D,1,1);
+threshold = -(1.5*k).*mad(D,1,1);
+display(sprintf('Noise threshold: %3.2f',threshold(1)));
 
+%figure();plot(D(:,1)+threshold(1));hold on;
+%plot(-threshold(1)*ones(lastNonzero,1));
 % get probability of threshold crossings during noise events
-stimLen = window(2);
+
 N = 2000;
 indeces = random('Discrete Uniform',lastNonzero-2*stimLen,[N,1]);
 
 Pr = zeros(numChans,1);
 for ii=1:numChans
     for jj=1:N
-        VEP = D(indeces(jj)+window(1):indeces(jj)+window(2)-1,ii)+threshold(ii);
-        maxs = max(VEP,0);maxs = min(maxs,1);
-        mins = min(VEP,0);mins = max(mins,-1);
-        tot = maxs+mins;
-        if sum(diff(tot)<=-2) >= 1
+        VEP = D(indeces(jj):indeces(jj)+stimLen-1,ii);
+        %saveVEP = VEP;
+        %minInds = find(VEP<0);
+       % maxInds = find(VEP>=0);
+        %VEP(minInds) = -1;
+        %VEP(maxInds) = 1;
+        %tot = diff(VEP);
+        [minVal,minInd] = min(VEP);
+        if minInd > window(1) && minInd < window(2) && minVal < threshold(ii)
             Pr(ii) = Pr(ii)+1;
         end
     end
+    if Pr(ii) == 0
+        Pr(ii) = 1/N;
+    end
 end
 Pr = Pr./N;
+
+display(sprintf('Probability of event with no stimulus: %3.2f',Pr(1)));
+
 fwrite(tcpipServer,Pr,'double');
 
 display(sprintf('Probability of threshold crossings: Channel 1- %3.2f, Channel 2- %3.2f',Pr(1),Pr(2)));
@@ -102,19 +115,21 @@ for ii=1:numChans
     check = 0;
     while check == 0
        pause(0.1);
+       [n, t, d] = PL_GetADV(s);
        [~, tEvs] = PL_GetTS(s);
        % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
        % = 257 , then tEvs(x,3) = strobed event word and tEvs(x,4) = timeStamp
        % this can be compared against t from GetADV and t(x,4) for all of the
        % events in which tEvs(x,2) = 6 (your desired channel)
-       [n, t, d] = PL_GetADV(s);
+       
        % if no events were strobed, continue while loop
        % if events were strobed, perform analysis
        if sum(tEvs(:,3) == startRUN) > 0 
-           pause(2.0);
+           pause(4);
            [n, t, d] = PL_GetADV(s);
+           [~,tEvs] = PL_GetTS(s);
            timeStamps = t:1/sampleFreq:t+n/sampleFreq-1;
-           d = d(:,adChans(ii))+threshold(ii);
+           d = d(:,adChans(ii)).*1e6;
            
            strobedEventInds = find(tEvs(:,2) == 257);
            numStrobes = length(strobedEventInds);
@@ -125,13 +140,16 @@ for ii=1:numChans
                    data(jj,2) = tEvs(strobedEventInds(jj),3); % event number
                    stimOnset = tEvs(strobedEventInds(jj),4); % strobe time / stimulus onset time
                    [~,index] = min(abs(timeStamps-stimOnset));
-                   low = min(index+window(1),n);
-                   high = min(index+window(2)-1,n);
-                   VEP = d(low:high);
-                   maxs = max(VEP,0);maxs = min(maxs,1);
-                   mins = min(VEP,0);mins = max(mins,-1);
-                   tot = maxs+mins;
-                   if sum(diff(tot)<=-2) >= 1
+                   %low = min(index+window(1),n);
+                   %high = min(index+window(2)-1,n);
+                   VEP = d(index:index+stimLen-1);%saveVEP = d(low:high);
+                   %minInds = find(VEP<0);
+                   %maxInds = find(VEP>=0);
+                   %VEP(minInds) = -1;
+                   %VEP(maxInds) = 1;
+                   %tot = diff(VEP);
+                   [minVal,minInd] = min(VEP);
+                   if minInd > window(1) && minInd < window(2) && minVal < threshold(ii) 
                        data(jj,1) = 1;
                    end
            end
