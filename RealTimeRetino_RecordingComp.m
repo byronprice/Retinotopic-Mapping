@@ -36,6 +36,8 @@ endEXP = 255;
 startRUN = 252;
 endRUN = 253;
 
+endCHAN = 251;
+
 tsChans = [6,8];  
 adChans = [6,8]; % channels 22 and 24 have something on them, maybe continuous spiking activity
 numChans = length(adChans);
@@ -49,8 +51,8 @@ D = zeros(totalHeld,numChans);
 check = 0;
 display('Obtaining estimate of noise ...');
 index = 1;
+tEvs = zeros(1,4);
 while check == 0
-    pause(0.5);
     [~,tEvs] = PL_GetTS(s);
     [n,~,d] = PL_GetADV(s);
     
@@ -113,8 +115,8 @@ display('Beginning mapping experiment ...');
 for ii=1:numChans
     display(sprintf('Mapping channel %d ...',ii));
     check = 0;
+    tEvs = zeros(1,4);
     while check == 0
-       pause(0.1);
        [n, t, d] = PL_GetADV(s);
        [~, tEvs] = PL_GetTS(s);
        % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
@@ -159,7 +161,7 @@ for ii=1:numChans
            fwrite(tcpipServer,dataSize,'double');
            fwrite(tcpipServer,data(:),'double');
        end
-       check = sum(tEvs(:,3) == endRUN);
+       check = sum(tEvs(:,3) == endCHAN);
     end
 end
 
