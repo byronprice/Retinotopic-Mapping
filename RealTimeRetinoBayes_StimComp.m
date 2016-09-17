@@ -9,9 +9,9 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 
 %Input: AnimalName - name of the animal, e.g. 12345
 
-%Created: 2016/09/16, 24 Cummington Mall, Boston
+%Created: 2016/09/17, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2016/09/16
+%Updated: 2016/09/17
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -92,12 +92,13 @@ spatFreq = 1/temp;
 orient = pi/6;
 
 xaxis = Radius:10:w_pixels-Radius;
-yaxis = Radius:10:h_pixels-Radius;
+yaxis = 1:10:h_pixels-Radius;
 
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
 
 Prior = ones(numStimuli,numChans)./numStimuli;
+thresh = min(Prior(1,1)*100,0.05);
 
 count = 1;
 for ii=1:length(xaxis)
@@ -129,7 +130,7 @@ White = 1;
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-WaitSecs(20);
+WaitSecs(15);
 
 usb.strobeEventWord(startEXP);
 Pr = fread(tcpipClient,numChans,'double');
@@ -139,7 +140,7 @@ Priority(9);
 vbl = Screen('Flip',win);
 for ii=1:numChans  
     count = 1;
-    while (count < repMax && max(Prior(:,ii)) < 1e-05)
+    while (count < repMax && max(Prior(:,ii)) < thresh)
         unifRand = rand;
         CDF = cumsum(Prior(:,ii));
         CDF = CDF-min(CDF);
