@@ -9,9 +9,9 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 
 %Input: AnimalName - name of the animal, e.g. 12345
 
-%Created: 2016/09/13, 24 Cummington Mall, Boston
+%Created: 2016/09/16, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2016/09/15
+%Updated: 2016/09/16
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -80,23 +80,24 @@ conv_factor = 1/conv_factor;
 
 DistToScreen = 25;
 
-degreeRadii = 10;
+degreeRadius = 10;
 degreeSpatFreq = 0.05;
 
 % perform unit conversions
-Radii = (tan(degreeRadii*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
+Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
+Radius = round(Radius);
 temp = (tan((1/degreeSpatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
 orient = pi/6;
 
-xaxis = Radii:1:w_pixels-Radii;
-yaxis = 1:1:h_pixels-Radii;
+xaxis = Radius:10:w_pixels-Radius;
+yaxis = Radius:10:h_pixels-Radius;
 
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
 
-Prior = ones(numStimuli,1)./numStimuli;
+Prior = ones(numStimuli,numChans)./numStimuli;
 
 count = 1;
 for ii=1:length(xaxis)
@@ -115,10 +116,9 @@ Likelihood_Miss = 1-Likelihood_Hit;
 
 allPossDists = zeros(numStimuli,1);
 
-stimTime = 0.2;
-repMax = 500;
+stimTime = 0.05;
+repMax = 100;
 
-strobeValues = 1:numTests*numStimuli;
 % Define first and second ring color as RGBA vector with normalized color
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
 % create all textures in the same window (win), each of the appropriate
@@ -139,9 +139,9 @@ Priority(9);
 vbl = Screen('Flip',win);
 for ii=1:numChans  
     count = 1;
-    while (check < repMax && max(Prior) < 0.2)
+    while (count < repMax && max(Prior(:,ii)) < 1e-05)
         unifRand = rand;
-        CDF = cumsum(Prior);
+        CDF = cumsum(Prior(:,ii));
         CDF = CDF-min(CDF);
         temp = unifRand-CDF;
         temp(temp<0) = 0;
@@ -154,35 +154,39 @@ for ii=1:numChans
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[Grey Grey Grey Grey],...
             [], [],[White,Black,...
-            Radii(jj),centerVals(indeces(ll),1),centerVals(indeces(ll),2),spatFreq,orient,0]);
+            Radius,stimCenter(1),stimCenter(2),spatFreq,orient,0]);
         % Request stimulus onset
-        vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(index);
+        vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(1);
         vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+        WaitSecs(abs(0.2-stimTime));
         usb.strobeEventWord(endRUN);
         
-        data = fread(tcpipClient,3,'double');
+        data = fread(tcpipClient,2,'double');
         if isempty(data) == 0
             hit_or_miss = data(1);
             for jj=1:numStimuli
                 allPossDists(jj) = ceil(sqrt((stimCenter(1)-centerVals(jj,1)).^2+...
-                    (stimCenter(2)-centerVals(jj,2)).^2));
+                    (stimCenter(2)-centerVals(jj,2)).^2))+1;
             end
             % Bayesian update step
             if hit_or_miss == 1
-                Posterior = Likelihood_Hit(allPossDists+1).*Prior;
-                Prior = Posterior./sum(Posterior);
+                Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
+                Prior(:,ii) = Posterior./sum(Posterior);
             elseif hit_or_miss == 0
-                Posterior = Likelihood_Miss(allPossDists+1).*Prior;
-                Prior = Posterior./sum(Posterior);
+                Posterior = Likelihood_Miss(allPossDists)'.*Prior(:,ii);
+                Prior(:,ii) = Posterior./sum(Posterior);
             end
         else
             continue;
         end
+
         count = count+1;
+        clear data;
     end
     usb.strobeEventWord(endCHAN);
 end
 
+Posterior = Prior;
 Priority(0);
 Screen('CloseAll');
 cd('~/CloudStation/ByronExp/Retino');
@@ -190,6 +194,7 @@ Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 
 % save data
+save(sprintf('BayesRetinoMap%d_%d.mat',Date,AnimalName),'centerVals','Posterior');
 end
 
 function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
