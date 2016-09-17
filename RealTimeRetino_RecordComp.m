@@ -1,4 +1,4 @@
-% RealTimeRetino_RecordingComp.m
+% RealTimeRetino_RecordComp.m
 
 % To be used with a Plexon recording system and in conjunction with a 
 %  stimulus computer that generates images on a screen. The two computers
