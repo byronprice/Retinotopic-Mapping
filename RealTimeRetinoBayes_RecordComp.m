@@ -53,7 +53,7 @@ display('Obtaining estimate of noise ...');
 index = 1;
 tEvs = zeros(1,4);
 while check == 0
-    pause(1/1000);
+    pause(5/1000);
     [~,tEvs] = PL_GetTS(s);
     [n,~,d] = PL_GetADV(s);
 
@@ -182,4 +182,3 @@ display('Experiment over.');
 % with the Plexon server
 PL_Close(s);
 s = 0;
-
