@@ -6,10 +6,12 @@
 %  event times from the stimulus to the recording computer. On this side,
 %  the data will pulled in real time from the acquisition software
 %  (PlexControl). The VEPs recorded in response to individual stimulus
-%  presentations will be analyzed in the following way: if the trace on an
-%  individual trial crossing some threshold within a window from 60 to
+%  presentations will be analyzed in the following way: if the peak negativity 
+%  of the VEP trace on an individual trial falsl below a threshold of about 
+%  -150 microVolts and occurs within a window from 60 to
 %  120 milliseconds, then that presentation will get a value of 1,
-%  otherwise 0. 
+%  otherwise 0. I've determined the probabilities of such events occurring
+%  based on a large amount of data collected in the past.
 
 s = PL_InitClient(0);
 if s == 0

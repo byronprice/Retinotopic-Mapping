@@ -3,41 +3,33 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 %  Client/stimulus computer side code to perform a real-time, closed-loop 
 %   retinopic mapping experiment. Will require a number of dependencies,
 %   including code running on the recording computer
-%   (RealTimeRetinoBayes_RecordComp.m), Psychtoolbox, and a function to
+%   (RealTimeRetino_RecordingComp.m), Psychtoolbox, and a function to
 %   create a USB object to send TTL pulses from the stimulus computer to
-%   the recording computer. To run, open Plexon, go to VEP settings for two
-%   channels (if more than two, the code will work, but you'll need to
-%   adjust for that), start data acquisition, run
-%   RealTimeRetinoBayes_RecordComp on the recording computer in MATLAB,
-%   then run this function.
+%   the recording computer.
 
 % The algorithm performs Bayesian updating based on a likelihood function
-%  calculated from hundreds of data points. That data gives the probability
+%  calculated from hundreds of data points. The data gives the probability
 %  of a VEP-like event at a specific location on the screen given the
 %  distance from that location to the retinotopic center of mass. If the
-%  location is itself the center of mass, then a VEP-like event occurs with
+%  location is the center of mass, then a VEP-like event occurs with
 %  probability = 0.7 (approximately). If the location is not the center of
-%  mass, then this value decays away exponentially to about 0.2 . Given
+%  mass, then this values decays away exponentially to about 0.2 . Given
 %  this knowledge, we can flash a stimulus and record either a HIT or a
 %  MISS. Then, we can calculate the likelihood at each point in space given
-%  the data of a HIT or a MISS. A HIT at one point in space tells us
-%  something about that point, but it also tells us something about the
-%  points nearby and far away. A MISS is similarly informative, for if we
-%  miss for example in the top right corner 4/5 times, then we're pretty
-%  certain the retinotopic center of mass is far away from there.
+%  the data of a HIT or a MISS. 
 
 %Input: AnimalName - name of the animal, e.g. 12345
 
-%Created: 2016/09/18, 24 Cummington Mall, Boston
+%Created: 2016/09/17, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2016/09/18
+%Updated: 2016/09/17
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
 load('BayesVars.mat');
 
 
-% PARAMETERS for communication with recording computer
+% INITIAL PARAMETERS
 startEXP = 254;
 endEXP = 255;
 
@@ -46,9 +38,10 @@ endRUN = 253;
 
 endCHAN = 251;
 
+numChans = 2;
 
 tcpipClient = tcpip('128.197.59.169',30000,'NetworkRole','client');
-bufferSize = 1000; % bytes, (we won't need this much)
+bufferSize = 50000; % bytes, a big number (won't need this much)
 set(tcpipClient,'InputBufferSize',bufferSize);
 set(tcpipClient,'Timeout',1);
 fopen(tcpipClient);
@@ -72,6 +65,7 @@ screenid = max(Screen('Screens'));
 background = 127;
 [win,~] = Screen('OpenWindow', screenid,background);
 
+gama = 2.1806;
 gammaTable = makeGrayscaleGammaTable(gama,0,255);
 Screen('LoadNormalizedGammaTable',win,gammaTable);
 
@@ -95,12 +89,18 @@ conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 mmPerPixel = conv_factor;
 conv_factor = 1/conv_factor;
 
+DistToScreen = 25;
+
+degreeRadius = 10;
+degreeSpatFreq = 0.05;
+
 % perform unit conversions
 Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
 Radius = round(Radius);
 temp = (tan((1/degreeSpatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
+orient = pi/6;
 
 xaxis = Radius:10:w_pixels-Radius;
 yaxis = 1:10:h_pixels-Radius;
@@ -128,6 +128,9 @@ Likelihood_Miss = 1-Likelihood_Hit;
 
 allPossDists = zeros(numStimuli,1);
 
+stimTime = 0.05;
+repMax = 80;
+
 % Define first and second ring color as RGBA vector with normalized color
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
 % create all textures in the same window (win), each of the appropriate
@@ -138,7 +141,7 @@ White = 1;
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-WaitSecs(startPause);
+WaitSecs(15);
 
 usb.strobeEventWord(startEXP);
 Pr = fread(tcpipClient,numChans,'double');
