@@ -54,6 +54,7 @@ set(tcpipClient,'Timeout',1);
 fopen(tcpipClient);
 
 directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
+cd(directory);
 
 global GL;
 
@@ -108,6 +109,7 @@ yaxis = 1:10:h_pixels-Radius;
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
 
+stimSelection = ones(numStimuli,1)./numStimuli;
 Prior = ones(numStimuli,numChans)./numStimuli;
 thresh = min(Prior(1,1)*1000,0.05);
 
@@ -150,7 +152,8 @@ for ii=1:numChans
     count = 1;
     while (count < repMax && max(Prior(:,ii)) < thresh)
         unifRand = rand;
-        CDF = cumsum(Prior(:,ii));
+        %CDF = cumsum(Prior(:,ii));
+        CDF = cumsum(stimSelection(:,1));
         CDF = CDF-min(CDF);
         temp = unifRand-CDF;
         temp(temp<0) = 0;
@@ -163,13 +166,14 @@ for ii=1:numChans
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[Grey Grey Grey Grey],...
             [], [],[White,Black,...
-            Radius,stimCenter(1),stimCenter(2),spatFreq,orient,0]);
+            Radius,stimCenter(1),stimCenter(2),spatFreq,orientation,0]);
         % Request stimulus onset
         vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(1);
         vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-        WaitSecs(max(0.2-stimTime,0));
+
+        WaitSecs(0.5);
+ 
         usb.strobeEventWord(endRUN);
-        
         data = fread(tcpipClient,2,'double');
         if isempty(data) == 0
             hit_or_miss = data(1);
@@ -181,18 +185,20 @@ for ii=1:numChans
             if hit_or_miss == 1
                 Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
                 Prior(:,ii) = Posterior./sum(Posterior);
+                display('HIT');
             elseif hit_or_miss == 0
                 Posterior = Likelihood_Miss(allPossDists)'.*Prior(:,ii);
                 Prior(:,ii) = Posterior./sum(Posterior);
+                display('MISS');
             end
         else
             continue;
         end
-
         count = count+1;
         clear data;
     end
     usb.strobeEventWord(endCHAN);
+    WaitSecs(5);
 end
 
 Posterior = Prior;
