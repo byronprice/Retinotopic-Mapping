@@ -52,6 +52,7 @@ totalHeld = 30*sampleFreq;
 D = zeros(totalHeld,numChans);
 check = 0;
 display('Obtaining estimate of noise ...');
+
 index = 1;
 tEvs = zeros(1,4);
 while check == 0
@@ -75,6 +76,7 @@ k = 1.4826;
 threshold = -(2*k).*mad(D,1,1);
 display(sprintf('Noise threshold: %3.2f',threshold(1)));
 
+threshold = [-150,-150];
 %figure();plot(D(:,1)+threshold(1));hold on;
 %plot(-threshold(1)*ones(lastNonzero,1));
 % get probability of threshold crossings during noise events
