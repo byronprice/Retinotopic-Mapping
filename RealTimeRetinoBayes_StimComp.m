@@ -34,7 +34,7 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
-load('BayesVars_Sigmoid.mat');
+load('BayesVars_Gauss.mat');
 
 
 % PARAMETERS for communication with recording computer
