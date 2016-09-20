@@ -30,7 +30,8 @@ p = PL_GetPars(s);
 %sampleFreq = p(8);
 sampleFreq = p(13);
 stimLen = round(0.2*sampleFreq);
-window = [round(0.06*sampleFreq),round(0.12*sampleFreq)];
+window = [round(0.05*sampleFreq),round(0.8*sampleFreq)];
+threshold = [-200,-200];
 
 startEXP = 254;
 endEXP = 255;
@@ -71,12 +72,11 @@ end
 
 lastNonzero = find(D(:,1),1,'last');
 D = D(1:lastNonzero,:).*1e6;
-% approximate sigma = k*MAD 
-k = 1.4826;
-threshold = -(2*k).*mad(D,1,1);
-display(sprintf('Noise threshold: %3.2f',threshold(1)));
+% % approximate sigma = k*MAD 
+% k = 1.4826;
+% threshold = -(2*k).*mad(D,1,1);
+% display(sprintf('Noise threshold: %3.2f',threshold(1)));
 
-threshold = [-150,-150];
 %figure();plot(D(:,1)+threshold(1));hold on;
 %plot(-threshold(1)*ones(lastNonzero,1));
 % get probability of threshold crossings during noise events

@@ -28,13 +28,13 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 
 %Input: AnimalName - name of the animal, e.g. 12345
 
-%Created: 2016/09/18, 24 Cummington Mall, Boston
+%Created: 2016/09/20, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2016/09/18
+%Updated: 2016/09/20
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
-load('BayesVars.mat');
+load('BayesVars_Sigmoid.mat');
 
 
 % PARAMETERS for communication with recording computer
@@ -109,26 +109,37 @@ yaxis = 1:10:h_pixels-Radius;
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
 
-stimSelection = ones(numStimuli,1)./numStimuli;
-Prior = ones(numStimuli,numChans)./numStimuli;
-thresh = min(Prior(1,1)*1000,0.05);
+%stimSelection = ones(numStimuli,1)./numStimuli;
+Prior = ones(numStimuli,numChans);
 
 count = 1;
 for ii=1:length(xaxis)
     for jj=1:length(yaxis)
         centerVals(count,1) = xaxis(ii);
         centerVals(count,2) = yaxis(jj);
+        if xaxis(ii) < 300
+            Prior(count,1) = 0;
+        elseif xaxis(ii) > w_pixels-300
+            Prior(count,2) = 0;
+        end
         count = count+1;
     end
+end
+
+for ii=1:numChans
+    Prior(:,ii) = Prior(:,ii)./sum(Prior(:,ii));
 end
 
 maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
 DistToCenterMass = 0:maxDist;
 
-Likelihood_Hit = likelihoodFun(b,DistToCenterMass);
-Likelihood_Miss = 1-Likelihood_Hit;
+Likelihood = likelihoodFun(b,DistToCenterMass);
+
+TotalLikelihood = ones(numStimuli,numChans);
 
 allPossDists = zeros(numStimuli,1);
+
+Response = zeros(numChans,repMax,2);
 
 % Define first and second ring color as RGBA vector with normalized color
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -143,18 +154,18 @@ Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 WaitSecs(startPause);
 
 usb.strobeEventWord(startEXP);
-Pr = fread(tcpipClient,numChans,'double');
+Pr_Hit_Noise = fread(tcpipClient,numChans,'double');
 
 Priority(9);
 % Mapping Loop
 vbl = Screen('Flip',win);
 for ii=1:numChans  
     count = 1;
-    while (count < repMax && max(Prior(:,ii)) < thresh)
+    while count < repMax %&& max(Prior(:,ii)) < thresh)
         unifRand = rand;
-        %CDF = cumsum(Prior(:,ii));
-        CDF = cumsum(stimSelection(:,1));
-        CDF = CDF-min(CDF);
+        CDF = cumsum(Prior(:,ii));
+        %CDF = cumsum(stimSelection(:,1));
+        CDF = CDF-min(CDF>0);
         temp = unifRand-CDF;
         temp(temp<0) = 0;
         [~,index] = min(temp);
@@ -171,26 +182,33 @@ for ii=1:numChans
         vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(1);
         vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
 
-        WaitSecs(0.5);
- 
+        WaitSecs(0.4);
         usb.strobeEventWord(endRUN);
+        
         data = fread(tcpipClient,2,'double');
         if isempty(data) == 0
             hit_or_miss = data(1);
+            Response(ii,count,1) = index;
+            Response(ii,count,2) = hit_or_miss;
             for jj=1:numStimuli
                 allPossDists(jj) = ceil(sqrt((stimCenter(1)-centerVals(jj,1)).^2+...
                     (stimCenter(2)-centerVals(jj,2)).^2))+1;
             end
             % Bayesian update step
-            if hit_or_miss == 1
-                Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
-                Prior(:,ii) = Posterior./sum(Posterior);
-                display('HIT');
-            elseif hit_or_miss == 0
-                Posterior = Likelihood_Miss(allPossDists)'.*Prior(:,ii);
-                Prior(:,ii) = Posterior./sum(Posterior);
-                display('MISS');
-            end
+            Prior(:,ii) = ((Likelihood(allPossDists)').^hit_or_miss).*...
+                ((1-Likelihood(allPossDists)').^(1-hit_or_miss)).*Prior(:,ii);
+            Prior(:,ii) = Prior(:,ii)./sum(Prior(:,ii));
+            TotalLikelihood(:,ii) = TotalLikelihood(:,ii).*...
+                ((Likelihood(allPossDists)').^hit_or_miss).*((1-Likelihood(allPossDists)').^(1-hit_or_miss));
+%             if hit_or_miss == 1
+%                 Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
+%                 Prior(:,ii) = Posterior./sum(Posterior);
+%                 display('HIT');
+%             elseif hit_or_miss == 0
+%                 Posterior = Likelihood_Miss(allPossDists)'.*Prior(:,ii);
+%                 Prior(:,ii) = Posterior./sum(Posterior);
+%                 display('MISS');
+%             end
         else
             continue;
         end
@@ -201,12 +219,14 @@ for ii=1:numChans
     WaitSecs(5);
 end
 
-Posterior = Prior;
+Posterior = zeros(numStimuli,numChans);
 
 h(1) = figure();
 h(2) = figure();
 stimVals = zeros(numChans,length(xaxis),length(yaxis));
 for ii=1:numChans
+    Posterior(:,ii) = TotalLikelihood(:,ii); % or multiply by initial prior
+    Posterior(:,ii) = Posterior(:,ii)./sum(Posterior(:,ii));
     count = 1;
     for jj=1:length(xaxis)
         for kk=1:length(yaxis)
@@ -235,7 +255,9 @@ Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 
 % save data
-save(sprintf('BayesRetinoMap%d_%d.mat',Date,AnimalName),'centerVals','Posterior');
+save(sprintf('BayesRetinoMap%d_%d.mat',Date,AnimalName),'centerVals',...
+    'Posterior','mmPerPixel','degreeRadius','Response','degreeSpatFreq','numChans',...
+    'repMax','stimTime','Pr_Hit_Noise');
 end
 
 function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
