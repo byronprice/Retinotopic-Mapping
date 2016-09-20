@@ -109,7 +109,7 @@ yaxis = 1:10:h_pixels-Radius;
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
 
-%stimSelection = ones(numStimuli,1)./numStimuli;
+stimSelection = ones(numStimuli,1)./numStimuli;
 Prior = ones(numStimuli,numChans);
 
 count = 1;
@@ -117,11 +117,11 @@ for ii=1:length(xaxis)
     for jj=1:length(yaxis)
         centerVals(count,1) = xaxis(ii);
         centerVals(count,2) = yaxis(jj);
-        if xaxis(ii) < 300
-            Prior(count,1) = 0;
-        elseif xaxis(ii) > w_pixels-300
-            Prior(count,2) = 0;
-        end
+%         if xaxis(ii) < 400
+%             Prior(count,1) = 0;
+%         elseif xaxis(ii) > w_pixels-400
+%             Prior(count,2) = 0;
+%         end
         count = count+1;
     end
 end
@@ -159,65 +159,66 @@ Pr_Hit_Noise = fread(tcpipClient,numChans,'double');
 Priority(9);
 % Mapping Loop
 vbl = Screen('Flip',win);
-for ii=1:numChans  
-    count = 1;
-    while count < repMax %&& max(Prior(:,ii)) < thresh)
-        unifRand = rand;
-        CDF = cumsum(Prior(:,ii));
-        %CDF = cumsum(stimSelection(:,1));
-        CDF = CDF-min(CDF>0);
-        temp = unifRand-CDF;
-        temp(temp<0) = 0;
-        [~,index] = min(temp);
-        stimCenter = centerVals(index,:);
-        vbl = Screen('Flip',win);
-        usb.strobeEventWord(startRUN);
 
-        % Draw the procedural texture as any other texture via 'DrawTexture'
-        Screen('DrawTexture', win,gratingTex, [],[],...
-            [],[],[],[Grey Grey Grey Grey],...
-            [], [],[White,Black,...
-            Radius,stimCenter(1),stimCenter(2),spatFreq,orientation,0]);
-        % Request stimulus onset
-        vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(1);
-        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-
-        WaitSecs(0.4);
-        usb.strobeEventWord(endRUN);
-        
-        data = fread(tcpipClient,2,'double');
-        if isempty(data) == 0
-            hit_or_miss = data(1);
+count = 1;
+while count < repMax %&& max(Prior(:,ii)) < thresh)
+    unifRand = rand;
+    %CDF = cumsum(Prior(:,ii));
+    CDF = cumsum(stimSelection(:,1));
+    CDF = CDF-min(CDF);
+    temp = unifRand-CDF;
+    temp(temp<0) = 0;
+    [~,index] = min(temp);
+    stimCenter = centerVals(index,:);
+    vbl = Screen('Flip',win);
+    usb.strobeEventWord(startRUN);
+    
+    % Draw the procedural texture as any other texture via 'DrawTexture'
+    Screen('DrawTexture', win,gratingTex, [],[],...
+        [],[],[],[Grey Grey Grey Grey],...
+        [], [],[White,Black,...
+        Radius,stimCenter(1),stimCenter(2),spatFreq,orientation,0]);
+    % Request stimulus onset
+    vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(1);
+    vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+    
+    WaitSecs(0.2);
+    usb.strobeEventWord(endRUN);
+    
+    WaitSecs(0.3);
+    data = fread(tcpipClient,numChans,'double');
+    if isempty(data) == 0
+        for jj=1:numStimuli
+            allPossDists(jj) = ceil(sqrt((stimCenter(1)-centerVals(jj,1)).^2+...
+                (stimCenter(2)-centerVals(jj,2)).^2))+1;
+        end
+        for ii=1:numChans
+            hit_or_miss = data(ii);
             Response(ii,count,1) = index;
             Response(ii,count,2) = hit_or_miss;
-            for jj=1:numStimuli
-                allPossDists(jj) = ceil(sqrt((stimCenter(1)-centerVals(jj,1)).^2+...
-                    (stimCenter(2)-centerVals(jj,2)).^2))+1;
-            end
+
             % Bayesian update step
-            Prior(:,ii) = ((Likelihood(allPossDists)').^hit_or_miss).*...
-                ((1-Likelihood(allPossDists)').^(1-hit_or_miss)).*Prior(:,ii);
-            Prior(:,ii) = Prior(:,ii)./sum(Prior(:,ii));
             TotalLikelihood(:,ii) = TotalLikelihood(:,ii).*...
                 ((Likelihood(allPossDists)').^hit_or_miss).*((1-Likelihood(allPossDists)').^(1-hit_or_miss));
-%             if hit_or_miss == 1
-%                 Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
-%                 Prior(:,ii) = Posterior./sum(Posterior);
-%                 display('HIT');
-%             elseif hit_or_miss == 0
-%                 Posterior = Likelihood_Miss(allPossDists)'.*Prior(:,ii);
-%                 Prior(:,ii) = Posterior./sum(Posterior);
-%                 display('MISS');
-%             end
-        else
-            continue;
+            %             if hit_or_miss == 1
+            %                 Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
+            %                 Prior(:,ii) = Posterior./sum(Posterior);
+            %                 display('HIT');
+            %             elseif hit_or_miss == 0
+            %                 Posterior = Likelihood_Miss(allPossDists)'.*Prior(:,ii);
+            %                 Prior(:,ii) = Posterior./sum(Posterior);
+            %                 display('MISS');
+            %             end
         end
-        count = count+1;
-        clear data;
+    else
+        continue;
     end
-    usb.strobeEventWord(endCHAN);
-    WaitSecs(5);
+    count = count+1;
+    clear data;
 end
+usb.strobeEventWord(endCHAN);
+WaitSecs(5);
+
 
 Posterior = zeros(numStimuli,numChans);
 
@@ -225,7 +226,7 @@ h(1) = figure();
 h(2) = figure();
 stimVals = zeros(numChans,length(xaxis),length(yaxis));
 for ii=1:numChans
-    Posterior(:,ii) = TotalLikelihood(:,ii); % or multiply by initial prior
+    Posterior(:,ii) = TotalLikelihood(:,ii).*Prior(:,ii); % or multiply by initial prior
     Posterior(:,ii) = Posterior(:,ii)./sum(Posterior(:,ii));
     count = 1;
     for jj=1:length(xaxis)
@@ -257,7 +258,7 @@ Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 % save data
 save(sprintf('BayesRetinoMap%d_%d.mat',Date,AnimalName),'centerVals',...
     'Posterior','mmPerPixel','degreeRadius','Response','degreeSpatFreq','numChans',...
-    'repMax','stimTime','Pr_Hit_Noise');
+    'repMax','stimTime','Pr_Hit_Noise','xaxis','yaxis');
 end
 
 function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
