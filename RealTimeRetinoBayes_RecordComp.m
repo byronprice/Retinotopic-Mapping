@@ -30,7 +30,7 @@ p = PL_GetPars(s);
 %sampleFreq = p(8);
 sampleFreq = p(13);
 stimLen = round(0.2*sampleFreq);
-window = [round(0.05*sampleFreq),round(0.8*sampleFreq)];
+window = [round(0.05*sampleFreq),round(0.09*sampleFreq)];
 threshold = [-200,-200];
 
 startEXP = 254;
@@ -115,70 +115,69 @@ display(sprintf('Probability of VEP-like event: Channel 1- %3.2f, Channel 2- %3.
 D = zeros(10*sampleFreq,2);
 T = zeros(10*sampleFreq,4);
 display('Beginning mapping experiment ...');
-for ii=1:numChans
-    display(sprintf('Mapping channel %d ...',ii));
    
-    chanCheck = 0;
-    tEvs = zeros(1,4);
-    while chanCheck == 0
-       [n, t, d] = PL_GetADV(s);
-       [~, tEvs] = PL_GetTS(s);
-       % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
-       % = 257 , then tEvs(x,3) = strobed event word and tEvs(x,4) = timeStamp
-       % this can be compared against t from GetADV and t(x,4) for all of the
-       % events in which tEvs(x,2) = 6 (your desired channel)
-       
-       % continue while loop
-       %  until startRUN event is strobed, perform analysis
-       if sum(tEvs(:,3) == startRUN) > 0 
-           runCheck = 0;
-           dInd = 1;
-           tInd = 1;
-           tEvs = zeros(1,4);
-           nEvs = 0;
-           while runCheck == 0
-              pause(1/1000);
-              [n, t, d] = PL_GetADV(s);
-              [nEvs,tEvs] = PL_GetTS(s);
-              D(dInd:dInd+n-1,1) = d(:,adChans(ii));
-              D(dInd,2) = t;
-              dInd = dInd+n;
-              
-              if nEvs > 0 
+chanCheck = 0;
+tEvs = zeros(1,4);
+while chanCheck == 0
+    [n, t, d] = PL_GetADV(s);
+    [~, tEvs] = PL_GetTS(s);
+    % tEvs contains the event timeStamps ... if tEvs(x,1) = 4 and tEvs(x,2)
+    % = 257 , then tEvs(x,3) = strobed event word and tEvs(x,4) = timeStamp
+    % this can be compared against t from GetADV and t(x,4) for all of the
+    % events in which tEvs(x,2) = 6 (your desired channel)
+    
+    % continue while loop
+    %  until startRUN event is strobed, perform analysis
+    if sum(tEvs(:,3) == startRUN) > 0
+        runCheck = 0;
+        dInd = 1;
+        tInd = 1;
+        tEvs = zeros(1,4);
+        nEvs = 0;
+        while runCheck == 0
+            pause(1/1000);
+            [n, t, d] = PL_GetADV(s);
+            [nEvs,tEvs] = PL_GetTS(s);
+            D(dInd:dInd+n-1,1:numChans) = d(:,adChans);
+            D(dInd,numChans+1) = t;
+            dInd = dInd+n;
+            
+            if nEvs > 0
                 T(tInd:tInd+nEvs-1,:) = tEvs;
                 tInd = tInd+nEvs;
-              end
-              runCheck = sum(tEvs(:,3) == endRUN);
-           end
-           t = D(find(D(:,2),1,'first'),2);
-           timeStamps = t:1/sampleFreq:t+length(D)/sampleFreq-1;
-           D(:,1) = D(:,1).*1e6;
-           
-           strobedEventNums = T(T(:,2)==257,3);
-           strobedEventTimes = T(T(:,2) == 257,4);
-           
-           stimNum = strobedEventNums(strobedEventNums<250);
-           stimOnset = strobedEventTimes(strobedEventNums<250); % stim onset time
-           
-           data = zeros(2,1);
-           data(2) = stimNum; % event number
-           [~,index] = min(abs(timeStamps-stimOnset));
-
-           VEP = D(index:index+stimLen-1,1);
-
-           [minVal,minInd] = min(VEP);
-           if minInd > window(1) && minInd < window(2) && minVal < threshold(ii)
-               data(1) = 1;
-           end
-           % send data over tcp/ip server
-           fwrite(tcpipServer,data(:),'double');
-           T(:) = 0;
-           D(:) = 0;
-           tEvs(:) = 0;
-       end
-       chanCheck = sum(tEvs(:,3) == endCHAN);
+            end
+            runCheck = sum(tEvs(:,3) == endRUN);
+        end
+        t = D(find(D(:,numChans+1),1,'first'),numChans+1);
+        timeStamps = t:1/sampleFreq:t+length(D)/sampleFreq-1;
+        D(:,1:numChans) = D(:,1:numChans).*1e6;
+        
+        strobedEventNums = T(T(:,2)==257,3);
+        strobedEventTimes = T(T(:,2) == 257,4);
+        
+        stimNum = strobedEventNums(strobedEventNums<250);
+        stimOnset = strobedEventTimes(strobedEventNums<250); % stim onset time
+        
+        data = zeros(numChans,1);
+        for ii=1:numChans
+            [~,index] = min(abs(timeStamps-stimOnset));
+            
+            VEP = D(index:index+stimLen-1,ii);
+            
+            [minVal,minInd] = min(VEP);
+            if minInd > window(1) && minInd < window(2) && minVal < threshold(ii)
+                data(ii) = 1;
+            end
+        end
+        % send data over tcp/ip server
+        fwrite(tcpipServer,data(:),'double');
+        T(:) = 0;
+        D(:) = 0;
+        tEvs(:) = 0;
     end
+    chanCheck = sum(tEvs(:,3) == endCHAN);
 end
+
 
 fclose(tcpipServer);
 display('Experiment over.');
