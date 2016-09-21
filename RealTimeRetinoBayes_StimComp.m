@@ -109,14 +109,24 @@ yaxis = 1:10:h_pixels-Radius;
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
 
+% what follows for hitPriors and missPriors amounts to a compensation for
+% the 2-D convolution of our likelihood functions, which will tend to
+% accumulate probability mass in the center of the screen
 stimSelection = ones(numStimuli,1)./numStimuli;
-Prior = ones(numStimuli,numChans);
+hitPrior = ones(numStimuli,numChans);
+missPrior = ones(numStimuli,numChans);
 
+
+temphit = ones(length(xaxis),length(yaxis));
+tempmiss = ones(length(xaxis),length(yaxis));
+xcen = median(xaxis);ycen = median(yaxis);
 count = 1;
 for ii=1:length(xaxis)
     for jj=1:length(yaxis)
         centerVals(count,1) = xaxis(ii);
         centerVals(count,2) = yaxis(jj);
+        dist = sqrt((xcen-xaxis(ii)).^2+(ycen-yaxis(ii).^2));
+        temphit(ii,jj) = likelihoodFun(b,dist);tempmiss(ii,jj) = 1-likelihoodFun(b,dist);
 %         if xaxis(ii) < 400
 %             Prior(count,1) = 0;
 %         elseif xaxis(ii) > w_pixels-400
@@ -126,9 +136,25 @@ for ii=1:length(xaxis)
     end
 end
 
+convHit = conv2(ones(length(xaxis),length(yaxis)),temphit,'same');
+convMiss = conv2(ones(length(xaxis),length(yaxis)),tempmiss,'same');
+
+probHit = 1./convHit;
+probMiss = 1./convMiss;
+
 for ii=1:numChans
-    Prior(:,ii) = Prior(:,ii)./sum(Prior(:,ii));
+    count = 1;
+    for jj=1:length(xaxis)
+        for kk=1:length(yaxis)
+            hitPrior(count,:) = probHit(ii,kk);
+            missPrior(count,:) = probMiss(ii,kk);
+            count = count+1;
+        end
+    end
+    hitPrior(:,ii) = hitPrior(:,ii)./sum(hitPrior(:,ii));
+    missPrior(:,ii) = missPrior(:,ii)./sum(missPrior(:,ii));
 end
+
 
 maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
 DistToCenterMass = 0:maxDist;
@@ -199,7 +225,8 @@ while count < repMax %&& max(Prior(:,ii)) < thresh)
 
             % Bayesian update step
             TotalLikelihood(:,ii) = TotalLikelihood(:,ii).*...
-                ((Likelihood(allPossDists)').^hit_or_miss).*((1-Likelihood(allPossDists)').^(1-hit_or_miss));
+                ((Likelihood(allPossDists)'.*hitPrior(:,ii)).^hit_or_miss)...
+                .*((1-Likelihood(allPossDists)'.*missPrior(:,ii)).^(1-hit_or_miss));
             %             if hit_or_miss == 1
             %                 Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
             %                 Prior(:,ii) = Posterior./sum(Posterior);
@@ -219,14 +246,14 @@ end
 usb.strobeEventWord(endCHAN);
 WaitSecs(5);
 
-
 Posterior = zeros(numStimuli,numChans);
 
 h(1) = figure();
 h(2) = figure();
 stimVals = zeros(numChans,length(xaxis),length(yaxis));
 for ii=1:numChans
-    Posterior(:,ii) = TotalLikelihood(:,ii).*Prior(:,ii); % or multiply by initial prior
+    Posterior(:,ii) = TotalLikelihood(:,ii); % multiplied by two priors based on 
+                        % the above inverse convolutions 
     Posterior(:,ii) = Posterior(:,ii)./sum(Posterior(:,ii));
     count = 1;
     for jj=1:length(xaxis)
