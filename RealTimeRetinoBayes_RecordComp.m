@@ -30,8 +30,12 @@ p = PL_GetPars(s);
 %sampleFreq = p(8);
 sampleFreq = p(13);
 stimLen = round(0.2*sampleFreq);
-window = [round(0.05*sampleFreq),round(0.09*sampleFreq)];
-threshold = [-200,-200];
+
+% these values are crucial to the algorithm, they've been calculated from
+%  previous data ... they effectively create the greatest separability
+%  between signal and noise
+window = [round(0.06*sampleFreq),round(0.11*sampleFreq)];
+threshold = [-150,-150];
 
 startEXP = 254;
 endEXP = 255;

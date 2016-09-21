@@ -103,8 +103,8 @@ Radius = round(Radius);
 temp = (tan((1/degreeSpatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
 
-xaxis = Radius:10:w_pixels-Radius;
-yaxis = 1:10:h_pixels-Radius;
+xaxis = 1:10:w_pixels;
+yaxis = 1:10:h_pixels;
 
 numStimuli = length(xaxis)*length(yaxis);
 centerVals = zeros(numStimuli,2);
@@ -119,7 +119,7 @@ missPrior = ones(numStimuli,numChans);
 
 temphit = ones(length(xaxis),length(yaxis));
 tempmiss = ones(length(xaxis),length(yaxis));
-xcen = median(xaxis);ycen = median(yaxis);
+xcen = max(xaxis)/2;ycen = max(yaxis)/2;
 count = 1;
 for ii=1:length(xaxis)
     for jj=1:length(yaxis)
@@ -154,6 +154,8 @@ for ii=1:numChans
     hitPrior(:,ii) = hitPrior(:,ii)./sum(hitPrior(:,ii));
     missPrior(:,ii) = missPrior(:,ii)./sum(missPrior(:,ii));
 end
+
+Prior = hitPrior.*missPrior;
 
 
 maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
@@ -224,9 +226,7 @@ while count < repMax %&& max(Prior(:,ii)) < thresh)
             Response(ii,count,2) = hit_or_miss;
 
             % Bayesian update step
-            TotalLikelihood(:,ii) = TotalLikelihood(:,ii).*...
-                ((Likelihood(allPossDists)'.*hitPrior(:,ii)).^hit_or_miss)...
-                .*((1-Likelihood(allPossDists)'.*missPrior(:,ii)).^(1-hit_or_miss));
+            
             %             if hit_or_miss == 1
             %                 Posterior = Likelihood_Hit(allPossDists)'.*Prior(:,ii);
             %                 Prior(:,ii) = Posterior./sum(Posterior);
@@ -246,13 +246,22 @@ end
 usb.strobeEventWord(endCHAN);
 WaitSecs(5);
 
+TotalLikelihood(:,ii) = TotalLikelihood(:,ii).*...
+                ((Likelihood(allPossDists)').^hit_or_miss)...
+                .*((1-Likelihood(allPossDists)').^(1-hit_or_miss));
+nonZeroInds = find(Response(1,:,1)>0);
+
+Response = Response(:,squeeze(Response(1,:,1))>0,:);
+reps = size(Response,2);
+
 Posterior = zeros(numStimuli,numChans);
 
 h(1) = figure();
 h(2) = figure();
+h(3) = figure();
 stimVals = zeros(numChans,length(xaxis),length(yaxis));
 for ii=1:numChans
-    Posterior(:,ii) = TotalLikelihood(:,ii); % multiplied by two priors based on 
+    Posterior(:,ii) = TotalLikelihood(:,ii).*Prior(:,ii); % multiplied by two priors based on 
                         % the above inverse convolutions 
     Posterior(:,ii) = Posterior(:,ii)./sum(Posterior(:,ii));
     count = 1;
@@ -274,7 +283,15 @@ for ii=1:numChans
     w = colorbar;ylabel(w,'Natural Log Probability');
     title(sprintf('VEP Retinotopy [ln{Pr(Given Point is Center of Mass)}]: Channel %d, Animal %d',ii,AnimalName));
     xlabel('Horizontal Screen Position');ylabel('Vertical Screen Position');
+    
+    figure(h(3));subplot(numChans,1,ii);
+    inds = squeeze(Response(ii,:,1));
+    hits = squeeze(Response(ii,:,2));
+    xVals = centerVals(inds,1);
+    yVals = centerVals(inds,2);
+    scatter(xVals,yVals,[],hits);
 end
+
 
 Priority(0);
 Screen('CloseAll');
@@ -285,7 +302,7 @@ Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 % save data
 save(sprintf('BayesRetinoMap%d_%d.mat',Date,AnimalName),'centerVals',...
     'Posterior','mmPerPixel','degreeRadius','Response','degreeSpatFreq','numChans',...
-    'repMax','stimTime','Pr_Hit_Noise','xaxis','yaxis');
+    'repMax','stimTime','Pr_Hit_Noise','xaxis','yaxis','reps');
 end
 
 function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
