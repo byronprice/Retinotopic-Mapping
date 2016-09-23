@@ -214,8 +214,8 @@ reps = size(Response,2);
 maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
 DistToCenterMass = (0:maxDist)';
 
-maxSigma = 1000;
-Sigma = 1:maxSigma;numSigmas = length(Sigma);
+maxSigma = 800;
+Sigma = 50:maxSigma;numSigmas = length(Sigma);
 
 numDists = length(DistToCenterMass);
 SigmaSquare = 1./(Sigma.^2);
