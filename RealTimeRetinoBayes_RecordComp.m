@@ -43,7 +43,6 @@ endEXP = 255;
 startRUN = 252;
 endRUN = 253;
 
-endCHAN = 251;
 
 tsChans = [6,8];  
 adChans = [6,8]; % channels 22 and 24 have something on them, maybe continuous spiking activity
@@ -56,6 +55,7 @@ numChans = length(adChans);
 totalHeld = 30*sampleFreq;
 D = zeros(totalHeld,numChans);
 check = 0;
+pause(2);
 display('Obtaining estimate of noise ...');
 
 index = 1;
@@ -85,7 +85,7 @@ D = D(1:lastNonzero,:).*1e6;
 %plot(-threshold(1)*ones(lastNonzero,1));
 % get probability of threshold crossings during noise events
 
-N = 2000;
+N = 3000;
 indeces = random('Discrete Uniform',lastNonzero-2*stimLen,[N,1]);
 
 Pr = zeros(numChans,1);
@@ -179,7 +179,7 @@ while chanCheck == 0
         D(:) = 0;
         tEvs(:) = 0;
     end
-    chanCheck = sum(tEvs(:,3) == endCHAN);
+    chanCheck = sum(tEvs(:,3) == endEXP);
 end
 
 
