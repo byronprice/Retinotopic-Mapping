@@ -30,13 +30,16 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 
 %Created: 2016/09/20, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2016/09/20
+%Updated: 2016/09/28
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
 load('BayesVars_Gauss.mat');
 
-maxPrHit = b(1)+b(2);
+load('ProbData_RecordingRoomScreen.mat');
+ProbData = ProbData.*1000;
+
+maxPrHit = b(1)+b(3);
 
 % PARAMETERS for communication with recording computer
 startEXP = 254;
@@ -110,6 +113,10 @@ yaxis = 1:10:h_pixels;
 numPositions = length(xaxis)*length(yaxis);
 centerVals = zeros(numPositions,2);
 
+if numPositions ~= MainNumPositions
+    display('Error: Screen is inappropriately sized.');
+end
+
 % what follows for hitPriors and missPriors amounts to a compensation for
 % the 2-D convolution of our likelihood functions, which will tend to
 % accumulate probability mass in the center of the screen
@@ -155,10 +162,10 @@ count = 1;
 while count < repMax %&& max(Prior(:,ii)) < thresh)
     dists = DistFun(centerVals(PrevIndex,:),centerVals);
     unifRand = rand;
-    tempDist = stimSelection(:,1);
-    tempDist(dists<Radius) = 0;
-    tempDist = tempDist./sum(tempDist);
-    CDF = cumsum(tempDist(:));
+    tempDistrib = stimSelection(:,1);
+    tempDistrib(dists<Radius) = 0;
+    tempDistrib = tempDistrib./sum(tempDistrib);
+    CDF = cumsum(tempDistrib(:));
     CDF = CDF-min(CDF);
     temp = unifRand-CDF;
     temp(temp<0) = 0;
@@ -214,21 +221,26 @@ reps = size(Response,2);
 maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
 DistToCenterMass = (0:maxDist)';
 
-maxSigma = 800;
-Sigma = 50:maxSigma;numSigmas = length(Sigma);
+% maxSigma = 800;
+% Sigma = 50:maxSigma;numSigmas = length(Sigma);
 
 numDists = length(DistToCenterMass);
-SigmaSquare = 1./(Sigma.^2);
+% SigmaSquare = 1./(Sigma.^2);
 % DistToCenterMass must be a column vector, SigmaSquare must be a row vector
-Likelihood = zeros(numDists,numSigmas,numChans);
+pBernoulli = zeros(numDists,numChans);
+PrHit = zeros(numChans,1);
+PrMiss = zeros(numChans,1);
 for ii=1:numChans
     tempB = b;
-    tempB(2) = PrHitNoise(ii);
-    tempB(1) = min(maxPrHit,tempB(2)+b(1));
-    Likelihood(:,:,ii) = likelihoodFun(tempB,DistToCenterMass,SigmaSquare);
+    tempB(3) = PrHitNoise(ii);
+    temp = min(maxPrHit,tempB(3)+b(1));
+    tempB(1) = temp-tempB(3);
+    pBernoulli(:,ii) = hyperParameterFun(tempB,DistToCenterMass);
+    PrHit(ii) = sum(squeeze(Response(ii,:,2)))./reps;
+    PrMiss(ii) = 1-PrHit(ii);
 end
 
-TotalLikelihood = ones(numPositions,numSigmas,numChans);
+Likelihood = ones(numPositions,numChans);
 %allPossDists = zeros(numPositions,1);
 stimCenter = zeros(2,1);
 for ii=1:reps
@@ -236,31 +248,30 @@ for ii=1:reps
     stimCenter(1) = centerVals(index,1);stimCenter(2) = centerVals(index,2);
     
     allPossDists = DistFun(stimCenter,centerVals);
+    Inds = (allPossDists-1)*length(allPossDists)+(1:length(allPossDists))';
     for kk=1:numChans
         hit_or_miss = Response(kk,ii,2);
-        TotalLikelihood(:,:,kk) = squeeze(TotalLikelihood(:,:,kk)).*(squeeze(Likelihood(allPossDists,:,kk)).^hit_or_miss)...
-            .*((1-squeeze(Likelihood(allPossDists,:,kk))).^(1-hit_or_miss));
+        Likelihood(:,kk) = Likelihood(:,kk).*((squeeze(pBernoulli(allPossDists,kk))./(PrHit(kk).*ProbData(Inds))).^hit_or_miss)...
+            .*(((1-squeeze(pBernoulli(allPossDists,kk)))./(PrMiss(kk).*ProbData(Inds))).^(1-hit_or_miss));
     end
 end
       
 % massive Posterior matrix, number of center positions by number of
 %  possible values for the standard deviation sigma
-Posterior = zeros(numPositions,numSigmas,numChans);
+Posterior = zeros(numPositions,numChans);
 
 h(1) = figure();
 h(2) = figure();
 h(3) = figure();
 stimVals = zeros(numChans,length(xaxis),length(yaxis));
 for ii=1:numChans
-    Posterior(:,:,ii) = TotalLikelihood(:,:,ii); % multiplied by two priors based on 
-                        % the above inverse convolutions 
-    Posterior(:,:,ii) = Posterior(:,:,ii)./sum(sum(Posterior(:,:,ii)));
+    Posterior(:,ii) = Likelihood(:,ii); % multiplied by prior? 
+    Posterior(:,ii) = Posterior(:,ii)./sum(Posterior(:,ii));
     
-    marginalPost = sum(squeeze(Posterior(:,:,ii)),2);
     count = 1;
     for jj=1:length(xaxis)
         for kk=1:length(yaxis)
-            stimVals(ii,jj,kk) = marginalPost(count);
+            stimVals(ii,jj,kk) = Posterior(count,ii);
             count = count+1;
         end
     end
@@ -299,6 +310,50 @@ Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
 save(sprintf('BayesRetinoMap%d_%d.mat',Date,AnimalName),'centerVals',...
     'Posterior','mmPerPixel','degreeRadius','Response','degreeSpatFreq','numChans',...
     'repMax','stimTime','PrHitNoise','xaxis','yaxis','reps','numPositions','b');
+
+% CODE TO CALCULATE THE PROBABILITY OF THE DATA ... DENOMINATOR OF BAYES' 
+%  THEOREM
+%   you must calculate this beforehand and use the large matrix ProbData
+%   as a look-up table
+% xaxis = 1:10:w_pixels;
+% yaxis = 1:10:h_pixels;
+% 
+% xlen = length(xaxis);
+% ylen = length(yaxis);
+% 
+% screen = zeros(w_pixels,h_pixels);
+% screen(xaxis,yaxis) = 1;
+% numPositions = xlen*ylen;
+% maxdist = ceil(sqrt((xaxis(end)-1).^2+(yaxis(end)-1).^2));
+% 
+% DistFun = @(center,allPoss) (ceil(sqrt((center-allPoss(1)).^2+(center-allPoss(2)).^2)));
+% ProbData = zeros(numPositions,maxdist+1);
+% ProbData(:,1) = 1;
+% matSize = 3:2:5847;
+% parfor ii=2:maxdist
+%     dist = ii-1;
+%     kernel = zeros(matSize(ii-1));
+%     center = ceil(matSize(ii-1)/2);
+%     
+%     allPoss = zeros(matSize(ii-1)*matSize(ii-1),2);
+%     count = 1;
+%     for kk=1:matSize(ii-1)
+%         for jj=1:matSize(ii-1)
+%             allPoss(count,:) = [jj,kk];
+%             count = count+1;
+%         end
+%     end
+%     dists = DistFun(center,allPoss);
+%     kernel(dists==dist) = 1;
+%     
+%     C = conv2(screen,kernel,'same');
+%     C = C(xaxis,yaxis);
+%     ProbData(:,ii) = reshape(C',[numPositions,1]);
+% end
+% 
+% for ii=1:numPositions
+%     ProbData(ii,:) = ProbData(ii,:)./sum(ProbData(ii,:));
+% end
 end
 
 function gammaTable = makeGrayscaleGammaTable(gamma,blackSetPoint,whiteSetPoint)
