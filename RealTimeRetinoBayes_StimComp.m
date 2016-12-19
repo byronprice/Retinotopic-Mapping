@@ -30,7 +30,7 @@ function [] = RealTimeRetinoBayes_StimComp(AnimalName)
 
 %Created: 2016/09/20, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2016/09/20
+%Updated: 2016/12/19
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -142,6 +142,7 @@ White = 1;
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
+stimTimes = stimTime-0.1+exprnd(0.1,[repMax,1]);
 WaitSecs(startPause);
 usb.strobeEventWord(startEXP);
 PrHitNoise = fread(tcpipClient,numChans,'double');
@@ -175,7 +176,7 @@ while count < repMax %&& max(Prior(:,ii)) < thresh)
         Radius,stimCenter(1),stimCenter(2),spatFreq,orientation(count),0]);
     % Request stimulus onset
     vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(1);
-    vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+    vbl = Screen('Flip',win,vbl-ifi/2+stimTimes(count));
     
     WaitSecs(0.2);
     usb.strobeEventWord(endRUN);
