@@ -216,49 +216,49 @@ usb.strobeEventWord(endEXP);
 Response = Response(:,squeeze(Response(1,:,1))>0,:);
 reps = size(Response,2);
 
-% calculate likelihood, which is a model with two parameters, retinotopic 
-%  center of mass and standard deviation, sigma
-maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
-DistToCenterMass = (0:maxDist)';
-
-% maxSigma = 800;
-% Sigma = 50:maxSigma;numSigmas = length(Sigma);
-
-numDists = length(DistToCenterMass);
-% SigmaSquare = 1./(Sigma.^2);
-% DistToCenterMass must be a column vector, SigmaSquare must be a row vector
-pBernoulli = zeros(numDists,numChans);
-PrHit = zeros(numChans,1);
-PrMiss = zeros(numChans,1);
-for ii=1:numChans
-    tempB = b;
-    tempB(3) = PrHitNoise(ii);
-    temp = min(maxPrHit,tempB(3)+b(1));
-    tempB(1) = temp-tempB(3);
-    pBernoulli(:,ii) = hyperParameterFun(tempB,DistToCenterMass);
-    PrHit(ii) = sum(squeeze(Response(ii,:,2)))./reps;
-    PrMiss(ii) = 1-PrHit(ii);
-end
-
-Likelihood = ones(numPositions,numChans);
-%allPossDists = zeros(numPositions,1);
-stimCenter = zeros(2,1);
-for ii=1:reps
-    index = Response(1,ii,1);
-    stimCenter(1) = centerVals(index,1);stimCenter(2) = centerVals(index,2);
-    
-    allPossDists = DistFun(stimCenter,centerVals);
-    Inds = (allPossDists-1)*length(allPossDists)+(1:length(allPossDists))';
-    for kk=1:numChans
-        hit_or_miss = Response(kk,ii,2);
-        Likelihood(:,kk) = Likelihood(:,kk).*((squeeze(pBernoulli(allPossDists,kk))./(PrHit(kk).*ProbData(Inds))).^hit_or_miss)...
-            .*(((1-squeeze(pBernoulli(allPossDists,kk)))./(PrMiss(kk).*ProbData(Inds))).^(1-hit_or_miss));
-    end
-end
-      
-% massive Posterior matrix, number of center positions by number of
-%  possible values for the standard deviation sigma
-Posterior = zeros(numPositions,numChans);
+% % calculate likelihood, which is a model with two parameters, retinotopic 
+% %  center of mass and standard deviation, sigma
+% maxDist = ceil(sqrt((xaxis(end)-xaxis(1)).^2+(yaxis(end)-yaxis(1)).^2));
+% DistToCenterMass = (0:maxDist)';
+% 
+% % maxSigma = 800;
+% % Sigma = 50:maxSigma;numSigmas = length(Sigma);
+% 
+% numDists = length(DistToCenterMass);
+% % SigmaSquare = 1./(Sigma.^2);
+% % DistToCenterMass must be a column vector, SigmaSquare must be a row vector
+% pBernoulli = zeros(numDists,numChans);
+% PrHit = zeros(numChans,1);
+% PrMiss = zeros(numChans,1);
+% for ii=1:numChans
+%     tempB = b;
+%     tempB(3) = PrHitNoise(ii);
+%     temp = min(maxPrHit,tempB(3)+b(1));
+%     tempB(1) = temp-tempB(3);
+%     pBernoulli(:,ii) = hyperParameterFun(tempB,DistToCenterMass);
+%     PrHit(ii) = sum(squeeze(Response(ii,:,2)))./reps;
+%     PrMiss(ii) = 1-PrHit(ii);
+% end
+% 
+% Likelihood = ones(numPositions,numChans);
+% %allPossDists = zeros(numPositions,1);
+% stimCenter = zeros(2,1);
+% for ii=1:reps
+%     index = Response(1,ii,1);
+%     stimCenter(1) = centerVals(index,1);stimCenter(2) = centerVals(index,2);
+%     
+%     allPossDists = DistFun(stimCenter,centerVals);
+%     Inds = (allPossDists-1)*length(allPossDists)+(1:length(allPossDists))';
+%     for kk=1:numChans
+%         hit_or_miss = Response(kk,ii,2);
+%         Likelihood(:,kk) = Likelihood(:,kk).*((squeeze(pBernoulli(allPossDists,kk))./(PrHit(kk).*ProbData(Inds))).^hit_or_miss)...
+%             .*(((1-squeeze(pBernoulli(allPossDists,kk)))./(PrMiss(kk).*ProbData(Inds))).^(1-hit_or_miss));
+%     end
+% end
+%       
+% % massive Posterior matrix, number of center positions by number of
+% %  possible values for the standard deviation sigma
+% Posterior = zeros(numPositions,numChans);
 
 h(1) = figure();
 h(2) = figure();
