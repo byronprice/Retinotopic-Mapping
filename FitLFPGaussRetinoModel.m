@@ -9,7 +9,7 @@ function [finalParameters] = FitLFPGaussRetinoModel(Response,xaxis,yaxis,centerV
 %Updated: 2017/01/18
 % By: Byron Price
 
-hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+% hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
 
 numChans = size(Response,1);
 reps = size(Response,2);
@@ -55,7 +55,7 @@ for zz=1:numChans
             % calcualte likelihood at the current position in parameter
             %  space
             
-            [logLikelihood(iter-1)] = GetLikelihood(hyperParameterFun,reps,parameterVec(iter-1,:),peakNegativity,flashPoints);
+            [logLikelihood(iter-1)] = GetLikelihood(reps,parameterVec(iter-1,:),peakNegativity,flashPoints);
             
             if iter > 250
                 check = sum(diff(logLikelihood(iter-200:iter-1)));
@@ -67,7 +67,7 @@ for zz=1:numChans
             temp = parameterVec(iter-1,:);
             randInd = random('Discrete Uniform',numParameters,1);
             temp(randInd) = Bounds(randInd,1)+(Bounds(randInd,2)-Bounds(randInd,1)).*rand;
-            [likely] = GetLikelihood(hyperParameterFun,reps,temp,peakNegativity,flashPoints);
+            [likely] = GetLikelihood(reps,temp,peakNegativity,flashPoints);
             if likely > logLikelihood(iter-1)
                 parameterVec(iter-1,:) = temp';
                 logLikelihood(iter-1) = likely;
@@ -79,7 +79,7 @@ for zz=1:numChans
             for jj=1:numParameters
                 tempParameterVec = parameterVec(iter-1,:);
                 tempParameterVec(jj) = tempParameterVec(jj)+h(jj);
-                [gradLikelihood] = GetLikelihood(hyperParameterFun,reps,tempParameterVec,peakNegativity,flashPoints);
+                [gradLikelihood] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
                 gradientVec(jj) = (gradLikelihood-logLikelihood(iter-1))./h(jj);
             end
             
@@ -90,7 +90,7 @@ for zz=1:numChans
             
             for ii=2:length(alpha)
                 tempParameterVec = parameterVec(iter-1,:)'+gradientVec.*alpha(ii);
-                [temp] = GetLikelihood(hyperParameterFun,reps,tempParameterVec,peakNegativity,flashPoints);
+                [temp] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
                 lineSearchLikelihoods(ii) = temp;
             end
             
@@ -109,18 +109,19 @@ for zz=1:numChans
         bigParameterVec(repeats,:) = parameterVec(iter-1,:);
     end
     finalParameters(zz,:) = median(bigParameterVec,1);
-    display(finalParameters(zz,:));
+%     display(finalParameters(zz,:));
 end
 
 fisherInfo = zeros(numParameters,numParameters);
 end
 
-function [loglikelihood] = GetLikelihood(hyperParameterFun,reps,parameterVec,peakNegativity,flashPoints)
+function [loglikelihood] = GetLikelihood(reps,parameterVec,peakNegativity,flashPoints)
 summation = 0;
 for kk=1:reps
     distX = flashPoints(kk,1)-parameterVec(2);
     distY = flashPoints(kk,2)-parameterVec(3);
-    mu = hyperParameterFun([parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)],distX,distY);
+    b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
+    mu = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
     summation = summation+(peakNegativity(kk)-mu).^2;
 end
 

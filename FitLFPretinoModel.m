@@ -11,7 +11,7 @@ function [finalParameters] = FitLFPretinoModel(Response,xaxis,yaxis,PrHitNoise,c
 
 % DistFun = @(stimCenter,centerVals) (ceil(sqrt((stimCenter(1)-centerVals(:,1)).^2+(stimCenter(2)-centerVals(:,2)).^2))+1);
 % hyperParameterFun = @(b,distToCenterMass) (b(1)*exp(-(distToCenterMass.^2)./(2*b(2)*b(2)))+b(3));
-hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+% hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
 
 numChans = size(Response,1);
 reps = size(Response,2);
@@ -54,7 +54,7 @@ for zz=1:numChans
             % calcualte likelihood at the current position in parameter
             %  space
             
-            [temp] = GetLikelihood(hyperParameterFun,reps,parameterVec(iter-1,:),hitMiss,flashPoints,PrHitNoise);
+            [temp] = GetLikelihood(reps,parameterVec(iter-1,:),hitMiss,flashPoints,PrHitNoise);
             logLikelihood(iter-1) = temp;
             
             if iter > 250
@@ -67,7 +67,7 @@ for zz=1:numChans
             temp = parameterVec(iter-1,:);
             randInd = random('Discrete Uniform',numParameters,1);
             temp(randInd) = Bounds(randInd,1)+(Bounds(randInd,2)-Bounds(randInd,1)).*rand;
-            [likely] = GetLikelihood(hyperParameterFun,reps,temp,hitMiss,flashPoints,PrHitNoise);
+            [likely] = GetLikelihood(reps,temp,hitMiss,flashPoints,PrHitNoise);
             if likely > logLikelihood(iter-1)
                 parameterVec(iter-1,:) = temp';
                 logLikelihood(iter-1) = likely;
@@ -80,7 +80,7 @@ for zz=1:numChans
             for jj=1:numParameters
                 tempParameterVec = parameterVec(iter-1,:);
                 tempParameterVec(jj) = tempParameterVec(jj)+h(jj);
-                [gradLikelihood] = GetLikelihood(hyperParameterFun,reps,tempParameterVec,hitMiss,flashPoints,PrHitNoise);
+                [gradLikelihood] = GetLikelihood(reps,tempParameterVec,hitMiss,flashPoints,PrHitNoise);
                 gradientVec(jj) = (gradLikelihood-logLikelihood(iter-1))./h(jj);
             end
             
@@ -91,7 +91,7 @@ for zz=1:numChans
             
             for ii=2:length(alpha)
                 tempParameterVec = parameterVec(iter-1,:)'+gradientVec.*alpha(ii);
-                [temp] = GetLikelihood(hyperParameterFun,reps,tempParameterVec,hitMiss,flashPoints,PrHitNoise);
+                [temp] = GetLikelihood(reps,tempParameterVec,hitMiss,flashPoints,PrHitNoise);
                 lineSearchLikelihoods(ii) = temp;
             end
             
@@ -115,12 +115,13 @@ end
 fisherInfo = zeros(numParameters,numParameters);
 end
 
-function [loglikelihood] = GetLikelihood(hyperParameterFun,reps,parameterVec,hitMiss,flashPoints,PrHitNoise)
+function [loglikelihood] = GetLikelihood(reps,parameterVec,hitMiss,flashPoints,PrHitNoise)
 loglikelihood = 0;
 for kk=1:reps
     distX = flashPoints(kk,1)-parameterVec(2);
     distY = flashPoints(kk,2)-parameterVec(3);
-    p = hyperParameterFun([parameterVec(1),parameterVec(4),parameterVec(5),PrHitNoise],distX,distY);
+    b = [parameterVec(1),parameterVec(4),parameterVec(5),PrHitNoise];
+    p = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
     loglikelihood = loglikelihood+log((p.^(hitMiss(kk))).*((1-p).^(1-hitMiss(kk))));
 end
 end
