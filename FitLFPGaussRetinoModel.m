@@ -14,13 +14,13 @@ function [finalParameters] = FitLFPGaussRetinoModel(Response,xaxis,yaxis,centerV
 numChans = size(Response,1);
 reps = size(Response,2);
 
-numParameters = 7;
+numParameters = 8;
    
 finalParameters = zeros(numChans,numParameters);
 numRepeats = 10;
 maxITER = 1000;
 tolerance = 0.01;
-h = [1,1,1,1,1,1,1];
+h = [1,1,1,1,1,1,1,0.1];
 
 % parameters are 
 %  1) b(1) - rise of map at center
@@ -30,7 +30,8 @@ h = [1,1,1,1,1,1,1];
 %  6) sigma, from the Gaussian likelihood
 %  7) b(4) - peak negativity at edges of retinotopic region
 %    b(1)+b(4) = peak negativity at retinotopic center of mass
-Bounds = [-1000,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;1,1000;-1000,0];
+%  8) rho - allows for elliptical contours
+Bounds = [-1000,0;min(xaxis)-200,max(xaxis)+200;min(yaxis)-200,max(yaxis)+200;1,2000;1,2000;1,1000;-1000,0;-1,1];
 
 % display('Steepest Ascent ...');
 for zz=1:numChans
@@ -120,8 +121,8 @@ summation = 0;
 for kk=1:reps
     distX = flashPoints(kk,1)-parameterVec(2);
     distY = flashPoints(kk,2)-parameterVec(3);
-    b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
-    mu = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+    b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7),parameterVec(8)];
+    mu = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+b(4));
     summation = summation+(peakNegativity(kk)-mu).^2;
 end
 

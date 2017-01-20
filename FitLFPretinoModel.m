@@ -16,20 +16,21 @@ function [finalParameters] = FitLFPretinoModel(Response,xaxis,yaxis,PrHitNoise,c
 numChans = size(Response,1);
 reps = size(Response,2);
 
-numParameters = 5;
+numParameters = 6;
    
 finalParameters = zeros(numChans,numParameters);
 numRepeats = 10;
 maxITER = 1000;
 tolerance = 0.01;
-h = [0.01,1,1,1,1];
+h = [0.01,1,1,1,1,0.1];
 
 % parameters are 
 %  1) b(1) - probability of hit at center of mass
 %  2)+3) the position (x and y) of the center of mass
 %  4) b(2) - standard deviation or spread of the map in x
 %  5) b(3) - standard deviation in y
-Bounds = [0,1-PrHitNoise;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000];
+%  6) rho - allows for elliptical contours
+Bounds = [0,1-PrHitNoise;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;-1,1];
 
 % display('Steepest Ascent ...');
 for zz=1:numChans
@@ -120,8 +121,8 @@ loglikelihood = 0;
 for kk=1:reps
     distX = flashPoints(kk,1)-parameterVec(2);
     distY = flashPoints(kk,2)-parameterVec(3);
-    b = [parameterVec(1),parameterVec(4),parameterVec(5),PrHitNoise];
-    p = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+    b = [parameterVec(1),parameterVec(4),parameterVec(5),PrHitNoise,parameterVec(6)];
+    p = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+b(4));
     loglikelihood = loglikelihood+log((p.^(hitMiss(kk))).*((1-p).^(1-hitMiss(kk))));
 end
 end
