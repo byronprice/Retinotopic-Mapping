@@ -17,7 +17,7 @@ reps = size(Response,2);
 numParameters = 8;
    
 finalParameters = zeros(numChans,numParameters);
-numRepeats = 10;
+numRepeats = 20;
 maxITER = 1000;
 tolerance = 0.01;
 h = [1,1,1,1,1,1,1,0.1];
@@ -31,7 +31,7 @@ h = [1,1,1,1,1,1,1,0.1];
 %  7) b(4) - peak negativity at edges of retinotopic region
 %    b(1)+b(4) = peak negativity at retinotopic center of mass
 %  8) rho - allows for elliptical contours
-Bounds = [-1000,0;min(xaxis)-200,max(xaxis)+200;min(yaxis)-200,max(yaxis)+200;1,2000;1,2000;1,1000;-1000,0;-1,1];
+Bounds = [-1000,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;1,1000;-1000,0;-1,1];
 
 % display('Steepest Ascent ...');
 for zz=1:numChans
@@ -112,7 +112,6 @@ for zz=1:numChans
     finalParameters(zz,:) = median(bigParameterVec,1);
 %     display(finalParameters(zz,:));
 end
-
 fisherInfo = zeros(numParameters,numParameters);
 end
 
