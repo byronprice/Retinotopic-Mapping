@@ -12,13 +12,12 @@ function [] = MapRetinotopy(AnimalName,Date)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2016/09/12
+% Updated: 2017/01/27
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
 
-EphysFileName = sprintf('RetinoData%d_%d',Date,AnimalName); % no file identifier
-    % because MyReadall does that for us
+EphysFileName = sprintf('RetinoData%d_%d.plx',Date,AnimalName); 
   
 global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
     DistToScreen numChans sampleFreq stimLen minWin maxWin baseWin; %#ok<*REDEF>
@@ -26,7 +25,7 @@ global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
 
-display(sprintf('Opening File: %s ...',StimulusFileName));
+fprintf('Opening File: %s ...\',StimulusFileName);
 
 centerVals = stimParams.centerVals;
 Radius = stimParams.Radius;
@@ -148,11 +147,11 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
     global numChans sampleFreq;
     % read in the .plx file
 
-    if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
-        MyReadall(EphysFileName);
+    if exist(strcat(EphysFileName(1:end-4),'.mat'),'file') ~= 2
+        readall(EphysFileName);
     end
 
-    EphysFileName = strcat(EphysFileName,'.mat');
+    EphysFileName = strcat(EphysFileName(1:end-4),'.mat');
     load(EphysFileName)
 
     
@@ -311,7 +310,7 @@ function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
             centerMass.y(ii) = mnPDF.mu(2);
             centerMass.Sigma(ii,:,:) = mnPDF.Sigma;
         catch
-            display(sprintf('\nError, Animal %d , Channel %d.\n',AnimalName,ii));
+            fprintf('\nError, Animal %d , Channel %d.\n',AnimalName,ii);
             centerMass.x(ii) = NaN;
             centerMass.y(ii) = NaN;
             centerMass.Sigma(ii,:,:) = NaN;
