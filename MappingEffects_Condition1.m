@@ -1,6 +1,6 @@
 function [] = MappingEffects_Condition1(AnimalName,ConditionNumber)
 %MappingEffects_Condition1.m
-%  First condition for MappingEffects experiment
+%  First condition for MappingEffects experiment ... see MappingEffects.m
 %   Retinotopic mapping stimulus, followed by 160 seconds of a flat grey
 %    screen (mapping, then fake SRP)
 cd('~/CloudStation/ByronExp/MappingEffects');

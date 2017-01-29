@@ -1,6 +1,6 @@
 function [] = MappingEffects_Condition2(AnimalName,ConditionNumber)
 %MappingEffects_Condition2.m
-%  Second condition for MappingEffects experiment
+%  Second condition for MappingEffects experiment ... see MappingEffects.m
 %   Retinotopic mapping stimulus, followed by SRP protocol
 cd('~/CloudStation/ByronExp/MappingEffects');
 load('RetinotopyVars.mat');
