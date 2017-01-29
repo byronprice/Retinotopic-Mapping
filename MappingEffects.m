@@ -24,11 +24,11 @@ function [] = MappingEffects(AnimalName,ConditionNumber)
 %  By: Byron Price
 
 if ConditionNumber == 1
-    [] = MappingEffects_Condition1(AnimalName,ConditionNumber);
+    MappingEffects_Condition1(AnimalName,ConditionNumber);
 elseif ConditionNumber == 2
-    [] = MappingEffects_Condition2(AnimalName,ConditionNumber);
+    MappingEffects_Condition2(AnimalName,ConditionNumber);
 elseif ConditionNumber == 3
-    [] = MappingEffects_Condition3(AnimalName,ConditionNumber);
+    MappingEffects_Condition3(AnimalName,ConditionNumber);
 else
     display('ConditionNumber must be either 1,2, or 3');
 end

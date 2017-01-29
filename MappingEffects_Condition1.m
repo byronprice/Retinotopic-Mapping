@@ -6,7 +6,7 @@ function [] = MappingEffects_Condition1(AnimalName,ConditionNumber)
 cd('~/CloudStation/ByronExp/MappingEffects');
 load('RetinotopyVars.mat');
 
-directory = '~/Documents/Current-Projects/Retinotopic-Mapping/';
+directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping/';
 
 holdTime = 30; % 30 second pauses between blocks
 
@@ -102,7 +102,7 @@ White = 1;
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 orient = rand([numStimuli*reps,1]).*(2*pi);
-
+waitTimes = waitTime+exprnd(0.05,[numStimuli,1]);
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
 
@@ -123,17 +123,15 @@ for yy = 1:blocks
             % Request stimulus onset
             vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(ii);
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-            vbl = Screen('Flip',win,vbl-ifi/2+waitTime);
+            vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(ii));
             count = count+1;
         end
         vbl = Screen('Flip',win,vbl-ifi/2+2);
     end
-    if yy ~= blocks
-        usb.strobeEventWord(0);
-        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
-    end
+    usb.strobeEventWord(0);
+    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
-WaitSecs(160);
+WaitSecs(150);
 usb.stopRecording;
 Priority(0);
 

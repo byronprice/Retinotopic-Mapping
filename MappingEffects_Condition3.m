@@ -6,10 +6,9 @@ cd('~/CloudStation/ByronExp/MappingEffects');
 load('RetinotopyVars.mat');
 load('SRPvars.mat');
 
-directory = '~/Documents/Current-Projects/Retinotopic-Mapping/';
+directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping/';
 
 holdTime = 30; % 30 second pauses between blocks
-
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
@@ -76,8 +75,8 @@ WaitSecs(holdTime);
 WaitSecs(30*60);
 
 vbl = Screen('Flip',win);
-phase = 0;
 for yy = 1:srp_blocks
+    phase = rand*pi;
     for zz = 1:srp_reps/srp_blocks
         % Draw the procedural texture as any other texture via 'DrawTexture'
         Screen('DrawTexture', win,gratingTex, [],[],...
@@ -88,10 +87,8 @@ for yy = 1:srp_blocks
         vbl = Screen('Flip', win,vbl-ifi/2+1/srp_Hz);usb.strobeEventWord(100);
         phase = phase+pi;
     end
-    if yy ~= blocks
-        usb.strobeEventWord(0);
-        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
-    end
+    vbl = Screen('Flip',win,vbl+ifi/2);usb.strobeEventWord(0);
+    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
 WaitSecs(2);
 usb.stopRecording;

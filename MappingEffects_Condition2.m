@@ -5,7 +5,7 @@ function [] = MappingEffects_Condition2(AnimalName,ConditionNumber)
 cd('~/CloudStation/ByronExp/MappingEffects');
 load('RetinotopyVars.mat');
 load('SRPvars.mat');
-directory = '~/Documents/Current-Projects/Retinotopic-Mapping/';
+directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping/';
 
 holdTime = 30; % 30 second pauses between blocks
 
@@ -101,7 +101,7 @@ White = 1;
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 orient = rand([numStimuli*reps,1]).*(2*pi);
-
+waitTimes = waitTime+exprnd(0.05,[numStimuli,1]);
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
 
@@ -122,17 +122,14 @@ for yy = 1:blocks
             % Request stimulus onset
             vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(ii);
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-            vbl = Screen('Flip',win,vbl-ifi/2+waitTime);
+            vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(ii));
             count = count+1;
         end
         vbl = Screen('Flip',win,vbl-ifi/2+2);
     end
-    if yy ~= blocks
-        usb.strobeEventWord(0);
-        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
-    end
+    usb.strobeEventWord(0);
+    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
-WaitSecs(30);
 
 dgshader = [directory '/SRP.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/SRP.frag.txt'] }, 1);
@@ -140,8 +137,8 @@ gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
     h_pixels, 1, GratingShader);
 
 vbl = Screen('Flip',win);
-phase = 0;
 for yy = 1:srp_blocks
+    phase = rand*pi;
     for zz = 1:srp_reps/srp_blocks
         % Draw the procedural texture as any other texture via 'DrawTexture'
         Screen('DrawTexture', win,gratingTex, [],[],...
@@ -152,10 +149,8 @@ for yy = 1:srp_blocks
         vbl = Screen('Flip', win,vbl-ifi/2+1/srp_Hz);usb.strobeEventWord(100);
         phase = phase+pi;
     end
-    if yy ~= blocks
-        usb.strobeEventWord(0);
-        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
-    end
+    vbl = Screen('Flip',win,vbl+ifi/2);usb.strobeEventWord(0);
+    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
 WaitSecs(2);
 usb.stopRecording;
