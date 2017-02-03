@@ -31,7 +31,7 @@ h = [1,1,1,1,1,1,1,0.1];
 %  7) b(4) - peak negativity at edges of retinotopic region
 %    b(1)+b(4) = peak negativity at retinotopic center of mass
 %  8) rho - allows for elliptical contours
-%  9) sigma at edges of retinotopic region
+%      9) sigma at edges of retinotopic region
 Bounds = [-1000,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;1,1000;-1000,0;-1,1];
 
 % display('Steepest Ascent ...');

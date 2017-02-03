@@ -12,7 +12,7 @@ function [] = MapRetinotopy(AnimalName,Date)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2017/01/27
+% Updated: 2017/02/03
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -25,7 +25,7 @@ global centerVals Radius reps stimTime holdTime numStimuli w_pixels h_pixels ...
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
 
-fprintf('Opening File: %s ...\',StimulusFileName);
+fprintf('Opening File: %s ...\n',EphysFileName);
 
 centerVals = stimParams.centerVals;
 Radius = stimParams.Radius;
@@ -57,8 +57,8 @@ dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxW
 dataStats.sem = zeros(numChans,numStimuli);
 dataStats.ci = zeros(numChans,numStimuli,2);
 
-display('Getting bootstrap error estimates ...');
-% BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
+% display('Getting bootstrap error estimates ...');
+% % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
 N = 2000; % number of bootstrap samples
 alpha = 0.05;
 for ii=1:numChans
@@ -69,46 +69,60 @@ for ii=1:numChans
         dataStats.ci(ii,jj,:) = ci;
     end
 end
-
-% BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
-%  AND STANDARD ERRORS
-%  interspersed stimulus repetitions with holdTime seconds of a blank
-%  screen
-noStimLen = holdTime*sampleFreq-stimLen*2;
-
-baseStats = struct;
-baseStats.ci = zeros(numChans,2);
-baseStats.mean = zeros(numChans,1);
-baseStats.sem = zeros(numChans,1);
-
-pauseOnset = strobeTimes(svStrobed == 0);
-nums = length(pauseOnset);
-for ii=1:numChans
-    Tboot = zeros(N,1);
-    for jj=1:N
-        indeces = random('Discrete Uniform',noStimLen,[reps,1]);
-        temp = zeros(reps,stimLen);
-        num = random('Discrete Uniform',nums);
-        [~,index] = min(abs(timeStamps-pauseOnset(num)));
-        index = index+stimLen;
-        for kk=1:reps
-            temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
-        end
-        Tboot(jj) = statMin(temp,baseWin,minWin);
-    end
-    baseStats.ci(ii,:) = [quantile(Tboot,alpha/2),quantile(Tboot,1-alpha/2)];
-    baseStats.mean(ii) = mean(Tboot);
-    baseStats.sem(ii) = std(Tboot);
-end
+% 
+% % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
+% %  AND STANDARD ERRORS
+% %  interspersed stimulus repetitions with holdTime seconds of a blank
+% %  screen
+% noStimLen = holdTime*sampleFreq-stimLen*2;
+% 
+% baseStats = struct;
+% baseStats.ci = zeros(numChans,2);
+% baseStats.mean = zeros(numChans,1);
+% baseStats.sem = zeros(numChans,1);
+% 
+% pauseOnset = strobeTimes(svStrobed == 0);
+% nums = length(pauseOnset);
+% for ii=1:numChans
+%     Tboot = zeros(N,1);
+%     for jj=1:N
+%         indeces = random('Discrete Uniform',noStimLen,[reps,1]);
+%         temp = zeros(reps,stimLen);
+%         num = random('Discrete Uniform',nums);
+%         [~,index] = min(abs(timeStamps-pauseOnset(num)));
+%         index = index+stimLen;
+%         for kk=1:reps
+%             temp(kk,:) = ChanData(index+indeces(kk):index+indeces(kk)+stimLen-1,ii);
+%         end
+%         Tboot(jj) = statMin(temp,baseWin,minWin);
+%     end
+%     baseStats.ci(ii,:) = [quantile(Tboot,alpha/2),quantile(Tboot,1-alpha/2)];
+%     baseStats.mean(ii) = mean(Tboot);
+%     baseStats.sem(ii) = std(Tboot);
+% end
 
 % WALD TEST to determine which stimuli are significant
-[significantStimuli] = WaldTest(dataStats,baseStats,alpha);
+% [significantStimuli] = WaldTest(dataStats,baseStats,alpha);
 
 % Calculate the center of mass of the receptive field
-[centerMass] = GetReceptiveField(significantStimuli,AnimalName);
+% [centerMass] = GetReceptiveField(significantStimuli,AnimalName);
+xaxis = 1:w_pixels;
+yaxis = 1:h_pixels;
+Data = zeros(numChans,numStimuli*reps,2);
+for ii=1:numChans
+    count = 1;
+    for jj=1:numStimuli
+        for kk=1:reps
+            Data(ii,count,1) = jj;
+            Data(ii,count,2) = min(squeeze(Response(ii,jj,kk,50:120)));
+            count = count+1;
+        end
+    end
+end
+[finalParameters] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
 
 display('Making plots ...');
-[stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName,dataStats,minLatency); 
+[stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName,dataStats,minLatency); 
 
 Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
 savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
@@ -319,7 +333,7 @@ function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
     end
 end
 
-function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,AnimalName,dataStats,minLatency)
+function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName,dataStats,minLatency)
     global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen sampleFreq baseWin minWin;
     sigma = Radius;
     halfwidth = 3*sigma;
@@ -362,7 +376,7 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
             yErrors = round(-dataStats.ci(ii,jj,2)):...
                 round(-dataStats.ci(ii,jj,1));
             yErrLen = length(yErrors);
-            stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
+%             stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
             plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*xDiff),...
                 (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
             plot((ones(yErrLen,1).*minLatency(ii,jj))./xconv+centerVals(jj,1)-0.5*xDiff,...
@@ -374,27 +388,40 @@ function [stimVals,h] = MakePlots(significantStimuli,meanResponse,centerMass,Ani
             plot((tempx-Radius):(tempx+Radius),(tempy+Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
 
         end
-        if isnan(centerMass.x(ii)) ~= 1
-    %         obj = gmdistribution(centerMass(ii,1:2),squeeze(Sigma(ii,:,:)));
-    %         combos = zeros(w_pixels*h_pixels,2);
-    %         count = 1;
-    %         for kk=1:w_pixels
-    %             for ll=h_pixels:-1:1
-    %                 %             stimVals(ii,kk,ll) = pdfFun(kk,ll);
-    %                 combos(count,:) = [kk,ll];
-    %                 count = count+1;
-    %             end
-    %         end
-    %         temp = reshape(pdf(obj,combos),[h_pixels,w_pixels]);
-    %         temp = flipud(temp)';
-    %         stimVals(ii,:,:) = (temp./(max(max(temp)))).*max(significantStimuli(ii,:));
-            temp = squeeze(stimVals(ii,:,:))';
-            blurred = conv2(temp,gaussian,'same');
-            blurred = (blurred./max(max(blurred))).*max(max(temp));
-            imagesc(x,y,blurred,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
-            ylabel(w,'VEP Negativity (\muV)');colormap('jet');
-            hold off;
-
+        
+        finalIm = zeros(length(x),length(y));
+        parameterVec = finalParameters(ii,:);
+        for jj=1:length(x)
+            for kk=1:length(y)
+                distX = x(jj)-parameterVec(2);
+                distY = y(kk)-parameterVec(3);
+                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7),parameterVec(8)];
+                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+b(4);
+            end
         end
+        imagesc(x,y,finalIm','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+        ylabel(w,'Mean Single-Trial VEP Negativity (\muV)');colormap('jet');hold off;
+%         if isnan(centerMass.x(ii)) ~= 1
+%     %         obj = gmdistribution(centerMass(ii,1:2),squeeze(Sigma(ii,:,:)));
+%     %         combos = zeros(w_pixels*h_pixels,2);
+%     %         count = 1;
+%     %         for kk=1:w_pixels
+%     %             for ll=h_pixels:-1:1
+%     %                 %             stimVals(ii,kk,ll) = pdfFun(kk,ll);
+%     %                 combos(count,:) = [kk,ll];
+%     %                 count = count+1;
+%     %             end
+%     %         end
+%     %         temp = reshape(pdf(obj,combos),[h_pixels,w_pixels]);
+%     %         temp = flipud(temp)';
+%     %         stimVals(ii,:,:) = (temp./(max(max(temp)))).*max(significantStimuli(ii,:));
+%             temp = squeeze(stimVals(ii,:,:))';
+%             blurred = conv2(temp,gaussian,'same');
+%             blurred = (blurred./max(max(blurred))).*max(max(temp));
+%             imagesc(x,y,blurred,'AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+%             ylabel(w,'VEP Negativity (\muV)');colormap('jet');
+%             hold off;
+% 
+%         end
     end
 end
