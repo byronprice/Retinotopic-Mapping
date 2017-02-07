@@ -49,26 +49,26 @@ maxWin = round(.1*sampleFreq):1:round(0.3*sampleFreq);
 % STATISTIC OF INTEREST is T = max - min(mean(LFP across stimulus repetitions)) 
 % in the interval from 0 to ~ 0.3 seconds after an image is flashed on the 
 % screen, this is a measure of the size of a VEP
-statMin = @(data,win1,win2) -min(mean(data(:,win2),1));
-statMax = @(data,win1,win2) (max(mean(data(:,win2),1))-mean(mean(data(:,win1),1)));
-
-dataStats = struct;
-dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
-dataStats.sem = zeros(numChans,numStimuli);
-dataStats.ci = zeros(numChans,numStimuli,2);
-
-% display('Getting bootstrap error estimates ...');
-% % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
-N = 2000; % number of bootstrap samples
-alpha = 0.05;
-for ii=1:numChans
-    for jj=1:numStimuli
-        Data = squeeze(Response(ii,jj,:,:));
-        [~,se,ci] = Bootstraps(Data,statMin,alpha,N,reps);
-        dataStats.sem(ii,jj) = se;
-        dataStats.ci(ii,jj,:) = ci;
-    end
-end
+% statMin = @(data,win1,win2) -min(mean(data(:,win2),1));
+% statMax = @(data,win1,win2) (max(mean(data(:,win2),1))-mean(mean(data(:,win1),1)));
+% 
+% dataStats = struct;
+% dataStats.mean = -min(meanResponse(:,:,minWin),[],3); %max(meanResponse(:,:,maxWin),[],3)
+% dataStats.sem = zeros(numChans,numStimuli);
+% dataStats.ci = zeros(numChans,numStimuli,2);
+% 
+% % display('Getting bootstrap error estimates ...');
+% % % BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
+% N = 2000; % number of bootstrap samples
+% alpha = 0.05;
+% for ii=1:numChans
+%     for jj=1:numStimuli
+%         Data = squeeze(Response(ii,jj,:,:));
+%         [~,se,ci] = Bootstraps(Data,statMin,alpha,N,reps);
+%         dataStats.sem(ii,jj) = se;
+%         dataStats.ci(ii,jj,:) = ci;
+%     end
+% end
 % 
 % % BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
 % %  AND STANDARD ERRORS
@@ -119,41 +119,17 @@ for ii=1:numChans
         end
     end
 end
-[finalParameters] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+[finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
 
 display('Making plots ...');
-[stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName,dataStats,minLatency); 
+[stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName); 
 
 Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
 savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
 %print(h,'-depsc','filename');
 
-
-MapParams = RetinoMapObj;
-MapParams.numChans = numChans;
-MapParams.centerVals = centerVals;
-MapParams.significantStimuli = significantStimuli;
-MapParams.centerMass = centerMass;
-MapParams.stimVals = stimVals;
-MapParams.Response = Response;
-MapParams.meanResponse = meanResponse;
-MapParams.Channel = Channel;
-MapParams.dataStats = dataStats;
-MapParams.baseStats = baseStats;
-MapParams.minLatency = minLatency;
-MapParams.maxLatency = maxLatency;
-
-save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'MapParams');
-
-yesNo = input('Save as principal map parameter file? (y/n): ','s');
-
-if strcmp(yesNo,'y') == 1
-    save(sprintf('RetinoMap%d.mat',AnimalName),'MapParams');
-end
-
-% obj = gmdistribution(centerMass(Channel,1:2),squeeze(Sigma(Channel,:,:)));
-% figure();
-% h = ezcontour(@(x,y) pdf(obj,[x y]),[0 w_pixels,0 h_pixels]);
+save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'stimVals','finalParameters','fisherInfo','ninetyfiveErrors',...
+    'numChans');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -197,7 +173,7 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
 end
 
 function [Response,meanResponse,strobeTimes,maxLatency,minLatency] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
-    global numChans numStimuli reps stimLen stimTime sampleFreq minWin maxWin;
+    global numChans numStimuli reps stimLen sampleFreq minWin maxWin;
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
     stimLen = round(0.3*sampleFreq); % about 250 milliseconds
@@ -333,16 +309,17 @@ function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
     end
 end
 
-function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName,dataStats,minLatency)
-    global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen sampleFreq baseWin minWin;
-    sigma = Radius;
-    halfwidth = 3*sigma;
-    [xx,yy] = meshgrid(-halfwidth:halfwidth,-halfwidth:halfwidth);
-    gaussian = exp(-(xx.*xx+yy.*yy)./(2*sigma^2));
+function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName)
+    global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen sampleFreq;
+%     sigma = Radius;
+%     halfwidth = 3*sigma;
+%     [xx,yy] = meshgrid(-halfwidth:halfwidth,-halfwidth:halfwidth);
+%     gaussian = exp(-(xx.*xx+yy.*yy)./(2*sigma^2));
+    Radius = round(Radius);
     stimVals = zeros(numChans,w_pixels,h_pixels);
     x=1:w_pixels;
     y=1:h_pixels;
-    minLatency = round(minLatency.*sampleFreq);
+%     minLatency = round(minLatency.*sampleFreq);
     xPos = unique(centerVals(:,1));
     yPos = unique(centerVals(:,2));
     
@@ -373,15 +350,15 @@ function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName,dataSt
         for jj=1:numStimuli
             tempx = centerVals(jj,1);
             tempy = centerVals(jj,2);
-            yErrors = round(-dataStats.ci(ii,jj,2)):...
-                round(-dataStats.ci(ii,jj,1));
-            yErrLen = length(yErrors);
+%             yErrors = round(-dataStats.ci(ii,jj,2)):...
+%                 round(-dataStats.ci(ii,jj,1));
+%             yErrLen = length(yErrors);
 %             stimVals(ii,tempx-Radius:tempx+Radius,tempy-Radius:tempy+Radius) = significantStimuli(ii,jj);
             plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*xDiff),...
                 (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
-            plot((ones(yErrLen,1).*minLatency(ii,jj))./xconv+centerVals(jj,1)-0.5*xDiff,...
-                yErrors./yconv...
-                +centerVals(jj,2),'k','LineWidth',2);
+%             plot((ones(yErrLen,1).*minLatency(ii,jj))./xconv+centerVals(jj,1)-0.5*xDiff,...
+%                 yErrors./yconv...
+%                 +centerVals(jj,2),'k','LineWidth',2);
             plot((tempx-Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx+Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx-Radius):(tempx+Radius),(tempy-Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
@@ -395,8 +372,8 @@ function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName,dataSt
             for kk=1:length(y)
                 distX = x(jj)-parameterVec(2);
                 distY = y(kk)-parameterVec(3);
-                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7),parameterVec(8)];
-                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+b(4);
+                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
+                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
         imagesc(x,y,finalIm','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;

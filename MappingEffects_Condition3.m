@@ -84,7 +84,7 @@ for yy = 1:srp_blocks
             [], [],[White,Black,...
             spatFreq,srp_orientation,phase,0,0,0]);
         % Request stimulus onset
-        vbl = Screen('Flip', win,vbl-ifi/2+1/srp_Hz);usb.strobeEventWord(100);
+        vbl = Screen('Flip', win,vbl-ifi/2+1/srp_Hz);usb.strobeEventWord(srp_word);
         phase = phase+pi;
     end
     vbl = Screen('Flip',win,vbl+ifi/2);usb.strobeEventWord(0);
@@ -96,7 +96,7 @@ Priority(0);
 
 fileName = sprintf('MappingEffectsStim%d_%d.mat',Date,AnimalName);
 save(fileName,'ConditionNumber','srp_blocks','srp_orientation','srp_reps','spatFreq',...
-    'srp_Hz');
+    'srp_Hz','srp_word');
 % Close window
 Screen('CloseAll');
 
