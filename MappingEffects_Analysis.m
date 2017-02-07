@@ -8,7 +8,7 @@ function [ ] = MappingEffects_Analysis(Animals)
 %
 % Created: 2017/02/06
 %  Byron Price
-% Updated: 2017/02/06
+% Updated: 2017/02/07
 % By: Byron Price
 
 cd('~/CloudStation/ByronExp/MappingEffects');
@@ -18,10 +18,10 @@ for ii=1:length(Animals)
    stimFiles = dir(sprintf('MappingEffectsStim*%d.mat',Animals(ii)));
    numFiles = length(dataFiles);numChans = 2;numParameters = 7;stimLen = 300;
    
-   
    dailyParameters = zeros(numFiles,numChans,numParameters);
    parameterCI = zeros(numFiles,numChans,numParameters);
-   srpVEP = zeros(numFiles,numChans,300);
+   fisherInformation = zeros(numFiles,numChans,numParameters,numParameters);
+   srpVEP = zeros(numFiles,numChans,stimLen);
    
    h = figure();
    for jj=1:numFiles
@@ -76,6 +76,7 @@ for ii=1:length(Animals)
            MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
            dailyParameters(jj,:,:) = finalParameters;
            parameterCI(jj,:,:) = ninetyfiveErrors;
+           fisherInformation(jj,:,:,:) = fisherInfo;
        elseif ConditionNumber == 2
            centerVals = stimParams.centerVals;
            Radius = stimParams.Radius;
@@ -117,6 +118,7 @@ for ii=1:length(Animals)
            MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
            dailyParameters(jj,:,:) = finalParameters;
            parameterCI(jj,:,:) = ninetyfiveErrors;
+           fisherInformation(jj,:,:,:) = fisherInfo;
            
            srpResponse = zeros(numChans,srp_reps,stimLen);
            meanSRP = zeros(numChans,stimLen);
@@ -129,9 +131,11 @@ for ii=1:length(Animals)
                    srpResponse(kk,ll,:) = temp;
                end
                meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-               subplot(numFiles,4,ii+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
-               xlabel('Time from Phase Reversal (milliseconds)');ylabel('LFP Magnitude (\muVolts)');
-               title(sprintf('SRP VEP: Day %d',jj));
+               subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
+               if kk==1
+                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
+                    title(sprintf('SRP VEP: Day %d',jj));
+               end
            end
            srpVEP(jj,:,:) = meanSRP;
        elseif ConditionNumber == 3
@@ -148,7 +152,7 @@ for ii=1:length(Animals)
                meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
                subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
                if kk==1
-                    xlabel('Time from Phase Reversal (milliseconds)');ylabel('LFP Mag (\muVolts)');
+                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
                     title(sprintf('SRP VEP: Day %d',jj));
                end
            end
@@ -157,7 +161,7 @@ for ii=1:length(Animals)
    end
    savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
-   save(filename,'dailyParameters','parameterCI','srpVEP');
+   save(filename,'dailyParameters','parameterCI','srpVEP','fisherInformation','ConditionNumber');
 end
 
 
@@ -216,8 +220,10 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
     
     for ii=1:numChans
         subplot(numFiles,4,ii+(Day-1)*4);axis([0 max(xaxis) 0 max(yaxis)]);
-        title(sprintf('VEP Retinotopy, Chan %d Day %d',ii,Day));
-        xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
+        if ii==1
+            title(sprintf('VEP Retinotopy, Day %d',Day));
+            xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position');
+        end
         hold on;
 
         for jj=1:numStimuli
@@ -235,16 +241,20 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
         
         finalIm = zeros(length(xaxis),length(yaxis));
         parameterVec = finalParameters(ii,:);
-        for jj=1:length(x)
-            for kk=1:length(y)
-                distX = x(jj)-parameterVec(2);
-                distY = y(kk)-parameterVec(3);
+        for jj=1:length(xaxis)
+            for kk=1:length(yaxis)
+                distX = xaxis(jj)-parameterVec(2);
+                distY = yaxis(kk)-parameterVec(3);
                 b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
-        imagesc(x,y,finalIm','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
-        ylabel(w,'Mean Single-Trial VEP Negativity (\muV)');colormap('jet');hold off;
+        imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');
+        colormap('jet');caxis([-400 -100]);
+        if ii==1
+            w=colorbar;ylabel(w,'Single-Trial VEP Negativity (\muV)');
+        end
+        hold off;
     end
 end
 
