@@ -1,15 +1,13 @@
-function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Response,xaxis,yaxis,centerVals)
+function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGammaRetinoModel(Response,xaxis,yaxis,centerVals)
 %FitLFPGaussRetinoModel.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
-%    model of that retinotopy (using peak negativity in window from 50 to
-%    120 msec after stimulus presentation and Gaussian likelihood)
+%    model of that retinotopy (using absolute value of the peak negativity 
+%    in window from 50 to 120 msec after stimulus presentation and Gamma likelihood)
 
-%Created: 2017/01/18, 24 Cummington Mall, Boston
+%Created: 2017/02/11, 10 Lawrence Street, Cambridge
 % Byron Price
-%Updated: 2017/02/06
+%Updated: 2017/02/11
 % By: Byron Price
-
-% hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
 
 numChans = size(Response,1);
 reps = size(Response,2);
@@ -29,18 +27,17 @@ h = ones(numParameters,1)./100;
 %  2)+3) the position (x and y) of the center of mass
 %  4) b(2) - standard deviation or spread of the map in x
 %  5) b(3) - standard deviation or spread of map in y
-%  6) rise for sigma, from the Gaussian likelihood, at map center
+%  6) nu parameter from gamma likelihood
 %  7) b(4) - peak negativity at edges of retinotopic region
 %    b(1)+b(4) = peak negativity at retinotopic center of mass
-%  8) rho - allows for elliptical contours
-%      9) sigma at edges of retinotopic region
-Bounds = [-1000,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;1,1000;-1000,0];
+%  
+Bounds = [0,1000;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;0.1,2000;0,1000];
 
 % display('Steepest Ascent ...');
 for zz=1:numChans
 %     display(sprintf('Running Data for Channel %d...',zz));
     flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
-    peakNegativity = squeeze(Response(zz,:,2));
+    peakNegativity = abs(squeeze(Response(zz,:,2)));
     
     bigParameterVec = zeros(numRepeats,numParameters);
     bigLogLikelihoods = zeros(numRepeats,1);
@@ -67,19 +64,7 @@ for zz=1:numChans
                 if check < tolerance
                     break;
                 end
-            end
-%             
-%             % check if a random jump along one dimension improves the
-%             %  likelihood
-%             temp = parameterVec(iter-1,:);
-%             randInd = random('Discrete Uniform',numParameters,1);
-%             temp(randInd) = Bounds(randInd,1)+(Bounds(randInd,2)-Bounds(randInd,1)).*rand;
-%             
-%             [likely] = GetLikelihood(reps,temp,peakNegativity,flashPoints);
-%             if likely > logLikelihood(iter-1) %|| mod(iter,200) == 0
-%                 parameterVec(iter-1,:) = temp';
-%                 logLikelihood(iter-1) = likely;
-%             end
+            end            
             
             % calculate the gradient by calculating the likelihood
             %  after moving over a small step h along each
@@ -120,6 +105,7 @@ for zz=1:numChans
         bigParameterVec(repeats,:) = parameterVec(iter-1,:);
         bigLogLikelihoods(repeats) = logLikelihood(iter-1);
     end
+
     [~,index] = max(bigLogLikelihoods);
     finalParameters(zz,:) = bigParameterVec(index,:);
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,peakNegativity,flashPoints);
@@ -135,13 +121,11 @@ for kk=1:reps
     distY = flashPoints(kk,2)-parameterVec(3);
     b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
     mu = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
-    stdev = parameterVec(6);%*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+parameterVec(9);
-    loglikelihood = loglikelihood-(1/2)*log(2*pi*stdev*stdev)-(1/(2*stdev*stdev))*(peakNegativity(kk)-mu).^2;
-%     summation = summation+(peakNegativity(kk)-mu).^2;
+    nu = parameterVec(6);
+    loglikelihood = loglikelihood-log(gamma(nu))+nu*...
+       log(nu*peakNegativity(kk)/mu)-nu*peakNegativity(kk)/mu-...
+       log(peakNegativity(kk));
 end
-
-% loglikelihood = (-reps/2)*log(2*pi*parameterVec(6)*parameterVec(6))-...
-%     (1/(2*parameterVec(6)*parameterVec(6)))*summation;
 end
 
 function [fisherInfo,errors] = getFisherInfo(parameters,numParameters,h,reps,peakNegativity,flashPoints)

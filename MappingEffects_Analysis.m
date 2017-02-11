@@ -63,7 +63,7 @@ for ii=1:length(Animals)
                        meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
                    end
                end
-               
+
                xaxis = 1:w_pixels;
                yaxis = 1:h_pixels;
                Data = zeros(numChans,numStimuli*reps,2);
@@ -77,7 +77,7 @@ for ii=1:length(Animals)
                        end
                    end
                end
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGammaRetinoModel(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
                dailyParameters{jj} = finalParameters;
                parameterCI{jj} = ninetyfiveErrors;
@@ -119,7 +119,7 @@ for ii=1:length(Animals)
                        end
                    end
                end
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGammaRetinoModel(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
                dailyParameters{jj} = finalParameters;
                parameterCI{jj} = ninetyfiveErrors;
