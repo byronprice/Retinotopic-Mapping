@@ -1,4 +1,4 @@
-function [ ] = MappingEffects_Analysis(Animals)
+function [ ] = MappingEffects_Analysis(Animals,Channels)
 %MappingEffects_Analysis.m
 %  Analyze data from mapping effects experiment, see MappingEffects.m
 %  Three experimental conditions:
@@ -16,152 +16,162 @@ cd('~/CloudStation/ByronExp/MappingEffects');
 for ii=1:length(Animals)
    dataFiles = dir(sprintf('MappingEffectsData*%d.plx',Animals(ii)));
    stimFiles = dir(sprintf('MappingEffectsStim*%d.mat',Animals(ii)));
-   numFiles = length(dataFiles);numChans = 2;numParameters = 7;stimLen = 300;
+   numFiles = length(dataFiles);
    
-   dailyParameters = zeros(numFiles,numChans,numParameters);
-   parameterCI = zeros(numFiles,numChans,numParameters);
-   fisherInformation = zeros(numFiles,numChans,numParameters,numParameters);
-   srpVEP = zeros(numFiles,numChans,stimLen);
+   dailyParameters = cell(numFiles,1);
+   parameterCI = cell(numFiles,1);
+   fisherInformation = cell(numFiles,1);
+   srpNegativity = cell(numFiles,1);
+   srpVEP = cell(numFiles,1);
+   goodChannels = Channels{ii};numChans = sum(~isnan(goodChannels));
    
-   h = figure();
-   for jj=1:numFiles
-       ePhysFileName = dataFiles(jj).name;
-       [ChanData,timeStamps,tsevs,svStrobed,numChans,sampleFreq] = ExtractSignal(ePhysFileName);
-       load(stimFiles(jj).name);
-       
-       stimLen = round(0.3*sampleFreq); % 300 milliseconds
-       vepPosition = round(0.05*sampleFreq):round(0.12*sampleFreq);
-       strobeStart = 33;
-       strobeTimes = tsevs{strobeStart};
-       smoothKernel = 4;
-       
-       if ConditionNumber == 1
-           centerVals = stimParams.centerVals;
-           Radius = stimParams.Radius;
-           reps = stimParams.reps;
-           w_pixels = stimParams.w_pixels;
-           h_pixels = stimParams.h_pixels;
-           numStimuli = stimParams.numStimuli;
+   if numChans ~= 0
+       h = figure();
+       for jj=1:numFiles
+           ePhysFileName = dataFiles(jj).name;
+           [ChanData,timeStamps,tsevs,svStrobed,~,sampleFreq] = ExtractSignal(ePhysFileName);
+           load(stimFiles(jj).name);
            
-           % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
-           Response = zeros(numChans,numStimuli,reps,stimLen);
-           meanResponse = zeros(numChans,numStimuli,stimLen);
-           for kk=1:numChans
-               for ll=1:numStimuli
-                   stimStrobes = strobeTimes(svStrobed == ll);
-                   for mm=1:reps
-                       stimOnset = stimStrobes(mm);
+           stimLen = round(0.3*sampleFreq); % 300 milliseconds
+           vepPosition = round(0.05*sampleFreq):round(0.12*sampleFreq);
+           strobeStart = 33;
+           strobeTimes = tsevs{strobeStart};
+           smoothKernel = 4;
+           
+           
+           if ConditionNumber == 1
+               centerVals = stimParams.centerVals;
+               Radius = stimParams.Radius;
+               reps = stimParams.reps;
+               w_pixels = stimParams.w_pixels;
+               h_pixels = stimParams.h_pixels;
+               numStimuli = stimParams.numStimuli;
+               
+               
+               % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
+               Response = zeros(numChans,numStimuli,reps,stimLen);
+               meanResponse = zeros(numChans,numStimuli,stimLen);
+               for kk=1:numChans
+                   for ll=1:numStimuli
+                       stimStrobes = strobeTimes(svStrobed == ll);
+                       for mm=1:reps
+                           stimOnset = stimStrobes(mm);
+                           [~,index] = min(abs(timeStamps-stimOnset));
+                           temp = ChanData(index:index+stimLen-1,goodChannels(kk));
+                           Response(kk,ll,mm,:) = temp;
+                       end
+                       meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
+                   end
+               end
+               
+               xaxis = 1:w_pixels;
+               yaxis = 1:h_pixels;
+               Data = zeros(numChans,numStimuli*reps,2);
+               for kk=1:numChans
+                   count = 1;
+                   for ll=1:numStimuli
+                       for mm=1:reps
+                           Data(kk,count,1) = ll;
+                           Data(kk,count,2) = min(squeeze(Response(kk,ll,mm,vepPosition)));
+                           count = count+1;
+                       end
+                   end
+               end
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
+               dailyParameters{jj} = finalParameters;
+               parameterCI{jj} = ninetyfiveErrors;
+               fisherInformation{jj} = fisherInfo;
+           elseif ConditionNumber == 2
+               centerVals = stimParams.centerVals;
+               Radius = stimParams.Radius;
+               reps = stimParams.reps;
+               w_pixels = stimParams.w_pixels;
+               h_pixels = stimParams.h_pixels;
+               numStimuli = stimParams.numStimuli;
+               
+               % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
+               Response = zeros(numChans,numStimuli,reps,stimLen);
+               meanResponse = zeros(numChans,numStimuli,stimLen);
+               for kk=1:numChans
+                   for ll=1:numStimuli
+                       stimStrobes = strobeTimes(svStrobed == ll);
+                       for mm=1:reps
+                           stimOnset = stimStrobes(mm);
+                           [~,index] = min(abs(timeStamps-stimOnset));
+                           temp = ChanData(index:index+stimLen-1,goodChannels(kk));
+                           Response(kk,ll,mm,:) = temp;
+                       end
+                       meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
+                   end
+               end
+               
+               xaxis = 1:w_pixels;
+               yaxis = 1:h_pixels;
+               Data = zeros(numChans,numStimuli*reps,2);
+               for kk=1:numChans
+                   count = 1;
+                   for ll=1:numStimuli
+                       for mm=1:reps
+                           Data(kk,count,1) = ll;
+                           Data(kk,count,2) = min(squeeze(Response(kk,ll,mm,vepPosition)));
+                           count = count+1;
+                       end
+                   end
+               end
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
+               dailyParameters{jj} = finalParameters;
+               parameterCI{jj} = ninetyfiveErrors;
+               fisherInformation{jj} = fisherInfo;
+               
+               srpResponse = zeros(numChans,srp_reps,stimLen);
+               meanSRP = zeros(numChans,stimLen);
+               for kk=1:numChans
+                   stimStrobes = strobeTimes(svStrobed == srp_word);
+                   for ll=1:srp_reps
+                       stimOnset = stimStrobes(ll);
                        [~,index] = min(abs(timeStamps-stimOnset));
-                       temp = ChanData(index:index+stimLen-1,kk);
-                       Response(kk,ll,mm,:) = temp;
+                       temp = ChanData(index:index+stimLen-1,goodChannels(kk));
+                       srpResponse(kk,ll,:) = temp;
                    end
-                   meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
-               end
-           end
-           
-           xaxis = 1:w_pixels;
-           yaxis = 1:h_pixels;
-           Data = zeros(numChans,numStimuli*reps,2);
-           for kk=1:numChans
-               count = 1;
-               for ll=1:numStimuli
-                   for mm=1:reps
-                       Data(kk,count,1) = ll;
-                       Data(kk,count,2) = min(squeeze(Response(kk,ll,mm,vepPosition)));
-                       count = count+1;
+                   meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
+                   subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
+                   if kk==1
+                       xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
+                       title(sprintf('SRP VEP: Day %d',jj));
                    end
                end
-           end
-           [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
-           MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
-           dailyParameters(jj,:,:) = finalParameters;
-           parameterCI(jj,:,:) = ninetyfiveErrors;
-           fisherInformation(jj,:,:,:) = fisherInfo;
-       elseif ConditionNumber == 2
-           centerVals = stimParams.centerVals;
-           Radius = stimParams.Radius;
-           reps = stimParams.reps;
-           w_pixels = stimParams.w_pixels;
-           h_pixels = stimParams.h_pixels;
-           numStimuli = stimParams.numStimuli;
-           
-           % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
-           Response = zeros(numChans,numStimuli,reps,stimLen);
-           meanResponse = zeros(numChans,numStimuli,stimLen);
-           for kk=1:numChans
-               for ll=1:numStimuli
-                   stimStrobes = strobeTimes(svStrobed == ll);
-                   for mm=1:reps
-                       stimOnset = stimStrobes(mm);
+               srpNegativity{jj} = min(srpResponse(:,:,vepPosition),[],3);
+               srpVEP{jj} = meanSRP;
+           elseif ConditionNumber == 3
+               srpResponse = zeros(numChans,srp_reps,stimLen);
+               meanSRP = zeros(numChans,stimLen);
+               for kk=1:numChans
+                   stimStrobes = strobeTimes(svStrobed == srp_word);
+                   for ll=1:srp_reps
+                       stimOnset = stimStrobes(ll);
                        [~,index] = min(abs(timeStamps-stimOnset));
-                       temp = ChanData(index:index+stimLen-1,kk);
-                       Response(kk,ll,mm,:) = temp;
+                       temp = ChanData(index:index+stimLen-1,goodChannels(kk));
+                       srpResponse(kk,ll,:) = temp;
                    end
-                   meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
-               end
-           end
-           
-           xaxis = 1:w_pixels;
-           yaxis = 1:h_pixels;
-           Data = zeros(numChans,numStimuli*reps,2);
-           for kk=1:numChans
-               count = 1;
-               for ll=1:numStimuli
-                   for mm=1:reps
-                       Data(kk,count,1) = ll;
-                       Data(kk,count,2) = min(squeeze(Response(kk,ll,mm,vepPosition)));
-                       count = count+1;
+                   meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
+                   subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
+                   if kk==1
+                       xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
+                       title(sprintf('SRP VEP: Day %d',jj));
                    end
                end
+               srpNegativity{jj} = min(srpResponse(:,:,vepPosition),[],3);
+               srpVEP{jj} = meanSRP;
            end
-           [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
-           MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
-           dailyParameters(jj,:,:) = finalParameters;
-           parameterCI(jj,:,:) = ninetyfiveErrors;
-           fisherInformation(jj,:,:,:) = fisherInfo;
-           
-           srpResponse = zeros(numChans,srp_reps,stimLen);
-           meanSRP = zeros(numChans,stimLen);
-           for kk=1:numChans
-               stimStrobes = strobeTimes(svStrobed == srp_word);
-               for ll=1:srp_reps
-                   stimOnset = stimStrobes(ll);
-                   [~,index] = min(abs(timeStamps-stimOnset));
-                   temp = ChanData(index:index+stimLen-1,kk);
-                   srpResponse(kk,ll,:) = temp;
-               end
-               meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-               subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
-               if kk==1
-                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
-                    title(sprintf('SRP VEP: Day %d',jj));
-               end
-           end
-           srpVEP(jj,:,:) = meanSRP;
-       elseif ConditionNumber == 3
-           srpResponse = zeros(numChans,srp_reps,stimLen);
-           meanSRP = zeros(numChans,stimLen);
-           for kk=1:numChans
-               stimStrobes = strobeTimes(svStrobed == srp_word);
-               for ll=1:srp_reps
-                   stimOnset = stimStrobes(ll);
-                   [~,index] = min(abs(timeStamps-stimOnset));
-                   temp = ChanData(index:index+stimLen-1,kk);
-                   srpResponse(kk,ll,:) = temp;
-               end
-               meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-               subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
-               if kk==1
-                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
-                    title(sprintf('SRP VEP: Day %d',jj));
-               end
-           end
-           srpVEP(jj,:,:) = meanSRP;
        end
+       savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
    end
-   savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
+   
    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
-   save(filename,'dailyParameters','parameterCI','srpVEP','fisherInformation','ConditionNumber');
+   save(filename,'dailyParameters','parameterCI','fisherInformation',...
+       'srpNegativity','srpVEP','ConditionNumber','goodChannels','numFiles');
 end
 
 
@@ -252,7 +262,7 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
         imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');
         colormap('jet');caxis([-400 -100]);
         if ii==1
-            w=colorbar;ylabel(w,'Single-Trial VEP Negativity (\muV)');
+            w=colorbar;ylabel(w,'VEP Negativity (\muV)');
         end
         hold off;
     end

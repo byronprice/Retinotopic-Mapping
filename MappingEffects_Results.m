@@ -17,105 +17,222 @@ numAnimals = length(Animals);
 % 
 % load(filename);
 % [numDays,numChans,numParameters] = size(dailyParameters);
-w_pixels = 2500; h_pixels = 1400;
+w_pixels = 2560; h_pixels = 1440;
 % clear dailyParameters parameterCI srpVEP fisherInformation ConditionNumber;
 
-modelSlope_retinoSRP = [];
-modelSlope_greySRP = [];
 Y = [];Design = [];
 
-linespecs = {'or','+b'};
-figure();hold on;
+linespecs = {'or','*b'};
+h(1) = figure();h(2) = figure();h(3) = figure();
 for ii=1:numAnimals
     filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
     load(filename);
     
-    [numDays,numChans,numParameters] = size(dailyParameters);
+    numDays = numFiles;
+    
     if ConditionNumber == 1
-        for jj=1:numChans
-            xdata = squeeze(dailyParameters(:,jj,2));
-            ydata = squeeze(dailyParameters(:,jj,3));
-            magData = squeeze(dailyParameters(:,jj,1)+dailyParameters(:,jj,7));
-        
-            xErr = squeeze(parameterCI(:,jj,2))./1.96;
-            yErr = squeeze(parameterCI(:,jj,3))./1.96;
-            magErr = sqrt((squeeze(parameterCI(:,jj,1))./1.96).^2+(squeeze(parameterCI(:,jj,7))./1.96).^2);
-            
-            subplot(numAnimals,2,1+(ii-1)*2);errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{ii});
-            axis([0 w_pixels 0 h_pixels]);
-            title('Center of Mass, Retinotopy-Grey');
-            xlabel('Horizontal Screen Position');ylabel('Vertical Position');
-            subplot(numAnimals,2,2+(ii-1)*2);errorbar(1:numDays,magData,magErr,linespecs{ii});
-            axis([0 numDays+1 -500 -100]);
-            title('Single-Trial VEP Magnitude');xlabel('Experimental Day');ylabel('Negativity (\muVolts');
+        [numChans,numParameters] = size(dailyParameters{1});
+        parameters = zeros(numDays,numChans,numParameters);
+        confIntervals = zeros(numDays,numChans,numParameters);
+        for jj=1:numDays
+            parameters(jj,:,:) = dailyParameters{jj};
+            confIntervals(jj,:,:) = parameterCI{jj};
         end
+        
+        for jj=1:numChans
+            xdata = squeeze(parameters(:,jj,2));
+            ydata = squeeze(parameters(:,jj,3));
+            sigmaXdata = squeeze(parameters(:,jj,4));
+            sigmaYdata = squeeze(parameters(:,jj,5));
+            riseData = squeeze(parameters(:,jj,1));
+            baselineData = squeeze(parameters(:,jj,7));
+        
+            xErr = squeeze(confIntervals(:,jj,2));
+            yErr = squeeze(confIntervals(:,jj,3));
+            sigmaXerr = squeeze(confIntervals(:,jj,4));
+            sigmaYerr = squeeze(confIntervals(:,jj,5));
+            riseErr = squeeze(confIntervals(:,jj,1));
+            baselineErr = squeeze(confIntervals(:,jj,7));
+            
+            figure(h(1));
+            subplot(numAnimals,4,1+(ii-1)*4);hold on;
+            errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{jj});
+            axis([0 w_pixels 0 h_pixels]);
+            title('CoM, Retinotopy-Grey');
+            xlabel('Horizontal Screen Position');ylabel('Vertical Position');
+            
+            subplot(numAnimals,4,2+(ii-1)*4);hold on;
+            errorbar(sigmaXdata,sigmaYdata,...
+                sigmaYerr,sigmaYerr,sigmaXerr,sigmaXerr,linespecs{jj});
+            axis([0 600 0 600]);
+            title('Region Size');
+            xlabel('Parameter Sigma_x');ylabel('Parameter Sigma_y');
+            
+            subplot(numAnimals,4,3+(ii-1)*4);hold on;
+            errorbar(1:numDays,riseData,riseErr,linespecs{jj});
+            axis([0 numDays+1 -500 0]);
+            title('Negativity Rise at CoM');xlabel('Experimental Day');
+            ylabel('VEP Negativity (\muV)');
+            
+            subplot(numAnimals,4,4+(ii-1)*4);hold on;
+            errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
+            axis([0 numDays+1 -500 0]);
+            title('Baseline Negativity');xlabel('Experimental Day');
+            ylabel('VEP Negativity (\muV)');
+        end
+        hold off;
     elseif ConditionNumber == 2 
-        for jj=1:numChans
-            xdata = squeeze(dailyParameters(:,jj,2));
-            ydata = squeeze(dailyParameters(:,jj,3));
-            magData = squeeze(dailyParameters(:,jj,1)+dailyParameters(:,jj,7));
+        [numChans,numParameters] = size(dailyParameters{1});
+        srp_reps = size(srpNegativity{1},2);
+        parameters = zeros(numDays,numChans,numParameters);
+        confIntervals = zeros(numDays,numChans,numParameters);
+        negativity = zeros(numDays,numChans,srp_reps);
+        for jj=1:numDays
+            parameters(jj,:,:) = dailyParameters{jj};
+            confIntervals(jj,:,:) = parameterCI{jj};
+            negativity(jj,:,:) = srpNegativity{jj};
+        end
         
-            xErr = squeeze(parameterCI(:,jj,2))./1.96;
-            yErr = squeeze(parameterCI(:,jj,3))./1.96;
-            magErr = sqrt((squeeze(parameterCI(:,jj,1))./1.96).^2+(squeeze(parameterCI(:,jj,7))./1.96).^2);
+        for jj=1:numChans
+             xdata = squeeze(parameters(:,jj,2));
+            ydata = squeeze(parameters(:,jj,3));
+            sigmaXdata = squeeze(parameters(:,jj,4));
+            sigmaYdata = squeeze(parameters(:,jj,5));
+            riseData = squeeze(parameters(:,jj,1));
+            baselineData = squeeze(parameters(:,jj,7));
+        
+            xErr = squeeze(confIntervals(:,jj,2));
+            yErr = squeeze(confIntervals(:,jj,3));
+            sigmaXerr = squeeze(confIntervals(:,jj,4));
+            sigmaYerr = squeeze(confIntervals(:,jj,5));
+            riseErr = squeeze(confIntervals(:,jj,1));
+            baselineErr = squeeze(confIntervals(:,jj,7));
             
-            subplot(numAnimals,2,1+(ii-1)*2);errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{ii});
+            figure(h(1));
+            subplot(numAnimals,4,1+(ii-1)*4);hold on;
+            errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{jj});
             axis([0 w_pixels 0 h_pixels]);
-            title('Center of Mass, Retinotopy-SRP');
+            title('CoM, Retinotopy-SRP');
             xlabel('Horizontal Screen Position');ylabel('Vertical Position');
-            subplot(numAnimals,2,2+(ii-1)*2);errorbar(1:numDays,magData,magErr,linespecs{ii});
-            axis([0 numDays+1 -500 -100]);
-            title('Single-Trial VEP Magnitude');xlabel('Experimental Day');ylabel('Negativity (\muVolts');
+            
+            subplot(numAnimals,4,2+(ii-1)*4);hold on;
+            errorbar(sigmaXdata,sigmaYdata,...
+                sigmaYerr,sigmaYerr,sigmaXerr,sigmaXerr,linespecs{jj});
+            axis([0 600 0 600]);
+            title('Region Size');
+            xlabel('Parameter Sigma_x');ylabel('Parameter Sigma_y');
+            
+            subplot(numAnimals,4,3+(ii-1)*4);hold on;
+            errorbar(1:numDays,riseData,riseErr,linespecs{jj});
+            axis([0 numDays+1 -500 0]);
+            title('Negativity Rise at CoM');xlabel('Experimental Day');
+            ylabel('VEP Negativity (\muV)');
+            
+            subplot(numAnimals,4,4+(ii-1)*4);hold on;
+            errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
+            axis([0 numDays+1 -500 0]);
+            title('Baseline Negativity');xlabel('Experimental Day');
+            ylabel('VEP Negativity (\muV)');
+        end
+        hold off;
+        
+        figure(h(2));
+         for jj=1:numChans
+             data = zeros(numDays,srp_reps);dayVec = zeros(numDays,srp_reps);
+             meanVals = zeros(numDays,1);
+            for kk=1:numDays
+                for ll=1:srp_reps
+                    data(kk,ll) = negativity(kk,jj,ll);
+                    dayVec(kk,ll) = kk;
+                end
+                meanVals(kk) = mean(dayVec(kk,:));
+            end
+                randJitter = randn([numDays*srp_reps,1]).*0.05;
+                subplot(numAnimals,2,jj+(ii-1)*2);hold on;
+                scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
+                scatter(1:numDays,meanVals,100,'vk','filled');
+                axis([0 numDays+1 -800 0]);
+                title('SRP Negativity, Retinotopy-SRP');xlabel('Experimental Day');ylabel('Negativity (\muV)');
+                Y = [Y;data(:)];Design = [Design;dayVec(:),ones(srp_reps*numDays,1)];
+         end
+        hold off;
+    elseif ConditionNumber == 3
+        [numChans,srp_reps] = size(srpNegativity{1});
+        negativity = zeros(numDays,numChans,srp_reps);
+        for jj=1:numDays
+            negativity(jj,:,:) = srpNegativity{jj};
         end
         
-        dayVec = [0:numDays-1]';
-        for jj=1:numChans
-            data = squeeze(srpVEP(:,jj,:));data = -min(data,[],2);
-            [b,dev,stats] = glmfit(data,dayVec,'normal');
-            modelSlope_retinoSRP = [modelSlope_retinoSRP,b(2)];
-            
-            Y = [Y;data];Design = [Design;dayVec,ones(numDays,1)];
-        end
-    elseif ConditionNumber == 3
-        dayVec = [0:numDays-1]';
-        for jj=1:numChans
-            data = squeeze(srpVEP(:,jj,:));data = -min(data,[],2);
-            [b,dev,stats] = glmfit(data,dayVec,'normal');
-            modelSlope_greySRP = [modelSlope_greySRP,b(2)];
-            
-            Y = [Y;data];Design = [Design;dayVec,zeros(numDays,1)];
-        end
+        figure(h(2));
+         for jj=1:numChans
+             data = zeros(numDays,srp_reps);dayVec = zeros(numDays,srp_reps);
+             meanVals = zeros(numDays,1);
+            for kk=1:numDays
+                for ll=1:srp_reps
+                    data(kk,ll) = negativity(kk,jj,ll);
+                    dayVec(kk,ll) = kk;
+                end
+                meanVals(kk) = mean(dayVec(kk,:));
+            end
+                randJitter = randn([numDays*srp_reps,1]).*0.05;
+                subplot(numAnimals,2,jj+(ii-1)*2);hold on;
+                scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
+                scatter(1:numDays,meanVals,100,'vk','filled');
+                axis([0 numDays+1 -800 0]);
+                title('SRP Negativity, Grey-SRP');xlabel('Experimental Day');ylabel('Negativity (\muV)');
+                Y = [Y;data(:)];Design = [Design;dayVec(:),zeros(srp_reps*numDays,1)];
+         end
+        hold off;
     end
 end
-hold off;
-
-nbins = 10;
-figure();h1 = histogram(modelSlope_retinoSRP,nbins);hold on
-h2 = histogram(modelSlope_greySRP,nbins);
-h1.EdgeAlpha = 0.5;h2.EdgeAlpha = 0.5;
-title('Histogram of Linear Regression Slope Coefficients for SRP');
-xlabel('Slope Coefficient');ylabel('Count');legend('Retinotopy-SRP','Grey-SRP');
 
 numModels = 4;
 AIC = zeros(numModels,1);modelParams = 1:numModels;
-modelFit = struct('b',cell(numModels,1),'se',cell(numModels,1));
-[b,dev,stats] = glmfit(Y,ones(length(Y),1),'normal');
+modelFit = struct('b',cell(numModels,1),'se',cell(numModels,1),...
+    'p',cell(numModels,1),'dev',zeros(numModels,1));
+
+[b,dev,stats] = glmfit(ones(length(Y),1),Y,'normal','constant','off');
 AIC(1) = dev+2*modelParams(1);
-modelFit.b{1} = b;modelFit.se{1} = stats.se;
+modelFit(1).b = b;modelFit(1).se = stats.se;
+modelFit(1).p = stats.p;
+modelFit(1).dev = dev;
+clear b dev stats;
 
-[b,dev,stats] = glmfit(Y,Design(:,1),'normal');
+[b,dev,stats] = glmfit(Design(:,1),Y,'normal');
 AIC(2) = dev+2*modelParams(2);
-modelFit.b{2} = b;modelFit.se{2} = stats.se;
+modelFit(2).b = b;modelFit(2).se = stats.se;
+modelFit(2).p = stats.p;
+modelFit(2).dev = dev;
+clear b dev stats;
 
-[b,dev,stats] = glmfit(Y,Design,'normal');
+[b,dev,stats] = glmfit(Design,Y,'normal');
 AIC(3) = dev+2*modelParams(3);
-modelFit.b{3} = b;modelFit.se{3} = stats.se;
+modelFit(3).b = b;modelFit(3).se = stats.se;
+modelFit(3).p = stats.p;
+modelFit(3).dev = dev;
+clear b dev stats;
 
-[b,dev,stats] = glmfit(Y,[Design,Design(:,1).*Design(:,2)],'normal');
+[b,dev,stats] = glmfit([Design,Design(:,1).*Design(:,2)],Y,'normal');
 AIC(4) = dev+2*modelParams(4);
-modelFit.b{4} = b;modelFit.se{4} = stats.se;
+modelFit(4).b = b;modelFit(4).se = stats.se;
+modelFit(4).p = stats.p;
+modelFit(4).dev = dev;
+clear b dev stats;
 
-figure();scatter(modelParams,AIC,'*r');title('Model Comparison with AIC');
+figure(h(3));plot(modelParams,AIC,'b','LineWidth',2);title('Model Comparison with AIC');
 xlabel('Number of Model Parameters');ylabel('AIC');
+
+chiSquareTest = zeros(numModels-1,1);
+for ii=2:numModels
+    statistic = (modelFit(ii-1).dev-modelFit(ii).dev);
+    k = modelParams(ii)-modelParams(ii-1);
+    chiSquareTest(ii-1) = 1-chi2cdf(statistic,k);
+end
+chiSquareTest
+
+for ii=1:numModels
+    display(modelFit(ii).b);
+    display(modelFit(ii).se);
+end
 end
 

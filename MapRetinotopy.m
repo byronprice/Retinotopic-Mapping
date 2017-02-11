@@ -108,6 +108,7 @@ maxWin = round(.1*sampleFreq):1:round(0.3*sampleFreq);
 % [centerMass] = GetReceptiveField(significantStimuli,AnimalName);
 xaxis = 1:w_pixels;
 yaxis = 1:h_pixels;
+numChans =1;
 Data = zeros(numChans,numStimuli*reps,2);
 for ii=1:numChans
     count = 1;
@@ -122,7 +123,7 @@ end
 [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
 
 display('Making plots ...');
-[stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName); 
+[h] = MakePlots(finalParameters,meanResponse,AnimalName); 
 
 Channel = input('Type the channel that looks best (as a number, e.g. 1): ');
 savefig(h,sprintf('RetinoMap%d_%d.fig',Date,AnimalName));
@@ -309,14 +310,14 @@ function [centerMass] = GetReceptiveField(significantStimuli,AnimalName)
     end
 end
 
-function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName)
+function [h] = MakePlots(finalParameters,meanResponse,AnimalName)
     global numChans numStimuli w_pixels h_pixels centerVals Radius stimLen sampleFreq;
 %     sigma = Radius;
 %     halfwidth = 3*sigma;
 %     [xx,yy] = meshgrid(-halfwidth:halfwidth,-halfwidth:halfwidth);
 %     gaussian = exp(-(xx.*xx+yy.*yy)./(2*sigma^2));
     Radius = round(Radius);
-    stimVals = zeros(numChans,w_pixels,h_pixels);
+
     x=1:w_pixels;
     y=1:h_pixels;
 %     minLatency = round(minLatency.*sampleFreq);
@@ -335,7 +336,7 @@ function [stimVals,h] = MakePlots(finalParameters,meanResponse,AnimalName)
                      % stimuli from being analyzed by this code. As is, the
                      % code is fairly general to accept different types of
                      % mapping stimuli
-    yconv = 1000/yDiff; % for height of the stimulus
+    yconv = 800/yDiff; % for height of the stimulus
     
     for ii=1:numChans
         h(ii) = figure;
