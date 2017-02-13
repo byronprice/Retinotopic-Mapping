@@ -191,28 +191,28 @@ AIC = zeros(numModels,1);modelParams = 1:numModels;
 modelFit = struct('b',cell(numModels,1),'se',cell(numModels,1),...
     'p',cell(numModels,1),'dev',zeros(numModels,1));
 
-[b,dev,stats] = glmfit(ones(length(Y),1),Y,'gamma','link','identity','constant','off');
+[b,dev,stats] = glmfit(ones(length(Y),1),Y,'normal','link','log','constant','off');
 AIC(1) = dev+2*modelParams(1);
 modelFit(1).b = b;modelFit(1).se = stats.se;
 modelFit(1).p = stats.p;
 modelFit(1).dev = dev;
 clear b dev stats;
 
-[b,dev,stats] = glmfit(Design(:,1),Y,'gamma','link','identity');
+[b,dev,stats] = glmfit(Design(:,1),Y,'normal','link','log');
 AIC(2) = dev+2*modelParams(2);
 modelFit(2).b = b;modelFit(2).se = stats.se;
 modelFit(2).p = stats.p;
 modelFit(2).dev = dev;
 clear b dev stats;
 
-[b,dev,stats] = glmfit(Design,Y,'gamma','link','identity');
+[b,dev,stats] = glmfit(Design,Y,'normal','link','log');
 AIC(3) = dev+2*modelParams(3);
 modelFit(3).b = b;modelFit(3).se = stats.se;
 modelFit(3).p = stats.p;
 modelFit(3).dev = dev;
 clear b dev stats;
 
-[b,dev,stats] = glmfit([Design,Design(:,1).*Design(:,2)],Y,'gamma','link','identity');
+[b,dev,stats] = glmfit([Design,Design(:,1).*Design(:,2)],Y,'normal','link','log');
 AIC(4) = dev+2*modelParams(4);
 modelFit(4).b = b;modelFit(4).se = stats.se;
 modelFit(4).p = stats.p;

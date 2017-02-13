@@ -6,7 +6,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(
 
 %Created: 2017/01/18, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/02/06
+%Updated: 2017/02/12
 % By: Byron Price
 
 % hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
@@ -20,9 +20,8 @@ finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 numRepeats = 1000;
-maxITER = 200;
-tolerance = 1e-3;
-h = ones(numParameters,1)./100;
+maxITER = 500;
+tolerance = 1e-2;
 
 % parameters are 
 %  1) b(1) - rise of map at center
@@ -32,42 +31,38 @@ h = ones(numParameters,1)./100;
 %  6) rise for sigma, from the Gaussian likelihood, at map center
 %  7) b(4) - peak negativity at edges of retinotopic region
 %    b(1)+b(4) = peak negativity at retinotopic center of mass
-%  8) rho - allows for elliptical contours
-%      9) sigma at edges of retinotopic region
-Bounds = [-1000,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;1,1000;-1000,0];
+
 
 % display('Steepest Ascent ...');
 for zz=1:numChans
 %     display(sprintf('Running Data for Channel %d...',zz));
     flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
     peakNegativity = squeeze(Response(zz,:,2));
-    
+    h = ones(numParameters,1)./100;
     bigParameterVec = zeros(numRepeats,numParameters);
     bigLogLikelihoods = zeros(numRepeats,1);
     % repeat gradient ascent from a number of different starting
     %  positions
-    parfor repeats = 1:numRepeats
-        gradientVec = zeros(numParameters,1);
+
+    for repeats = 1:numRepeats
+        gradientVec = zeros(1,numParameters);
         parameterVec = zeros(maxITER,numParameters);
         logLikelihood = zeros(maxITER,1);
-        %parameterVec(1,:) = squeeze(bigParameterVec(repeats,:));
+        Bounds = [-500,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;-500,0];
+        proposal = [-150,100;1000,500;700,500;250,200;250,200;200,150;-200,150];
         for ii=1:numParameters
-            parameterVec(1,ii) = Bounds(ii,1)+(Bounds(ii,2)-Bounds(ii,1)).*rand;
+%             parameterVec(1,ii) = Bounds(ii,1)+(Bounds(ii,2)-Bounds(ii,1)).*rand;
+            parameterVec(1,ii) = normrnd(proposal(ii,1),proposal(ii,2));
         end
-        
+        logLikelihood(1) = GetLikelihood(reps,parameterVec(1,:),peakNegativity,flashPoints);
+        check = 1;
+        iter = 1;
+
         % for each starting position, do maxITER iterations
-        for iter=2:maxITER
+        while check > tolerance && iter < maxITER
+            iter = iter+1;
             % calculate likelihood at the current position in parameter
             %  space
-            [logLikelihood(iter-1)] = GetLikelihood(reps,parameterVec(iter-1,:),peakNegativity,flashPoints);
-            
-            if iter > 3
-%                 check = sum(diff(logLikelihood(iter-3:iter-1)));
-                check = diff(logLikelihood(iter-2:iter-1));
-                if check < tolerance
-                    break;
-                end
-            end
 %             
 %             % check if a random jump along one dimension improves the
 %             %  likelihood
@@ -113,12 +108,16 @@ for zz=1:numChans
             [~,ind] = max(newValues);
             ind = newInds(ind);
             
+            logLikelihood(iter) = lineSearchLikelihoods(ind);
+            check = diff(logLikelihood(iter-1:iter));
+            
             for jj=1:numParameters
                 parameterVec(iter,jj) = max(Bounds(jj,1),min(parameterVec(iter-1,jj)+alpha(ind)*gradientVec(jj),Bounds(jj,2)));
             end
         end
-        bigParameterVec(repeats,:) = parameterVec(iter-1,:);
-        bigLogLikelihoods(repeats) = logLikelihood(iter-1);
+
+        bigParameterVec(repeats,:) = parameterVec(iter,:);
+        bigLogLikelihoods(repeats) = logLikelihood(iter);
     end
     [~,index] = max(bigLogLikelihoods);
     finalParameters(zz,:) = bigParameterVec(index,:);

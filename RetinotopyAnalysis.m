@@ -66,14 +66,14 @@ for zz=1:numFiles
 %                    end
 %                end
                 
-               [littleAIC] = FitModel1(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(1) = AIC(1)+littleAIC;
+%                [littleAIC] = FitModel1(gaussResponse,xaxis,yaxis,centerVals);
+%                AIC(1) = AIC(1)+littleAIC;
                
                [littleAIC] = FitModel2(gaussResponse,xaxis,yaxis,centerVals);
                AIC(2) = AIC(2)+littleAIC;
 
-               [littleAIC] = FitModel3(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(3) = AIC(3)+littleAIC;
+%                [littleAIC] = FitModel3(gaussResponse,xaxis,yaxis,centerVals);
+%                AIC(3) = AIC(3)+littleAIC;
 %                [bernoulliParameters] = FitLFPretinoModel(binomResponse,xaxis,yaxis,0.2,centerVals);
 %                allBinomParams = [allBinomParams;bernoulliParameters];
 %                tempX = bernoulliParameters(1,2);

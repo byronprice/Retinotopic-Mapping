@@ -18,7 +18,7 @@ finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 numRepeats = 1000;
-maxITER = 200;
+maxITER = 500;
 tolerance = 1e-3;
 h = ones(numParameters,1)./100;
 
@@ -31,7 +31,7 @@ h = ones(numParameters,1)./100;
 %  7) b(4) - peak negativity at edges of retinotopic region
 %    b(1)+b(4) = peak negativity at retinotopic center of mass
 %  
-Bounds = [0,1000;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;0.1,2000;0,1000];
+Bounds = [0,1000;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,2000;1,2000;0.1,100;0,1000];
 
 % display('Steepest Ascent ...');
 for zz=1:numChans
@@ -105,7 +105,7 @@ for zz=1:numChans
         bigParameterVec(repeats,:) = parameterVec(iter-1,:);
         bigLogLikelihoods(repeats) = logLikelihood(iter-1);
     end
-
+    figure();histogram(bigAlphas);
     [~,index] = max(bigLogLikelihoods);
     finalParameters(zz,:) = bigParameterVec(index,:);
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,peakNegativity,flashPoints);

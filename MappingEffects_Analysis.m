@@ -8,7 +8,7 @@ function [ ] = MappingEffects_Analysis(Animals,Channels)
 %
 % Created: 2017/02/06
 %  Byron Price
-% Updated: 2017/02/07
+% Updated: 2017/02/12
 % By: Byron Price
 
 cd('~/CloudStation/ByronExp/MappingEffects');
@@ -17,6 +17,7 @@ for ii=1:length(Animals)
    dataFiles = dir(sprintf('MappingEffectsData*%d.plx',Animals(ii)));
    stimFiles = dir(sprintf('MappingEffectsStim*%d.mat',Animals(ii)));
    numFiles = length(dataFiles);
+   fprintf('Running animal %d\n',Animals(ii));
    
    dailyParameters = cell(numFiles,1);
    parameterCI = cell(numFiles,1);
@@ -77,8 +78,10 @@ for ii=1:length(Animals)
                        end
                    end
                end
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGammaRetinoModel(Data,xaxis,yaxis,centerVals);
-               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
+               [finalParameters] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
+               
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                parameterCI{jj} = ninetyfiveErrors;
                fisherInformation{jj} = fisherInfo;
@@ -119,8 +122,8 @@ for ii=1:length(Animals)
                        end
                    end
                end
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGammaRetinoModel(Data,xaxis,yaxis,centerVals);
-               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles);
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
+               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                parameterCI{jj} = ninetyfiveErrors;
                fisherInformation{jj} = fisherInfo;
@@ -136,7 +139,7 @@ for ii=1:length(Animals)
                        srpResponse(kk,ll,:) = temp;
                    end
                    meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-                   subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
+                   subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
                    if kk==1
                        xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
                        title(sprintf('SRP VEP: Day %d',jj));
@@ -156,7 +159,7 @@ for ii=1:length(Animals)
                        srpResponse(kk,ll,:) = temp;
                    end
                    meanSRP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-                   subplot(numFiles,4,kk+2+(jj-1)*4);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
+                   subplot(numFiles,numChans,kk+(jj-1)*numChans);plot(meanSRP(kk,:));axis([0 stimLen -400 200]);
                    if kk==1
                        xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
                        title(sprintf('SRP VEP: Day %d',jj));
@@ -216,8 +219,8 @@ function [ChanData,timeStamps,tsevs,svStrobed,numChans,sampleFreq] = ExtractSign
     
 end
 
-function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,Day,numFiles)
-
+function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,Day,numFiles,h,ConditionNumber)
+    figure(h);
     Radius = round(Radius);
     xPos = unique(centerVals(:,1));
     yPos = unique(centerVals(:,2));
@@ -225,11 +228,16 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
     xDiff = mean(diff(xPos));
     yDiff = mean(diff(yPos));
     xconv = stimLen/xDiff; 
-    yconv = 1000/yDiff; % for height of the stimulus
+    yconv = 800/yDiff; % for height of the stimulus
     
+    if ConditionNumber == 1
+        numRows = numChans;
+    elseif ConditionNumber == 2
+        numRows = numChans*2;
+    end
     
     for ii=1:numChans
-        subplot(numFiles,4,ii+(Day-1)*4);axis([0 max(xaxis) 0 max(yaxis)]);
+        subplot(numFiles,numRows,ii+(Day-1)*numRows);axis([0 max(xaxis) 0 max(yaxis)]);
         if ii==1
             title(sprintf('VEP Retinotopy, Day %d',Day));
             xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position');
