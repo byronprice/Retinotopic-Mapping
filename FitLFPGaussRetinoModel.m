@@ -19,9 +19,9 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
-numRepeats = 1000;
+numRepeats = 2000;
 maxITER = 500;
-tolerance = 1e-2;
+tolerance = 1e-3;
 
 % parameters are 
 %  1) b(1) - rise of map at center
@@ -44,15 +44,17 @@ for zz=1:numChans
     % repeat gradient ascent from a number of different starting
     %  positions
 
-    for repeats = 1:numRepeats
+    parfor repeats = 1:numRepeats
         gradientVec = zeros(1,numParameters);
         parameterVec = zeros(maxITER,numParameters);
         logLikelihood = zeros(maxITER,1);
-        Bounds = [-500,0;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;-500,0];
-        proposal = [-150,100;1000,500;700,500;250,200;250,200;200,150;-200,150];
+        Bounds = [0,500;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,500];
+        proposal = [150,100;1000,500;700,500;300,200;300,200;200,150;200,150];
         for ii=1:numParameters
 %             parameterVec(1,ii) = Bounds(ii,1)+(Bounds(ii,2)-Bounds(ii,1)).*rand;
             parameterVec(1,ii) = normrnd(proposal(ii,1),proposal(ii,2));
+            parameterVec(1,ii) = max(Bounds(ii,1),min(parameterVec(1,ii),Bounds(ii,2)));
+                            
         end
         logLikelihood(1) = GetLikelihood(reps,parameterVec(1,:),peakNegativity,flashPoints);
         check = 1;

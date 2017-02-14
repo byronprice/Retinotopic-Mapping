@@ -56,27 +56,31 @@ for ii=1:numAnimals
             
             figure(h(1));
             subplot(numAnimals,4,1+(ii-1)*4);hold on;
-            errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{jj});
+%             errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{jj});
+            scatter(xdata,ydata);
             axis([0 w_pixels 0 h_pixels]);
             title('CoM, Retinotopy-Grey');
             xlabel('Horizontal Screen Position');ylabel('Vertical Position');
             
             subplot(numAnimals,4,2+(ii-1)*4);hold on;
-            errorbar(sigmaXdata,sigmaYdata,...
-                sigmaYerr,sigmaYerr,sigmaXerr,sigmaXerr,linespecs{jj});
-            axis([0 600 0 600]);
+%             errorbar(sigmaXdata,sigmaYdata,...
+%                 sigmaYerr,sigmaYerr,sigmaXerr,sigmaXerr,linespecs{jj});
+            scatter(sigmaXdata,sigmaYdata);
+            axis([100 600 100 600]);
             title('Region Size');
             xlabel('Parameter Sigma_x');ylabel('Parameter Sigma_y');
             
             subplot(numAnimals,4,3+(ii-1)*4);hold on;
-            errorbar(1:numDays,riseData,riseErr,linespecs{jj});
-            axis([0 numDays+1 -500 0]);
+%             errorbar(1:numDays,riseData,riseErr,linespecs{jj});
+            scatter(1:numDays,riseData);
+            axis([0 numDays+1 0 500]);
             title('Negativity Rise at CoM');xlabel('Experimental Day');
             ylabel('VEP Negativity (\muV)');
             
             subplot(numAnimals,4,4+(ii-1)*4);hold on;
-            errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
-            axis([0 numDays+1 -500 0]);
+%             errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
+            scatter(1:numDays,baselineData);
+            axis([0 numDays+1 0 500]);
             title('Baseline Negativity');xlabel('Experimental Day');
             ylabel('VEP Negativity (\muV)');
         end
@@ -110,27 +114,31 @@ for ii=1:numAnimals
             
             figure(h(1));
             subplot(numAnimals,4,1+(ii-1)*4);hold on;
-            errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{jj});
+%             errorbar(xdata,ydata,yErr,yErr,xErr,xErr,linespecs{jj});
+            scatter(xdata,ydata);
             axis([0 w_pixels 0 h_pixels]);
             title('CoM, Retinotopy-SRP');
             xlabel('Horizontal Screen Position');ylabel('Vertical Position');
             
             subplot(numAnimals,4,2+(ii-1)*4);hold on;
-            errorbar(sigmaXdata,sigmaYdata,...
-                sigmaYerr,sigmaYerr,sigmaXerr,sigmaXerr,linespecs{jj});
-            axis([0 600 0 600]);
+%             errorbar(sigmaXdata,sigmaYdata,...
+%                 sigmaYerr,sigmaYerr,sigmaXerr,sigmaXerr,linespecs{jj});
+            scatter(sigmaXdata,sigmaYdata);
+            axis([100 600 100 600]);
             title('Region Size');
             xlabel('Parameter Sigma_x');ylabel('Parameter Sigma_y');
             
             subplot(numAnimals,4,3+(ii-1)*4);hold on;
-            errorbar(1:numDays,riseData,riseErr,linespecs{jj});
-            axis([0 numDays+1 -500 0]);
+%             errorbar(1:numDays,riseData,riseErr,linespecs{jj});
+            scatter(1:numDays,riseData);
+            axis([0 numDays+1 0 500]);
             title('Negativity Rise at CoM');xlabel('Experimental Day');
             ylabel('VEP Negativity (\muV)');
             
             subplot(numAnimals,4,4+(ii-1)*4);hold on;
-            errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
-            axis([0 numDays+1 -500 0]);
+%             errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
+            scatter(1:numDays,baselineData);
+            axis([0 numDays+1 0 500]);
             title('Baseline Negativity');xlabel('Experimental Day');
             ylabel('VEP Negativity (\muV)');
         end

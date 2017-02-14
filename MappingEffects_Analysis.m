@@ -73,12 +73,11 @@ for ii=1:length(Animals)
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data(kk,count,1) = ll;
-                           Data(kk,count,2) = min(squeeze(Response(kk,ll,mm,vepPosition)));
+                           Data(kk,count,2) = -min(squeeze(Response(kk,ll,mm,vepPosition)));
                            count = count+1;
                        end
                    end
                end
-               [finalParameters] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
                
                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
@@ -117,7 +116,7 @@ for ii=1:length(Animals)
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data(kk,count,1) = ll;
-                           Data(kk,count,2) = min(squeeze(Response(kk,ll,mm,vepPosition)));
+                           Data(kk,count,2) = -min(squeeze(Response(kk,ll,mm,vepPosition)));
                            count = count+1;
                        end
                    end
