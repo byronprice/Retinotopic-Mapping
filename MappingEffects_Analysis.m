@@ -78,7 +78,8 @@ for ii=1:length(Animals)
                        end
                    end
                end
-               
+%                [finalParameters] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
+%                display(finalParameters)
                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
@@ -168,7 +169,7 @@ for ii=1:length(Animals)
                srpVEP{jj} = meanSRP;
            end
        end
-       savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
+%        savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
    end
    
    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
@@ -267,7 +268,7 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
             end
         end
         imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');
-        colormap('jet');caxis([-400 -100]);
+        colormap('jet');caxis([100 400]);
         if ii==1
             w=colorbar;ylabel(w,'VEP Negativity (\muV)');
         end

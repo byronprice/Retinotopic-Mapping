@@ -55,10 +55,10 @@ for zz=1:numFiles
                    end
                end
                
-%                figure();count = 1;edges = -500:25:0;
+%                figure();count = 1;edges = 0:0.5:10;
 %                for kk=length(yPos):-1:1
 %                    for jj=1:length(xPos)
-%                       temp = squeeze(VEPs(jj,kk,:));
+%                       temp = log(abs(squeeze(VEPs(jj,kk,:))));
 %                       subplot(length(yPos),length(xPos),count);histogram(temp,edges);
 %                       stdev = std(temp);meanVal = mean(temp);
 %                       title(sprintf('%3.0f  %3.0f',stdev,meanVal));
@@ -68,9 +68,9 @@ for zz=1:numFiles
                 
 %                [littleAIC] = FitModel1(gaussResponse,xaxis,yaxis,centerVals);
 %                AIC(1) = AIC(1)+littleAIC;
-               
-               [littleAIC] = FitModel2(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(2) = AIC(2)+littleAIC;
+%                
+%                [littleAIC] = FitModel2(gaussResponse,xaxis,yaxis,centerVals);
+%                AIC(2) = AIC(2)+littleAIC;
 
 %                [littleAIC] = FitModel3(gaussResponse,xaxis,yaxis,centerVals);
 %                AIC(3) = AIC(3)+littleAIC;
@@ -89,9 +89,9 @@ for zz=1:numFiles
        continue;
    end
 end
-figure();plot(numParameters,AIC,'b','LineWidth',2);title('Retinotopic-Map Model Comparison: AIC');
-xlabel('Number of Parameters');ylabel('AIC');
-save('LFPRetinotopy_ModelComparison.mat','AIC','numParameters');
+% figure();plot(numParameters,AIC,'b','LineWidth',2);title('Retinotopic-Map Model Comparison: AIC');
+% xlabel('Number of Parameters');ylabel('AIC');
+% save('LFPRetinotopy_ModelComparison.mat','AIC','numParameters');
 end
 
 % finalIm = zeros(length(xaxis),length(yaxis));
