@@ -19,7 +19,7 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
-numRepeats = 2000;
+numRepeats = 5000;
 maxITER = 1000;
 tolerance = 1e-3;
 
@@ -44,12 +44,12 @@ for zz=1:numChans
     % repeat gradient ascent from a number of different starting
     %  positions
 
-    parfor repeats = 1:numRepeats
+    for repeats = 1:numRepeats
         gradientVec = zeros(1,numParameters);
         parameterVec = zeros(maxITER,numParameters);
         logLikelihood = zeros(maxITER,1);
-        Bounds = [0,500;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,500];
-        proposal = [100,50;1000,500;700,400;300,200;300,200;200,150;200,150];
+        Bounds = [0,600;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,700];
+        proposal = [100,50;1000,500;700,400;300,200;300,200;200,150;400,200];
         for ii=1:numParameters
 %             parameterVec(1,ii) = Bounds(ii,1)+(Bounds(ii,2)-Bounds(ii,1)).*rand;
             parameterVec(1,ii) = normrnd(proposal(ii,1),proposal(ii,2));
@@ -92,7 +92,7 @@ for zz=1:numChans
             end
             
             % line search to get distance to move along gradient
-            alpha = [0,1e-4,1e-2,1e-1,1e0,1e1,1e2];
+            alpha = [0,1e-4,1e-2,1e-1,1e0,1e1];
             lineSearchLikelihoods = zeros(length(alpha),1);
             lineSearchLikelihoods(1) = logLikelihood(iter-1);
             

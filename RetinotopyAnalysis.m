@@ -42,7 +42,7 @@ for zz=1:numFiles
                    for kk=1:numReps
                        gaussResponse(1,count,1) = jj;
 %                        gaussResponse(1,count,2) = max(tempResponse(ii,jj,kk,150:250))-min(tempResponse(ii,jj,kk,50:120));
-                       gaussResponse(1,count,2) = min(tempResponse(ii,jj,kk,50:120));
+                       gaussResponse(1,count,2) = -min(tempResponse(ii,jj,kk,50:120));
                        
                        x = centerVals(jj,1);y = centerVals(jj,2);
                        xInd = find(xPos == x);yInd = find(yPos == y);
@@ -55,21 +55,21 @@ for zz=1:numFiles
                    end
                end
                
-%                figure();count = 1;edges = 0:0.5:10;
-%                for kk=length(yPos):-1:1
-%                    for jj=1:length(xPos)
-%                       temp = log(abs(squeeze(VEPs(jj,kk,:))));
-%                       subplot(length(yPos),length(xPos),count);histogram(temp,edges);
-%                       stdev = std(temp);meanVal = mean(temp);
-%                       title(sprintf('%3.0f  %3.0f',stdev,meanVal));
-%                       count = count+1;
-%                    end
-%                end
+               figure();count = 1;edges = 0:25:600;
+               for kk=length(yPos):-1:1
+                   for jj=1:length(xPos)
+                      temp = squeeze(VEPs(jj,kk,:));
+                      subplot(length(yPos),length(xPos),count);histogram(temp,edges);
+                      stdev = std(temp);meanVal = mean(temp);
+                      title(sprintf('%3.0f  %3.0f',meanVal,stdev));
+                      count = count+1;
+                   end
+               end
                 
 %                [littleAIC] = FitModel1(gaussResponse,xaxis,yaxis,centerVals);
 %                AIC(1) = AIC(1)+littleAIC;
 %                
-%                [littleAIC] = FitModel2(gaussResponse,xaxis,yaxis,centerVals);
+               [littleAIC] = FitModel2(gaussResponse,xaxis,yaxis,centerVals);
 %                AIC(2) = AIC(2)+littleAIC;
 
 %                [littleAIC] = FitModel3(gaussResponse,xaxis,yaxis,centerVals);

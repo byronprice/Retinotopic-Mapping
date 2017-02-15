@@ -72,7 +72,7 @@ for ii=1:numAnimals
             errorbar(1:numDays,sigmaXdata,sigmaXerr,linespecs{jj});
 %             scatter(sigmaXdata,sigmaYdata);
             axis([0 numDays+1 0 800]);
-            title('Region Size');
+            title('Region Size, Retino-Grey');
             xlabel('Experimental Day');ylabel('Parameter Sigma_x');
             
             subplot(numAnimals,4,2+(ii-1)*4);hold on;
@@ -86,27 +86,27 @@ for ii=1:numAnimals
             errorbar(1:numDays,riseData,riseErr,linespecs{jj});
 %             scatter(1:numDays,riseData);
             axis([0 numDays+1 0 400]);
-            title('Negativity Rise at CoM');xlabel('Experimental Day');
-            ylabel('VEP Negativity (\muV)');
+            title('VEP Rise at CoM');xlabel('Experimental Day');
+            ylabel('Positivity-Negativity (\muV)');
             
-            subplot(numAnimals,4,3+(ii-1)*4);hold on;
+            subplot(numAnimals,4,4+(ii-1)*4);hold on;
             errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
 %             scatter(1:numDays,baselineData);
-            axis([0 numDays+1 0 400]);
-            title('Baseline Negativity');xlabel('Experimental Day');
-            ylabel('VEP Negativity (\muV)');
+            axis([0 numDays+1 100 700]);
+            title('Baseline');xlabel('Experimental Day');
+            ylabel('Positivity-Negativity (\muV)');
         end
         hold off;
     elseif ConditionNumber == 2 
         [numChans,numParameters] = size(dailyParameters{1});
-        srp_reps = size(srpNegativity{1},2);
+        srp_reps = size(srpSize{1},2);
         parameters = zeros(numDays,numChans,numParameters);
         confIntervals = zeros(numDays,numChans,numParameters);
-        negativity = zeros(numDays,numChans,srp_reps);
+        vepSize = zeros(numDays,numChans,srp_reps);
         for jj=1:numDays
             parameters(jj,:,:) = dailyParameters{jj};
             confIntervals(jj,:,:) = parameterCI{jj};
-            negativity(jj,:,:) = srpNegativity{jj};
+            vepSize(jj,:,:) = srpSize{jj};
         end
         
         for jj=1:numChans
@@ -142,7 +142,7 @@ for ii=1:numAnimals
             errorbar(1:numDays,sigmaXdata,sigmaXerr,linespecs{jj});
 %             scatter(sigmaXdata,sigmaYdata);
             axis([0 numDays+1 0 800]);
-            title('Region Size');
+            title('Region Size, Retino-SRP');
             xlabel('Experimental Day');ylabel('Parameter Sigma_x');
             
             subplot(numAnimals,4,2+(ii-1)*4);hold on;
@@ -156,15 +156,15 @@ for ii=1:numAnimals
             errorbar(1:numDays,riseData,riseErr,linespecs{jj});
 %             scatter(1:numDays,riseData);
             axis([0 numDays+1 0 400]);
-            title('Negativity Rise at CoM');xlabel('Experimental Day');
-            ylabel('VEP Negativity (\muV)');
+            title('VEP Rise at CoM');xlabel('Experimental Day');
+            ylabel('Positivity-Negativity (\muV)');
             
             subplot(numAnimals,4,4+(ii-1)*4);hold on;
             errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
 %             scatter(1:numDays,baselineData);
-            axis([0 numDays+1 0 400]);
-            title('Baseline Negativity');xlabel('Experimental Day');
-            ylabel('VEP Negativity (\muV)');
+            axis([0 numDays+1 100 700]);
+            title('Baseline');xlabel('Experimental Day');
+            ylabel('Positivity-Negativity (\muV)');
         end
         hold off;
         
@@ -175,7 +175,7 @@ for ii=1:numAnimals
              stdVals = zeros(numDays,1);
             for kk=1:numDays
                 for ll=1:srp_reps
-                    data(kk,ll) = log(abs(negativity(kk,jj,ll)));
+                    data(kk,ll) = log(abs(vepSize(kk,jj,ll)));
                     dayVec(kk,ll) = kk;
                 end
                 meanVals(kk) = mean(data(kk,:));
@@ -186,20 +186,20 @@ for ii=1:numAnimals
                 scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
                 scatter(1:numDays,meanVals,50,'^k','filled');
                 axis([0 numDays+1 0 10]);
-                title('SRP Negativity, Retinotopy-SRP');xlabel('Experimental Day');ylabel('Negativity (\muV)');
+                title('SRP, Retinotopy-SRP');xlabel('Experimental Day');ylabel('Log(Pos-Neg) (\muV)');
                 Y = [Y;data(:)];Design = [Design;dayVec(:),ones(srp_reps*numDays,1)];
                 
                 subplot(numAnimals,4,(jj-1)*2+2+(ii-1)*4);
-                scatter(meanVals,stdVals);axis([0 10 0 10]);
-                title('Mean vs STD VEP Negativity');
-                xlabel('Mean Negativity');ylabel('STD Negativity');
+                scatter(meanVals,stdVals);axis([0 10 0 2]);
+                title('Mean vs STD VEP Size');
+                xlabel('Mean Log(Pos-Neg)');ylabel('STD Log(Pos-Neg)');
          end
         hold off;
     elseif ConditionNumber == 3
-        [numChans,srp_reps] = size(srpNegativity{1});
-        negativity = zeros(numDays,numChans,srp_reps);
+        [numChans,srp_reps] = size(srpSize{1});
+        vepSize = zeros(numDays,numChans,srp_reps);
         for jj=1:numDays
-            negativity(jj,:,:) = srpNegativity{jj};
+            vepSize(jj,:,:) = srpSize{jj};
         end
         
         figure(h(2));
@@ -208,7 +208,7 @@ for ii=1:numAnimals
              meanVals = zeros(numDays,1);
             for kk=1:numDays
                 for ll=1:srp_reps
-                    data(kk,ll) = log(abs(negativity(kk,jj,ll)));
+                    data(kk,ll) = log(abs(vepSize(kk,jj,ll)));
                     dayVec(kk,ll) = kk;
                 end
                 meanVals(kk) = mean(data(kk,:));
@@ -218,13 +218,13 @@ for ii=1:numAnimals
                 scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
                 scatter(1:numDays,meanVals,50,'^k','filled');
                 axis([0 numDays+1 0 10]);
-                title('SRP Negativity, Grey-SRP');xlabel('Experimental Day');ylabel('Negativity (\muV)');
+                title('SRP, Grey-SRP');xlabel('Experimental Day');ylabel('Log(Pos-Neg) (\muV)');
                 Y = [Y;data(:)];Design = [Design;dayVec(:),zeros(srp_reps*numDays,1)];
                 
                 subplot(numAnimals,4,(jj-1)*2+2+(ii-1)*4);
-                scatter(meanVals,stdVals);axis([0 10 0 10]);
-                title('Mean vs STD VEP Negativity');
-                xlabel('Mean Negativity');ylabel('STD Negativity');
+                scatter(meanVals,stdVals);axis([0 10 0 2]);
+                title('Mean vs STD VEP Size');
+                xlabel('Mean Log(Pos-Neg)');ylabel('STD Log(Pos-Neg)');
          end
         hold off;
     end
@@ -244,7 +244,7 @@ modelFit(1).p = stats.p;
 modelFit(1).dev = dev;
 modelFit(1).resid = stats.resid;
 modelFit(1).dfe = stats.dfe;
-figure();scatter(Design(:,1),modelFit(1).resid);
+% figure();scatter(Design(:,1),modelFit(1).resid);
 clear b dev stats;
 
 % linear model, VEP ~ b0+b1*day
@@ -255,7 +255,7 @@ modelFit(2).p = stats.p;
 modelFit(2).dev = dev;
 modelFit(2).resid = stats.resid;
 modelFit(2).dfe = stats.dfe;
-figure();scatter(Design(:,1),modelFit(2).resid);
+% figure();scatter(Design(:,1),modelFit(2).resid);
 clear b dev stats;
 
 % linear model with two intercepts, VEP ~ b0 + b1*day + b2*I(retino-srp)
@@ -266,7 +266,7 @@ modelFit(3).p = stats.p;
 modelFit(3).dev = dev;
 modelFit(3).resid = stats.resid;
 modelFit(3).dfe = stats.dfe;
-figure();scatter(Design(:,1),modelFit(3).resid);
+% figure();scatter(Design(:,1),modelFit(3).resid);
 clear b dev stats;
 
 % linear model with two intercepts, two slopes, VEP ~ b0 + b1*day +
@@ -278,7 +278,7 @@ modelFit(4).p = stats.p;
 modelFit(4).dev = dev;
 modelFit(4).resid = stats.resid;
 modelFit(4).dfe = stats.dfe;
-figure();scatter(Design(:,1),modelFit(4).resid);
+% figure();scatter(Design(:,1),modelFit(4).resid);
 clear b dev stats;
 
 % linear model with one intercept, two slopes, VEP ~ b0 + b1*day +
@@ -290,12 +290,11 @@ modelFit(5).p = stats.p;
 modelFit(5).dev = dev;
 modelFit(5).resid = stats.resid;
 modelFit(5).dfe = stats.dfe;
-figure();scatter(Design(:,1),modelFit(5).resid);
+% figure();scatter(Design(:,1),modelFit(5).resid);
 clear b dev stats;
 
-figure();plot(AIC);
-% figure(h(3));plot(modelParams,AIC,'b','LineWidth',2);title('Model Comparison with AIC');
-% xlabel('Number of Model Parameters');ylabel('AIC');
+figure(h(4));plot(modelParams,AIC,'b','LineWidth',2);title('Model Comparison with AIC');
+xlabel('Number of Model Parameters');ylabel('AIC');
 
 % chiSquareTest = zeros(numModels-1,1);
 % for ii=2:numModels

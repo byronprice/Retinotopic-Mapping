@@ -22,7 +22,7 @@ for ii=1:length(Animals)
    dailyParameters = cell(numFiles,1);
    parameterCI = cell(numFiles,1);
    fisherInformation = cell(numFiles,1);
-   srpNegativity = cell(numFiles,1);
+   srpSize = cell(numFiles,1);
    srpVEP = cell(numFiles,1);
    goodChannels = Channels{ii};numChans = sum(~isnan(goodChannels));
    
@@ -34,7 +34,8 @@ for ii=1:length(Animals)
            load(stimFiles(jj).name);
            
            stimLen = round(0.3*sampleFreq); % 300 milliseconds
-           vepPosition = round(0.05*sampleFreq):round(0.12*sampleFreq);
+           vepNegativity = round(0.05*sampleFreq):round(0.12*sampleFreq);
+           vepPositivity = round(0.15*sampleFreq):round(0.3*sampleFreq);
            strobeStart = 33;
            strobeTimes = tsevs{strobeStart};
            smoothKernel = 4;
@@ -73,7 +74,8 @@ for ii=1:length(Animals)
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data(kk,count,1) = ll;
-                           Data(kk,count,2) = -min(squeeze(Response(kk,ll,mm,vepPosition)));
+                           Data(kk,count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                               -min(squeeze(Response(kk,ll,mm,vepNegativity)));
                            count = count+1;
                        end
                    end
@@ -117,7 +119,8 @@ for ii=1:length(Animals)
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data(kk,count,1) = ll;
-                           Data(kk,count,2) = -min(squeeze(Response(kk,ll,mm,vepPosition)));
+                           Data(kk,count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                               -min(squeeze(Response(kk,ll,mm,vepNegativity)));
                            count = count+1;
                        end
                    end
@@ -145,7 +148,7 @@ for ii=1:length(Animals)
                        title(sprintf('SRP VEP: Day %d',jj));
                    end
                end
-               srpNegativity{jj} = min(srpResponse(:,:,vepPosition),[],3);
+               srpSize{jj} = max(srpResponse(:,:,vepPositivity),[],3)-min(srpResponse(:,:,vepNegativity),[],3);
                srpVEP{jj} = meanSRP;
            elseif ConditionNumber == 3
                srpResponse = zeros(numChans,srp_reps,stimLen);
@@ -165,16 +168,16 @@ for ii=1:length(Animals)
                        title(sprintf('SRP VEP: Day %d',jj));
                    end
                end
-               srpNegativity{jj} = min(srpResponse(:,:,vepPosition),[],3);
+               srpSize{jj} = max(srpResponse(:,:,vepPositivity),[],3)-min(srpResponse(:,:,vepNegativity),[],3);
                srpVEP{jj} = meanSRP;
            end
        end
 %        savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
    end
    
-   filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
+   filename = sprintf('MappingEffectsResults1_%d.mat',Animals(ii));
    save(filename,'dailyParameters','parameterCI','fisherInformation',...
-       'srpNegativity','srpVEP','ConditionNumber','goodChannels','numFiles');
+       'srpSize','srpVEP','ConditionNumber','goodChannels','numFiles');
 end
 
 
@@ -268,7 +271,7 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
             end
         end
         imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');
-        colormap('jet');caxis([100 400]);
+        colormap('jet');caxis([300 700]);
         if ii==1
             w=colorbar;ylabel(w,'VEP Negativity (\muV)');
         end

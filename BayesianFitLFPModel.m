@@ -9,14 +9,14 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 covariance = zeros(numChans,numParameters,numParameters);
 
-priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,150;1.75,150];
+% priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,200;1.75,200];
 % proposal = [150,100;1000,500;700,500;300,200;250,300;200,150;200,150];
 
 sigma = 1;
 
 for zz=1:numChans
     flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
-    peakNegativity = log(abs(squeeze(Response(zz,:,2)));
+    peakNegativity = squeeze(Response(zz,:,2));
     N = 3e6; burnIn = 2e6;
     x = zeros(N,numParameters);
     
@@ -85,7 +85,7 @@ gradientVec = zeros(1,numParameters);
 parameterVec = zeros(maxITER,numParameters);
 logLikelihood = zeros(maxITER,1);
 
-priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,150;1.75,150];
+priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,200;1.75,200];
 for jj=1:numParameters
     parameterVec(1,jj) = gamrnd(priorParams(jj,1),priorParams(jj,2));
 end
