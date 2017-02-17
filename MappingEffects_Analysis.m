@@ -35,7 +35,7 @@ for ii=1:length(Animals)
            
            stimLen = round(0.3*sampleFreq); % 300 milliseconds
            vepNegativity = round(0.05*sampleFreq):round(0.12*sampleFreq);
-           vepPositivity = round(0.15*sampleFreq):round(0.3*sampleFreq);
+           vepPositivity = round(0.15*sampleFreq):round(0.25*sampleFreq);
            strobeStart = 33;
            strobeTimes = tsevs{strobeStart};
            smoothKernel = 4;
@@ -80,9 +80,10 @@ for ii=1:length(Animals)
                        end
                    end
                end
+
 %                [finalParameters] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
 %                display(finalParameters)
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_SGA(Data,xaxis,yaxis,centerVals);
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                parameterCI{jj} = ninetyfiveErrors;
@@ -125,7 +126,7 @@ for ii=1:length(Animals)
                        end
                    end
                end
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_SGA(Data,xaxis,yaxis,centerVals);
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                parameterCI{jj} = ninetyfiveErrors;
@@ -173,6 +174,7 @@ for ii=1:length(Animals)
            end
        end
 %        savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
+        clear h;
    end
    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
    if exist('w_pixels','var') == 1

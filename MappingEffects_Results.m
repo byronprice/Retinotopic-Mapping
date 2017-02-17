@@ -25,7 +25,7 @@ Y = [];Design = [];
 linespecs = {'or','*b'};
 h(1) = figure();h(2) = figure();h(3) = figure();h(4) = figure();
 for ii=1:numAnimals
-    filename = sprintf('MappingEffectsResults1_%d.mat',Animals(ii));
+    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
     load(filename);
     
     numDays = numFiles;

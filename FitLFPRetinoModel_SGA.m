@@ -3,7 +3,8 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_SGA(R
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
 %    model of that retinotopy (using peak negativity in window from 50 to
 %    120 msec after stimulus presentation and Gaussian likelihood)
-%     Use stoachastic gradient ascent
+%     Use stoachastic gradient ascent ... extremely slow and not as
+%     reliable as Levenberg-Marquardt
 
 %Created: 2017/01/18, 24 Cummington Mall, Boston
 % Byron Price
@@ -13,6 +14,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_SGA(R
 %  data (in response) ~ N(mu,sigma), 
 %    where mu = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
 
+Bounds = [-10,1000;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,1000];
 
 numChans = size(Response,1);
 reps = size(Response,2);
@@ -22,8 +24,9 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
-numRepeats = 5;
-maxITER = 1000;
+numRepeats = 1;numBatches = 2000;
+numRedo = 4;
+maxITER = 100;
 tolerance = 1e-3;
 h = ones(numParameters,1)./100;
 
@@ -43,10 +46,10 @@ for zz=1:numChans
     flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
     peakNegativity = squeeze(Response(zz,:,2));
     
-    numBatches = 500;
     finalParams = zeros(numBatches,numParameters);finalLikely = zeros(numBatches,1);
+    
     parfor batch = 1:numBatches
-        numRedo = 5;nu = logspace(2,-4,numRedo);
+        nu = logspace(2,-1,numRedo);
         bigParams = zeros(numRedo,numParameters);bigLikely = zeros(numRedo,1);
         proposal = [1.75,100;4,250;4,250;1.75,150;1.75,150;1.5,150;1.75,200];
         initialParams = zeros(1,numParameters);
@@ -55,17 +58,17 @@ for zz=1:numChans
         end
         
         [bigParams(1,:),bigLikely(1)] = GradientAscent(initialParams,numRepeats,...
-            numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu(1));
+            numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu(1),1/numRedo,Bounds);
 
         for ii=2:numRedo
             [~,index] = max(bigLikely(1:ii-1));
             [bigParams(ii,:),bigLikely(ii)] = GradientAscent(bigParams(index,:),...
-                numRepeats,numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu(ii));
+                numRepeats,numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu(ii),ii/numRedo,Bounds);
         end
         [finalLikely(batch),index] = max(bigLikely);
         finalParams(batch,:) = bigParams(index,:);
     end
-    [~,index] = max(finalLikely);
+    [~,index] = max(finalLikely);plot(1:numBatches,finalLikely);
     finalParameters(zz,:) = finalParams(index,:);
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),...
         numParameters,h,reps,peakNegativity,flashPoints);
@@ -73,11 +76,12 @@ end
 
 end
 
-function [params,maxLikely] = GradientAscent(initialParams,numRepeats,numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu)
+function [params,maxLikely] = GradientAscent(initialParams,numRepeats,numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu,redoRatio,Bounds)
 bigParameterVec = zeros(numRepeats,numParameters);
 bigLogLikelihoods = zeros(numRepeats,1);
 % repeat gradient ascent from a number of different starting
 %  positions
+initSigma = 100;
 
 for repeats = 1:numRepeats
     h = ones(numParameters,1)./100;
@@ -85,12 +89,11 @@ for repeats = 1:numRepeats
     parameterVec = zeros(maxITER,numParameters);
     logLikelihood = zeros(maxITER,1);
     
-    parameterVec(1,:) = initialParams+normrnd(0,100,[1,numParameters]);
+    parameterVec(1,:) = initialParams+normrnd(0,initSigma*(1-redoRatio),[1,numParameters]);
     
     logLikelihood(1) = GetLikelihood(reps,parameterVec(1,:),peakNegativity,flashPoints);
     check = 1;
     iter = 1;
-    
     % for each starting position, do maxITER iterations
     while abs(check) > tolerance && iter < maxITER
         iter = iter+1;
@@ -106,10 +109,9 @@ for repeats = 1:numRepeats
             gradientVec(jj) = (gradLikelihoodplus-gradLikelihoodminus)./(2*h(jj));
         end
         
-        parameterVec(iter,:) = parameterVec(iter-1,:)+nu*gradientVec;
+        parameterVec(iter,:) = max(Bounds(:,1)',min(parameterVec(iter-1,:)+nu*gradientVec,Bounds(:,2)'));
         logLikelihood(iter) = GetLikelihood(reps,parameterVec(iter,:),peakNegativity,flashPoints);
         check = diff(logLikelihood(iter-1:iter));
-        nu = nu*(1-iter/maxITER);
     end
     [~,index] = max(logLikelihood(1:iter));
     bigParameterVec(repeats,:) = parameterVec(index,:);
@@ -123,17 +125,14 @@ end
 function [loglikelihood] = GetLikelihood(reps,parameterVec,peakNegativity,flashPoints)
 loglikelihood = 0;
 for kk=1:reps
-    distX = flashPoints(kk,1)-parameterVec(2);
-    distY = flashPoints(kk,2)-parameterVec(3);
-    b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
-    mu = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
-    stdev = parameterVec(6);%*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+parameterVec(9);
-    loglikelihood = loglikelihood-(1/2)*log(2*pi*stdev*stdev)-(1/(2*stdev*stdev))*(peakNegativity(kk)-mu).^2;
-%     summation = summation+(peakNegativity(kk)-mu).^2;
+    mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
+        ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2))+parameterVec(7);
+%*exp(-(distX.^2)./(2*b(2)*b(2))-b(5)*distX*distY/(2*b(2)*b(3))-(distY.^2)./(2*b(3)*b(3)))+parameterVec(9);
+    loglikelihood = loglikelihood-(1/2)*log(2*pi*parameterVec(6)*parameterVec(6))-...
+        (1/(2*parameterVec(6)*parameterVec(6)))*(peakNegativity(kk)-mu).^2;
+
 end
 
-% loglikelihood = (-reps/2)*log(2*pi*parameterVec(6)*parameterVec(6))-...
-%     (1/(2*parameterVec(6)*parameterVec(6)))*summation;
 end
 
 function [fisherInfo,errors] = getFisherInfo(parameters,numParameters,h,reps,peakNegativity,flashPoints)

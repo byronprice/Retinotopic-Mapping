@@ -62,12 +62,11 @@ end
 function [loglikelihood] = GetLikelihood(reps,parameterVec,peakNegativity,flashPoints)
 loglikelihood = 0;
 for kk=1:reps
-    distX = flashPoints(kk,1)-parameterVec(2);
-    distY = flashPoints(kk,2)-parameterVec(3);
-    b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
-    mu = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
-    stdev = parameterVec(6);
-    loglikelihood = loglikelihood-(1/2)*log(2*pi*stdev*stdev)-(1/(2*stdev*stdev))*(peakNegativity(kk)-mu).^2;
+      mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
+        ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2))+parameterVec(7);
+
+    loglikelihood = loglikelihood-(1/2)*log(2*pi*parameterVec(6)*parameterVec(6))-...
+        (1/(2*parameterVec(6)*parameterVec(6)))*(peakNegativity(kk)-mu).^2;
 end
 end
 
