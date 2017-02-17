@@ -1,15 +1,18 @@
-function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPGaussRetinoModel(Response,xaxis,yaxis,centerVals)
+function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_SGA(Response,xaxis,yaxis,centerVals)
 %FitLFPGaussRetinoModel.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
 %    model of that retinotopy (using peak negativity in window from 50 to
 %    120 msec after stimulus presentation and Gaussian likelihood)
+%     Use stoachastic gradient ascent
 
 %Created: 2017/01/18, 24 Cummington Mall, Boston
 % Byron Price
 %Updated: 2017/02/15
 % By: Byron Price
 
-% hyperParameterFun = @(b,distX,distY) (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+%  data (in response) ~ N(mu,sigma), 
+%    where mu = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+
 
 numChans = size(Response,1);
 reps = size(Response,2);
@@ -19,9 +22,10 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
-numRepeats = 5000;
+numRepeats = 5;
 maxITER = 1000;
 tolerance = 1e-3;
+h = ones(numParameters,1)./100;
 
 % parameters are 
 %  1) b(1) - rise of map at center
@@ -38,92 +42,81 @@ for zz=1:numChans
 %     display(sprintf('Running Data for Channel %d...',zz));
     flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
     peakNegativity = squeeze(Response(zz,:,2));
-    h = ones(numParameters,1)./100;
-    bigParameterVec = zeros(numRepeats,numParameters);
-    bigLogLikelihoods = zeros(numRepeats,1);
-    % repeat gradient ascent from a number of different starting
-    %  positions
-
-    for repeats = 1:numRepeats
-        gradientVec = zeros(1,numParameters);
-        parameterVec = zeros(maxITER,numParameters);
-        logLikelihood = zeros(maxITER,1);
-        Bounds = [0,600;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,700];
-        proposal = [100,50;1000,500;700,400;300,200;300,200;200,150;400,200];
+    
+    numBatches = 500;
+    finalParams = zeros(numBatches,numParameters);finalLikely = zeros(numBatches,1);
+    parfor batch = 1:numBatches
+        numRedo = 5;nu = logspace(2,-4,numRedo);
+        bigParams = zeros(numRedo,numParameters);bigLikely = zeros(numRedo,1);
+        proposal = [1.75,100;4,250;4,250;1.75,150;1.75,150;1.5,150;1.75,200];
+        initialParams = zeros(1,numParameters);
         for ii=1:numParameters
-%             parameterVec(1,ii) = Bounds(ii,1)+(Bounds(ii,2)-Bounds(ii,1)).*rand;
-            parameterVec(1,ii) = normrnd(proposal(ii,1),proposal(ii,2));
-            parameterVec(1,ii) = max(Bounds(ii,1),min(parameterVec(1,ii),Bounds(ii,2)));           
+            initialParams(1,ii) = gamrnd(proposal(ii,1),proposal(ii,2));
         end
-        logLikelihood(1) = GetLikelihood(reps,parameterVec(1,:),peakNegativity,flashPoints);
-        check = 1;
-        iter = 1;
+        
+        [bigParams(1,:),bigLikely(1)] = GradientAscent(initialParams,numRepeats,...
+            numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu(1));
 
-        % for each starting position, do maxITER iterations
-        while check > tolerance && iter < maxITER
-            iter = iter+1;
-            % calculate likelihood at the current position in parameter
-            %  space
-%             
-%             % check if a random jump along one dimension improves the
-%             %  likelihood
-%             temp = parameterVec(iter-1,:);
-%             randInd = random('Discrete Uniform',numParameters,1);
-%             temp(randInd) = Bounds(randInd,1)+(Bounds(randInd,2)-Bounds(randInd,1)).*rand;
-%             
-%             [likely] = GetLikelihood(reps,temp,peakNegativity,flashPoints);
-%             if likely > logLikelihood(iter-1) %|| mod(iter,200) == 0
-%                 parameterVec(iter-1,:) = temp';
-%                 logLikelihood(iter-1) = likely;
-%             end
-            
-            % calculate the gradient by calculating the likelihood
-            %  after moving over a small step h along each
-            %  dimension
-            for jj=1:numParameters
-                tempParameterVec = parameterVec(iter-1,:);
-                tempParameterVec(jj) = tempParameterVec(jj)+h(jj);
-                [gradLikelihoodplus] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
-                
-                tempParameterVec = parameterVec(iter-1,:);
-                tempParameterVec(jj) = tempParameterVec(jj)-h(jj);
-                [gradLikelihoodminus] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
-                gradientVec(jj) = (gradLikelihoodplus-gradLikelihoodminus)./(2*h(jj));
-            end
-            
-            % line search to get distance to move along gradient
-            alpha = [0,1e-4,1e-2,1e-1,1e0,1e1];
-            lineSearchLikelihoods = zeros(length(alpha),1);
-            lineSearchLikelihoods(1) = logLikelihood(iter-1);
-            
-            for ii=2:length(alpha)
-                tempParameterVec = parameterVec(iter-1,:)'+gradientVec.*alpha(ii);
-                [lineSearchLikelihoods(ii)] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
-            end
-            
-            newInds = find(imag(lineSearchLikelihoods)==0);
-            newValues = zeros(length(newInds),1);
-            for ii=1:length(newInds)
-                newValues(ii) = lineSearchLikelihoods(newInds(ii));
-            end
-            [~,ind] = max(newValues);
-            ind = newInds(ind);
-
-            logLikelihood(iter) = lineSearchLikelihoods(ind);
-            check = diff(logLikelihood(iter-1:iter));
-            parameterVec(iter,:) = parameterVec(iter-1,:)+alpha(ind).*gradientVec;
-%             for jj=1:numParameters
-%                 parameterVec(iter,jj) = max(Bounds(jj,1),min(parameterVec(iter-1,jj)+alpha(ind)*gradientVec(jj),Bounds(jj,2)));
-%             end
+        for ii=2:numRedo
+            [~,index] = max(bigLikely(1:ii-1));
+            [bigParams(ii,:),bigLikely(ii)] = GradientAscent(bigParams(index,:),...
+                numRepeats,numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu(ii));
         end
-        bigParameterVec(repeats,:) = parameterVec(iter,:);
-        bigLogLikelihoods(repeats) = logLikelihood(iter);
+        [finalLikely(batch),index] = max(bigLikely);
+        finalParams(batch,:) = bigParams(index,:);
     end
-    [~,index] = max(bigLogLikelihoods);
-    finalParameters(zz,:) = bigParameterVec(index,:);
-    [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,peakNegativity,flashPoints);
-%     display(finalParameters(zz,:));
+    [~,index] = max(finalLikely);
+    finalParameters(zz,:) = finalParams(index,:);
+    [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),...
+        numParameters,h,reps,peakNegativity,flashPoints);
 end
+
+end
+
+function [params,maxLikely] = GradientAscent(initialParams,numRepeats,numParameters,flashPoints,peakNegativity,maxITER,tolerance,reps,nu)
+bigParameterVec = zeros(numRepeats,numParameters);
+bigLogLikelihoods = zeros(numRepeats,1);
+% repeat gradient ascent from a number of different starting
+%  positions
+
+for repeats = 1:numRepeats
+    h = ones(numParameters,1)./100;
+    gradientVec = zeros(1,numParameters);
+    parameterVec = zeros(maxITER,numParameters);
+    logLikelihood = zeros(maxITER,1);
+    
+    parameterVec(1,:) = initialParams+normrnd(0,100,[1,numParameters]);
+    
+    logLikelihood(1) = GetLikelihood(reps,parameterVec(1,:),peakNegativity,flashPoints);
+    check = 1;
+    iter = 1;
+    
+    % for each starting position, do maxITER iterations
+    while abs(check) > tolerance && iter < maxITER
+        iter = iter+1;
+        
+        for jj=1:numParameters
+            tempParameterVec = parameterVec(iter-1,:);
+            tempParameterVec(jj) = tempParameterVec(jj)+h(jj);
+            [gradLikelihoodplus] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
+            
+            tempParameterVec = parameterVec(iter-1,:);
+            tempParameterVec(jj) = tempParameterVec(jj)-h(jj);
+            [gradLikelihoodminus] = GetLikelihood(reps,tempParameterVec,peakNegativity,flashPoints);
+            gradientVec(jj) = (gradLikelihoodplus-gradLikelihoodminus)./(2*h(jj));
+        end
+        
+        parameterVec(iter,:) = parameterVec(iter-1,:)+nu*gradientVec;
+        logLikelihood(iter) = GetLikelihood(reps,parameterVec(iter,:),peakNegativity,flashPoints);
+        check = diff(logLikelihood(iter-1:iter));
+        nu = nu*(1-iter/maxITER);
+    end
+    [~,index] = max(logLikelihood(1:iter));
+    bigParameterVec(repeats,:) = parameterVec(index,:);
+    bigLogLikelihoods(repeats) = logLikelihood(index);
+end
+[maxLikely,index] = max(bigLogLikelihoods);
+params = bigParameterVec(index,:);
 
 end
 

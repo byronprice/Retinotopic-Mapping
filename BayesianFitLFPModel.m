@@ -47,9 +47,10 @@ for zz=1:numChans
             end
         end
     end
-    figure();
+    figure(1);figure(2);
     for ii=1:numParameters
-       subplot(4,2,ii);histogram(x(burnIn:end,ii)); 
+       subplot(4,2,ii);histogram(x(burnIn:end,ii));
+       subplot(4,2,ii);autocorr(x(burnIn:burnIn+10000,ii));
     end
     finalParameters(zz,:) = median(x(burnIn:end,:),1);
     mode(x(burnIn:end,:))

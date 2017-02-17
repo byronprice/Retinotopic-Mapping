@@ -25,7 +25,7 @@ Y = [];Design = [];
 linespecs = {'or','*b'};
 h(1) = figure();h(2) = figure();h(3) = figure();h(4) = figure();
 for ii=1:numAnimals
-    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
+    filename = sprintf('MappingEffectsResults1_%d.mat',Animals(ii));
     load(filename);
     
     numDays = numFiles;
@@ -55,7 +55,7 @@ for ii=1:numAnimals
             baselineErr = squeeze(confIntervals(:,jj,7));
             
             figure(h(3));
-            errorbar(xdata-xdata(1),ydata-ydata(1),yErr,yErr,xErr,xErr);hold on;
+            errorbar(xdata-xdata(1),ydata-ydata(1),yErr,yErr,xErr,xErr,'o');hold on;
             title('Center of Mass Relative to Day One');xlabel('Horizontal Distance (pixels)');
             ylabel('Vertical Distance (pixels)');
             axis([-w_pixels/2 w_pixels/2 -h_pixels/2 h_pixels/2]);
@@ -125,7 +125,7 @@ for ii=1:numAnimals
             baselineErr = squeeze(confIntervals(:,jj,7));
             
             figure(h(3));
-            errorbar(xdata-xdata(1),ydata-ydata(1),yErr,yErr,xErr,xErr);hold on;
+            errorbar(xdata-xdata(1),ydata-ydata(1),yErr,yErr,xErr,xErr,'o');hold on;
             title('Center of Mass Relative to Day One');xlabel('Horizontal Distance (pixels)');
             ylabel('Vertical Distance (pixels)');
             axis([-w_pixels/2 w_pixels/2 -h_pixels/2 h_pixels/2]);
@@ -205,13 +205,14 @@ for ii=1:numAnimals
         figure(h(2));
          for jj=1:numChans
              data = zeros(numDays,srp_reps);dayVec = zeros(numDays,srp_reps);
-             meanVals = zeros(numDays,1);
+             meanVals = zeros(numDays,1);stdVals = zeros(numDays,1);
             for kk=1:numDays
                 for ll=1:srp_reps
                     data(kk,ll) = log(abs(vepSize(kk,jj,ll)));
                     dayVec(kk,ll) = kk;
                 end
                 meanVals(kk) = mean(data(kk,:));
+                stdVals(kk) = std(data(kk,:));
             end
                 randJitter = randn([numDays*srp_reps,1]).*0.05;
                 subplot(numAnimals,4,(jj-1)*2+1+(ii-1)*4);hold on;
