@@ -67,13 +67,13 @@ for zz=1:numChans
             check = diff(squaredResiduals(iter:iter+1));
             if check >= 0
                 parameterVec(:,iter+1) = parameterVec(:,iter);
-                lambda = lambda*10;
+                lambda = max(lambda*10,1e10);
                 check = 1;
                 squaredResiduals(iter+1) = squaredResiduals(iter);
             else
                 parameterVec(:,iter+1) = tempParams;
                 yhat = tempYhat;
-                lambda = lambda/10;
+                lambda = min(lambda/10,1e-10);
             end
             iter = iter+1;
         end
