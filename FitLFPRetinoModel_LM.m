@@ -12,7 +12,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Re
 
 %Created: 2017/02/16, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/02/21
+%Updated: 2017/02/22
 % By: Byron Price
 
 %  model has 7 parameters, defined by vector p
@@ -21,24 +21,27 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Re
 %    and sigma = p(6)
 
 % parameter estimates are constrained to a reasonable range of values
-Bounds = [0,1000;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,1000];
+Bounds = [0,600;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,1000];
 numChans = size(Response,1);
-reps = size(Response,2);
 
 numParameters = 7;
    
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
-numRepeats = 500;
+numRepeats = 1000;
 maxITER = 50;
 tolerance = 1e-3;
 
 
 for zz=1:numChans
 %     display(sprintf('Running Data for Channel %d...',zz));
-    flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
-    peakNegativity = squeeze(Response(zz,:,2))';
+
+    Data = Response{zz};
+    reps = size(Data,1);
+    
+    flashPoints = centerVals(squeeze(Data(:,1)),:);
+    peakNegativity = Data(:,2);
     h = ones(numParameters,1)./100;
     bigParameterVec = zeros(numParameters,numRepeats);
     bigResiduals = zeros(numRepeats,1);
@@ -74,13 +77,13 @@ for zz=1:numChans
             check = diff(squaredResiduals(iter:iter+1));
             if check >= 0
                 parameterVec(:,iter+1) = parameterVec(:,iter);
-                lambda = max(lambda*10,1e10);
+                lambda = min(lambda*10,1e10);
                 check = 1;
                 squaredResiduals(iter+1) = squaredResiduals(iter);
             else
                 parameterVec(:,iter+1) = tempParams;
                 yhat = tempYhat;
-                lambda = min(lambda/10,1e-10);
+                lambda = max(lambda/10,1e-10);
             end
             iter = iter+1;
         end

@@ -42,30 +42,37 @@ DistToScreen = stimParams.DistToScreen;
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
 % get LFP response to each stimulus (the VEPs)
-stimLen = 1:round(0.03*sampleFreq);
+stimLen = round(0.3*sampleFreq);
 minWin = round(0.05*sampleFreq):1:round(0.12*sampleFreq);
-maxWin = round(.15*sampleFreq):1:round(0.25*sampleFreq);
+maxWin = round(.12*sampleFreq):1:round(0.2*sampleFreq);
 [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
 
 xaxis = 1:w_pixels;
 yaxis = 1:h_pixels;
-Data = zeros(numChans,numStimuli,2);
+Data = cell(numChans,1);
+
 for ii=1:numChans
-    count = 1;
+    tempData = zeros(numStimuli,2);
     for jj=1:numStimuli
-        Data(ii,count,1) = jj;
-        Data(ii,count,2) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
-        count = count+1;
+        tempData(jj,1) = jj;
+        tempData(jj,2) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
+    temp = tempData(:,2);
+    outlier = mean(temp)+3*std(temp);
+    indeces = find(temp>outlier);
+    tempData(indeces,:) = [];
+    Data{ii} = tempData;
 end
 
-fprintf('Fitting model ...');
+fprintf('Fitting model ...\n');
 [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
 
-fprintf('Making plots ...');
+fprintf('Making plots ...\n');
 [h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis); 
 
-save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'Response','Data','finalParameters','fisherInfo','ninetyfiveErrors',...
+vepResponse = Response;
+dimReduceData = Data;
+save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
     'numChans');
 end
 
@@ -114,6 +121,7 @@ function [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
     strobeStart = 33;
     strobeTimes = tsevs{1,strobeStart};
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
+
     Response = zeros(numChans,numStimuli,stimLen);
 
     for ii=1:numChans
@@ -141,7 +149,7 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
 
     for ii=1:numChans
         figure(h(ii));axis([0 w_pixels 0 h_pixels]);
-        title(sprintf('VEP Retinotopy, Chan %d, Animal %d',ii,AnimalName));
+        title(sprintf('VEP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
         xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
         hold on;
         
