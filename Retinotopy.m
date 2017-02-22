@@ -86,40 +86,22 @@ spatFreq = 1/temp;
 % calculate stimulus locations from a uniform distribution, but prevent
 %  a stimulus from being followed by one that is close to it
 DistFun = @(stimCenter,centerVals) (ceil(sqrt((stimCenter(1)-centerVals(:,1)).^2+(stimCenter(2)-centerVals(:,2)).^2))+1);
-uniformDist = ones(w_pixels*h_pixels,1)./(w_pixels*h_pixels);
-allPossCenterVals = zeros(w_pixels*h_pixels,2);
 
-count = 1;
-for ii=1:w_pixels
-    for jj=1:h_pixels
-        allPossCenterVals(count,1) = ii;
-        allPossCenterVals(count,2) = jj;
-        count = count+1;
+border = round(Radius);
+centerVals = zeros(numStimuli,2);
+centerVals(1,1) = border+unidrnd(w_pixels-2*border);
+centerVals(1,2) = border+unidrnd(h_pixels-2*border);
+
+count = 2;
+while count <= numStimuli
+    xPos = border+unidrnd(w_pixels-2*border);
+    yPos = border+unidrnd(h_pixels-2*border);
+    dist = DistFun(centerVals(count-1,:),[xPos,yPos]);
+    if dist > Radius
+       centerVals(count,:) = [xPos,yPos];
+       count = count+1;
     end
 end
-
-centerVals = zeros(numStimuli,2);
-
-CDF = cumsum(uniformDist);
-CDF = CDF-min(CDF);
-temp = rand-CDF;
-temp(temp<0) = 0;
-[~,index] = min(temp);
-centerVals(1,:) = allPossCenterVals(index,:);
-
-for ii=2:numStimuli
-    dists = DistFun(centerVals(ii-1,:),allPossCenterVals);
-    tempDist = uniformDist;
-    tempDist(dists<100) = 0;
-    tempDist = tempDist./sum(tempDist);
-    CDF = cumsum(tempDist);
-    CDF = CDF-min(CDF);
-    temp = rand-CDF;
-    temp(temp<0) = 0;
-    [~,index] = min(temp);
-    centerVals(ii,:) = allPossCenterVals(index,:);
-end
-
 
 estimatedTime = ((waitTime+stimTime)*reps*blocks+blocks*holdTime)/60;
 fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
