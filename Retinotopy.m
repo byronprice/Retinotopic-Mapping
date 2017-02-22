@@ -1,4 +1,4 @@
-function [] = Retinotopy(AnimalName,holdTime)
+function [] = Retinotopy(AnimalName,startHold)
 %Retinotopy.m
 %  Display a series of flashing sine-wave gratings to determine retinotopy of
 %   LFP recording electrode.
@@ -24,10 +24,12 @@ load('RetinotopyVars.mat');
 
 directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 if nargin < 2
-    holdTime = 30; % 30 second pauses between blocks
+    startHold = 30; % 30 second pauses between blocks
 end
 
-reps = reps-mod(reps,blocks);
+numStimuli = numStimuli-mod(numStimuli,blocks);
+
+reps = numStimuli/blocks;
 
 Date = datetime('today','Format','yyyy-MM-dd');
 Date = char(Date); Date = strrep(Date,'-','');Date=str2double(Date);
@@ -77,40 +79,50 @@ conv_factor = 1/conv_factor;
 % perform unit conversions
 Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
-Radius = Radius;
+     
 temp = (tan((1/spatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
 spatFreq = 1/temp;
 
-if strcmp(Hemisphere,'LH') == 1
-    centerX = round(w_pixels/2)-100:2*Radius:w_pixels;
-    centerY = Radius+1:2*Radius:h_pixels-Radius/2;
-elseif strcmp(Hemisphere,'RH') == 1
-    centerX = Radius+1:2*Radius:round(w_pixels/2)+100;
-    centerY = Radius+1:2*Radius:h_pixels-Radius/2;
-elseif strcmp(Hemisphere,'both') == 1
-    centerX = 3*Radius:2*Radius:w_pixels-3*Radius;
-    centerY = Radius+1:2*Radius:h_pixels-4*Radius;
-end
-numStimuli = length(centerX)*length(centerY);
+% calculate stimulus locations from a uniform distribution, but prevent
+%  a stimulus from being followed by one that is close to it
+DistFun = @(stimCenter,centerVals) (ceil(sqrt((stimCenter(1)-centerVals(:,1)).^2+(stimCenter(2)-centerVals(:,2)).^2))+1);
+uniformDist = ones(w_pixels*h_pixels,1)./(w_pixels*h_pixels);
+allPossCenterVals = zeros(w_pixels*h_pixels,2);
 
-centerVals = zeros(numStimuli,2);
 count = 1;
-for ii=1:length(centerX)
-    for jj=1:length(centerY)
-        centerVals(count,1) = centerX(ii);
-        centerVals(count,2) = centerY(jj);
+for ii=1:w_pixels
+    for jj=1:h_pixels
+        allPossCenterVals(count,1) = ii;
+        allPossCenterVals(count,2) = jj;
         count = count+1;
     end
 end
 
-for ii=1:50
-    indeces = randperm(numStimuli,numStimuli);
-    centerVals = centerVals(indeces,:);
+centerVals = zeros(numStimuli,2);
+
+CDF = cumsum(uniformDist);
+CDF = CDF-min(CDF);
+temp = rand-CDF;
+temp(temp<0) = 0;
+[~,index] = min(temp);
+centerVals(1,:) = allPossCenterVals(index,:);
+
+for ii=2:numStimuli
+    dists = DistFun(centerVals(ii-1,:),allPossCenterVals);
+    tempDist = uniformDist;
+    tempDist(dists<100) = 0;
+    tempDist = tempDist./sum(tempDist);
+    CDF = cumsum(tempDist);
+    CDF = CDF-min(CDF);
+    temp = rand-CDF;
+    temp(temp<0) = 0;
+    [~,index] = min(temp);
+    centerVals(ii,:) = allPossCenterVals(index,:);
 end
 
-estimatedTime = ((waitTime+stimTime)*reps*numStimuli+reps*2+blocks*holdTime)/60;
-display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
 
+estimatedTime = ((waitTime+stimTime)*reps*blocks+blocks*holdTime)/60;
+fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
 
 % Define first and second ring color as RGBA vector with normalized color
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -122,32 +134,30 @@ White = 1;
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-orient = rand([numStimuli*reps,1]).*(2*pi);
+orient = rand([numStimuli,1]).*(2*pi);
+waitTimes = waitTime+exprnd(0.05,[numStimuli,1]);
 
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
-WaitSecs(holdTime);
+WaitSecs(startHold);
 
 % Animation loop
 count = 1;
 vbl = Screen('Flip',win);
 for yy = 1:blocks
-    for zz = 1:reps/blocks
-        for ii=1:numStimuli
-            % Draw the procedural texture as any other texture via 'DrawTexture'
-            Screen('DrawTexture', win,gratingTex, [],[],...
-                [],[],[],[Grey Grey Grey Grey],...
-                [], [],[White,Black,...
-                Radius,centerVals(ii,1),centerVals(ii,2),spatFreq,orient(count),0]);
-            % Request stimulus onset
-            vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(ii);
-            vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-            vbl = Screen('Flip',win,vbl-ifi/2+waitTime);
-            count = count+1;
-        end
-        vbl = Screen('Flip',win,vbl-ifi/2+2);
+    for ii=1:reps
+        % Draw the procedural texture as any other texture via 'DrawTexture'
+        Screen('DrawTexture', win,gratingTex, [],[],...
+            [],[],[],[Grey Grey Grey Grey],...
+            [], [],[White,Black,...
+            Radius,centerVals(count,1),centerVals(count,2),spatFreq,orient(count),0]);
+        % Request stimulus onset
+        vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(stimStrobeNum);
+        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+        vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(count));
+        count = count+1;
     end
     if yy ~= blocks
         usb.strobeEventWord(0);
@@ -162,9 +172,10 @@ stimParams = RetinoStimObj;
 stimParams.centerVals = centerVals;
 stimParams.Radius = Radius;
 stimParams.degreeRadius = degreeRadius;
-stimParams.reps = reps;
+stimParams.stimStrobeNum = stimStrobeNum;
 stimParams.stimTime = stimTime;
 stimParams.holdTime = holdTime;
+stimParams.waitTime = waitTime;
 stimParams.numStimuli = numStimuli;
 stimParams.w_pixels = w_pixels;
 stimParams.h_pixels = h_pixels;

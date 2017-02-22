@@ -80,8 +80,8 @@ for ii=1:length(Animals)
                        end
                    end
                end
-
-%                [finalParameters] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
+               
+%                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
 %                display(finalParameters)
                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);

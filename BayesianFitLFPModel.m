@@ -1,6 +1,6 @@
 function [finalParameters,covariance] = BayesianFitLFPModel(Response,xaxis,yaxis,centerVals)
 % BayesianFitLFPModel.m
-
+tic
 numChans = size(Response,1);
 reps = size(Response,2);
 
@@ -9,21 +9,27 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 covariance = zeros(numChans,numParameters,numParameters);
 
-% priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,200;1.75,200];
+priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,200;1.75,200];
 % proposal = [150,100;1000,500;700,500;300,200;250,300;200,150;200,150];
 
-sigma = 1;
+initSigma = [1,2,2,1,1,1,1].*5;
 
 for zz=1:numChans
     flashPoints = centerVals(squeeze(Response(zz,:,1)),:);
     peakNegativity = squeeze(Response(zz,:,2));
-    N = 3e6; burnIn = 2e6;
+    N = 2e6; burnIn = 1e6;
     x = zeros(N,numParameters);
+    rejectRate = zeros(N,1);
+%     [finalParams,finalLikelihood] = GradientAscentInit(flashPoints,peakNegativity,reps);
+%      x(1,:) = finalParams;
+    for jj=1:numParameters
+        x(1,jj) = gamrnd(priorParams(jj,1),priorParams(jj,2));
+    end
     
-    [finalParams,finalLikelihood] = GradientAscentInit(flashPoints,peakNegativity,reps);
-    x(1,:) = finalParams;
-    likelihoodXprev = finalLikelihood;
     
+    likelihoodXprev = GetLikelihood(reps,x(1,:),peakNegativity,flashPoints);
+    
+    sigma = initSigma;
     for ii=2:N
 %         priorXstar = 1;priorXprev = 1;
         xStar = x(ii-1,:)+normrnd(0,sigma,[1,numParameters]);
@@ -34,6 +40,7 @@ for zz=1:numChans
 %         end
         if sum(xStar<0) > 0
             x(ii,:) = x(ii-1,:);
+            rejectRate(ii) = 1;
         else
             likelihoodXstar = GetLikelihood(reps,xStar,peakNegativity,flashPoints);
             %         A = min(1,(likelihoodXstar*priorXstar)./(likelihoodXprev*priorXprev));
@@ -44,19 +51,22 @@ for zz=1:numChans
                 likelihoodXprev = likelihoodXstar;
             else
                 x(ii,:) = x(ii-1,:);
+                rejectRate(ii) = 1;
             end
         end
     end
+    sum(rejectRate(burnIn:end))./(N-burnIn)
     figure(1);figure(2);
     for ii=1:numParameters
-       subplot(4,2,ii);histogram(x(burnIn:end,ii));
-       subplot(4,2,ii);autocorr(x(burnIn:burnIn+10000,ii));
+       figure(1);subplot(4,2,ii);histogram(x(burnIn:500:end,ii));
+       figure(2);subplot(4,2,ii);autocorr(x(burnIn:500:end,ii));
     end
-    finalParameters(zz,:) = median(x(burnIn:end,:),1);
-    mode(x(burnIn:end,:))
-    covariance(zz,:,:) = cov(x(burnIn:end,:));
+    finalParameters(zz,:) = mean(x(burnIn:500:end,:),1);
+    median(x(burnIn:end,:))
+    covariance(zz,:,:) = cov(x(burnIn:500:end,:));
 end
 
+toc
 end
 
 function [loglikelihood] = GetLikelihood(reps,parameterVec,peakNegativity,flashPoints)
@@ -99,18 +109,6 @@ while check > tolerance && iter < maxITER
     iter = iter+1;
     % calculate likelihood at the current position in parameter
     %  space
-    %
-    %             % check if a random jump along one dimension improves the
-    %             %  likelihood
-    %             temp = parameterVec(iter-1,:);
-    %             randInd = random('Discrete Uniform',numParameters,1);
-    %             temp(randInd) = Bounds(randInd,1)+(Bounds(randInd,2)-Bounds(randInd,1)).*rand;
-    %
-    %             [likely] = GetLikelihood(reps,temp,peakNegativity,flashPoints);
-    %             if likely > logLikelihood(iter-1) %|| mod(iter,200) == 0
-    %                 parameterVec(iter-1,:) = temp';
-    %                 logLikelihood(iter-1) = likely;
-    %             end
     
     % calculate the gradient by calculating the likelihood
     %  after moving over a small step h along each

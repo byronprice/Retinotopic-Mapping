@@ -141,6 +141,7 @@ stimParams.Radius = Radius;
 stimParams.degreeRadius = degreeRadius;
 stimParams.reps = reps;
 stimParams.stimTime = stimTime;
+stimParams.waitTime = waitTime;
 stimParams.holdTime = holdTime;
 stimParams.numStimuli = numStimuli;
 stimParams.w_pixels = w_pixels;

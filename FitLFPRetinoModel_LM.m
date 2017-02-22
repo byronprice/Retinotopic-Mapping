@@ -1,19 +1,26 @@
 function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Response,xaxis,yaxis,centerVals)
 %FitLFPRetinoModel_LM.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
-%    model of that retinotopy (using peak negativity in window from 50 to
-%    120 msec after stimulus presentation and Gaussian likelihood)
+%    model of that retinotopy (data is maximum LFP magnitude in window 
+%    from 150 to 250msec minus minimum magnitude in window from 50 to
+%    120 msec after stimulus presentation, assumes a Gaussian likelihood)
+%
+%   in this case, maximizing the likelihood is equivalent to minimizing the
+%    sum of squared residuals
 %   Levenberg-Marquardt algorithm ... far superior to gradient ascent for
-%    this data (faster and more reliable)
+%     this data (faster and more reliable)
 
 %Created: 2017/02/16, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/02/16
+%Updated: 2017/02/21
 % By: Byron Price
 
-%  data (in response) ~ N(mu,sigma), 
-%    where mu = (b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4));
+%  model has 7 parameters, defined by vector p
+%  data ~ N(mu,sigma), 
+%    where mu = (p(1)*exp(-(xpos-p(2)).^2./(2*p(4)*p(4))-(ypos-p(3)).^2./(2*p(5)*p(5)))+p(7));
+%    and sigma = p(6)
 
+% parameter estimates are constrained to a reasonable range of values
 Bounds = [0,1000;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,1000];
 numChans = size(Response,1);
 reps = size(Response,2);

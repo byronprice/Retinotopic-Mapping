@@ -3,9 +3,11 @@ classdef RetinoStimObj
         centerVals
         Radius
         degreeRadius
+        stimStrobeNum
         reps
         stimTime
         holdTime
+        waitTime
         numStimuli
         w_pixels
         h_pixels

@@ -17,12 +17,12 @@ numAnimals = length(Animals);
 % 
 % load(filename);
 % [numDays,numChans,numParameters] = size(dailyParameters);
-w_pixels = 2560; h_pixels = 1440;
 % clear dailyParameters parameterCI srpVEP fisherInformation ConditionNumber;
 
 Y = [];Design = [];
 
-linespecs = {'or','*b'};
+conditionNames = {'Retino-Grey','Retino-SRP','Grey-SRP'};
+linespecs = {'or','*b','xg'};
 h(1) = figure();h(2) = figure();h(3) = figure();h(4) = figure();
 for ii=1:numAnimals
     filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
@@ -68,29 +68,29 @@ for ii=1:numAnimals
 %             title('CoM, Retinotopy-Grey');
 %             xlabel('Horizontal Screen Position');ylabel('Vertical Position');
             
-            subplot(numAnimals,4,1+(ii-1)*4);hold on;
-            errorbar(1:numDays,sigmaXdata,sigmaXerr,linespecs{jj});
+            subplot(2,2,1);hold on;
+            errorbar(1:numDays,sigmaXdata,sigmaXerr,linespecs{ConditionNumber});
 %             scatter(sigmaXdata,sigmaYdata);
             axis([0 numDays+1 0 800]);
-            title('Region Size, Retino-Grey');
+            title('Region Size');
             xlabel('Experimental Day');ylabel('Parameter Sigma_x');
             
-            subplot(numAnimals,4,2+(ii-1)*4);hold on;
-            errorbar(1:numDays,sigmaYdata,sigmaYerr,linespecs{jj});
+            subplot(2,2,2);hold on;
+            errorbar(1:numDays,sigmaYdata,sigmaYerr,linespecs{ConditionNumber});
 %             scatter(sigmaXdata,sigmaYdata);
             axis([0 numDays+1 0 800]);
             title('Region Size');
             xlabel('Experimental Day');ylabel('Parameter Sigma_y');
             
-            subplot(numAnimals,4,3+(ii-1)*4);hold on;
-            errorbar(1:numDays,riseData,riseErr,linespecs{jj});
+            subplot(2,2,3);hold on;
+            errorbar(1:numDays,riseData,riseErr,linespecs{ConditionNumber});
 %             scatter(1:numDays,riseData);
-            axis([0 numDays+1 0 400]);
+            axis([0 numDays+1 0 500]);
             title('VEP Rise at CoM');xlabel('Experimental Day');
             ylabel('Positivity-Negativity (\muV)');
             
-            subplot(numAnimals,4,4+(ii-1)*4);hold on;
-            errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
+            subplot(2,2,4);hold on;
+            errorbar(1:numDays,baselineData,baselineErr,linespecs{ConditionNumber});
 %             scatter(1:numDays,baselineData);
             axis([0 numDays+1 100 700]);
             title('Baseline');xlabel('Experimental Day');
@@ -138,29 +138,29 @@ for ii=1:numAnimals
 %             title('CoM, Retinotopy-SRP');
 %             xlabel('Horizontal Screen Position');ylabel('Vertical Position');
             
-            subplot(numAnimals,4,1+(ii-1)*4);hold on;
-            errorbar(1:numDays,sigmaXdata,sigmaXerr,linespecs{jj});
+            subplot(2,2,1);hold on;
+            errorbar(1:numDays,sigmaXdata,sigmaXerr,linespecs{ConditionNumber});
 %             scatter(sigmaXdata,sigmaYdata);
             axis([0 numDays+1 0 800]);
-            title('Region Size, Retino-SRP');
+            title('Region Size');
             xlabel('Experimental Day');ylabel('Parameter Sigma_x');
             
-            subplot(numAnimals,4,2+(ii-1)*4);hold on;
-            errorbar(1:numDays,sigmaYdata,sigmaYerr,linespecs{jj});
+            subplot(2,2,2);hold on;
+            errorbar(1:numDays,sigmaYdata,sigmaYerr,linespecs{ConditionNumber});
 %             scatter(sigmaXdata,sigmaYdata);
             axis([0 numDays+1 0 800]);
             title('Region Size');
             xlabel('Experimental Day');ylabel('Parameter Sigma_y');
             
-            subplot(numAnimals,4,3+(ii-1)*4);hold on;
-            errorbar(1:numDays,riseData,riseErr,linespecs{jj});
+            subplot(2,2,3);hold on;
+            errorbar(1:numDays,riseData,riseErr,linespecs{ConditionNumber});
 %             scatter(1:numDays,riseData);
-            axis([0 numDays+1 0 400]);
+            axis([0 numDays+1 0 500]);
             title('VEP Rise at CoM');xlabel('Experimental Day');
             ylabel('Positivity-Negativity (\muV)');
             
-            subplot(numAnimals,4,4+(ii-1)*4);hold on;
-            errorbar(1:numDays,baselineData,baselineErr,linespecs{jj});
+            subplot(2,2,4);hold on;
+            errorbar(1:numDays,baselineData,baselineErr,linespecs{ConditionNumber});
 %             scatter(1:numDays,baselineData);
             axis([0 numDays+1 100 700]);
             title('Baseline');xlabel('Experimental Day');
@@ -175,22 +175,23 @@ for ii=1:numAnimals
              stdVals = zeros(numDays,1);
             for kk=1:numDays
                 for ll=1:srp_reps
-                    data(kk,ll) = log(abs(vepSize(kk,jj,ll)));
+                    data(kk,ll) = vepSize(kk,jj,ll);
                     dayVec(kk,ll) = kk;
                 end
                 meanVals(kk) = mean(data(kk,:));
                 stdVals(kk) = std(data(kk,:));
             end
                 randJitter = randn([numDays*srp_reps,1]).*0.05;
-                subplot(numAnimals,4,(jj-1)*2+1+(ii-1)*4);hold on;
-                scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
-                scatter(1:numDays,meanVals,50,'^k','filled');
-                axis([0 numDays+1 0 10]);
-                title('SRP, Retinotopy-SRP');xlabel('Experimental Day');ylabel('Log(Pos-Neg) (\muV)');
+                subplot(1,2,1);hold on;
+%                 scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
+%                 scatter(1:numDays,meanVals,50,'^k','filled');
+                scatter(1:numDays,meanVals,linespecs{ConditionNumber});
+                axis([0 numDays+1 400 900]);
+                title('SRP');xlabel('Experimental Day');ylabel('Log(Pos-Neg) (\muV)');
                 Y = [Y;data(:)];Design = [Design;dayVec(:),ones(srp_reps*numDays,1)];
                 
-                subplot(numAnimals,4,(jj-1)*2+2+(ii-1)*4);
-                scatter(meanVals,stdVals);axis([0 10 0 2]);
+                subplot(1,2,2);hold on;
+                scatter(meanVals,stdVals,linespecs{ConditionNumber});axis([400 900 0 500]);
                 title('Mean vs STD VEP Size');
                 xlabel('Mean Log(Pos-Neg)');ylabel('STD Log(Pos-Neg)');
          end
@@ -208,22 +209,23 @@ for ii=1:numAnimals
              meanVals = zeros(numDays,1);stdVals = zeros(numDays,1);
             for kk=1:numDays
                 for ll=1:srp_reps
-                    data(kk,ll) = log(abs(vepSize(kk,jj,ll)));
+                    data(kk,ll) = vepSize(kk,jj,ll);
                     dayVec(kk,ll) = kk;
                 end
                 meanVals(kk) = mean(data(kk,:));
                 stdVals(kk) = std(data(kk,:));
             end
                 randJitter = randn([numDays*srp_reps,1]).*0.05;
-                subplot(numAnimals,4,(jj-1)*2+1+(ii-1)*4);hold on;
-                scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
-                scatter(1:numDays,meanVals,50,'^k','filled');
-                axis([0 numDays+1 0 10]);
-                title('SRP, Grey-SRP');xlabel('Experimental Day');ylabel('Log(Pos-Neg) (\muV)');
+                subplot(1,2,1);hold on;
+%                 scatter(dayVec(:)+randJitter,data(:),linespecs{jj});hold on;
+%                 scatter(1:numDays,meanVals,50,'^k','filled');
+                scatter(1:numDays,meanVals,linespecs{ConditionNumber});
+                axis([0 numDays+1 400 900]);
+                title('SRP');xlabel('Experimental Day');ylabel('Log(Pos-Neg) (\muV)');
                 Y = [Y;data(:)];Design = [Design;dayVec(:),zeros(srp_reps*numDays,1)];
                 
-                subplot(numAnimals,4,(jj-1)*2+2+(ii-1)*4);
-                scatter(meanVals,stdVals);axis([0 10 0 2]);
+                subplot(1,2,2);hold on;
+                scatter(meanVals,stdVals,linespecs{ConditionNumber});axis([400 900 0 500]);
                 title('Mean vs STD VEP Size');
                 xlabel('Mean Log(Pos-Neg)');ylabel('STD Log(Pos-Neg)');
          end
@@ -315,7 +317,7 @@ df1 = modelFit(1).dfe;df2 = modelFit(2).dfe;
 F = ((SS1-SS2)/(df1-df2))/(SS2/df2);
 p = 1-fcdf(F,df1-df2,df2)
 
-display('Retino-SRP and Grey-SRP have different day one VEP magnitude: ');
+display('Retino-SRP and Grey-SRP have different day one and same slope: ');
 SS1 = sum((modelFit(2).resid).^2);
 SS2 = sum((modelFit(3).resid).^2);
 df1 = modelFit(2).dfe;df2 = modelFit(3).dfe;
@@ -332,33 +334,33 @@ F = ((SS1-SS2)/(df1-df2))/(SS2/df2);
 p = 1-fcdf(F,df1-df2,df2)
 
 display('Retino-SRP and Grey-SRP have different day one and different slope: ');
-SS1 = sum((modelFit(3).resid).^2);
+SS1 = sum((modelFit(2).resid).^2);
 SS2 = sum((modelFit(4).resid).^2);
-df1 = modelFit(3).dfe;df2 = modelFit(4).dfe;
+df1 = modelFit(2).dfe;df2 = modelFit(4).dfe;
 
 F = ((SS1-SS2)/(df1-df2))/(SS2/df2);
 p = 1-fcdf(F,df1-df2,df2)
 
-display('Chi-square tests: ');
-
-display('Significant increase across days: ');
-statistic = (modelFit(1).dev-modelFit(2).dev);
-k = modelParams(2)-modelParams(1);
-p = 1-chi2cdf(statistic,k)
-
-display('Retino-SRP and Grey-SRP have different day one VEP magnitude: ');
-statistic = (modelFit(2).dev-modelFit(3).dev);
-k = modelParams(3)-modelParams(2);
-p = 1-chi2cdf(statistic,k)
-
-display('Retino-SRP and Grey-SRP have same day one and different slope: ');
-statistic = (modelFit(2).dev-modelFit(5).dev);
-k = modelParams(5)-modelParams(2);
-p = 1-chi2cdf(statistic,k)
-
-display('Retino-SRP and Grey-SRP have different day one and different slope: ');
-statistic = (modelFit(3).dev-modelFit(4).dev);
-k = modelParams(4)-modelParams(3);
-p = 1-chi2cdf(statistic,k)
+% display('Chi-square tests: ');
+% 
+% display('Significant increase across days: ');
+% statistic = (modelFit(1).dev-modelFit(2).dev);
+% k = modelParams(2)-modelParams(1);
+% p = 1-chi2cdf(statistic,k)
+% 
+% display('Retino-SRP and Grey-SRP have different day one VEP magnitude: ');
+% statistic = (modelFit(2).dev-modelFit(3).dev);
+% k = modelParams(3)-modelParams(2);
+% p = 1-chi2cdf(statistic,k)
+% 
+% display('Retino-SRP and Grey-SRP have same day one and different slope: ');
+% statistic = (modelFit(2).dev-modelFit(5).dev);
+% k = modelParams(5)-modelParams(2);
+% p = 1-chi2cdf(statistic,k)
+% 
+% display('Retino-SRP and Grey-SRP have different day one and different slope: ');
+% statistic = (modelFit(2).dev-modelFit(4).dev);
+% k = modelParams(4)-modelParams(2);
+% p = 1-chi2cdf(statistic,k)
 end
 
