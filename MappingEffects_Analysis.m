@@ -68,21 +68,21 @@ for ii=1:length(Animals)
 
                xaxis = 1:w_pixels;
                yaxis = 1:h_pixels;
-               Data = zeros(numChans,numStimuli*reps,2);
+               Data = cell(numChans,1);
                for kk=1:numChans
-                   count = 1;
+                   count = 1;Data{kk} = zeros(reps*numStimuli,2);
                    for ll=1:numStimuli
                        for mm=1:reps
-                           Data(kk,count,1) = ll;
-                           Data(kk,count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                           Data{kk}(count,1) = ll;
+                           Data{kk}(count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
                                -min(squeeze(Response(kk,ll,mm,vepNegativity)));
                            count = count+1;
                        end
                    end
                end
                
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_InvGauss(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-%                display(finalParameters)
                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
@@ -114,13 +114,13 @@ for ii=1:length(Animals)
                
                xaxis = 1:w_pixels;
                yaxis = 1:h_pixels;
-               Data = zeros(numChans,numStimuli*reps,2);
+               Data = cell(numChans,1);
                for kk=1:numChans
-                   count = 1;
+                   count = 1;Data{kk} = zeros(numStimuli*reps,2);
                    for ll=1:numStimuli
                        for mm=1:reps
-                           Data(kk,count,1) = ll;
-                           Data(kk,count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                           Data{kk}(count,1) = ll;
+                           Data{kk}(count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
                                -min(squeeze(Response(kk,ll,mm,vepNegativity)));
                            count = count+1;
                        end
