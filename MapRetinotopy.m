@@ -73,7 +73,7 @@ fprintf('Making plots ...\n');
 vepResponse = Response;
 dimReduceData = Data;
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans');
+    'numChans','w_pixels','h_pixels');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -164,7 +164,7 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
             end
         end
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
-        caxis([400 900]);
+        caxis([parameterVec(7) parameterVec(7)+500]);
         ylabel(w,'Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         
     end
