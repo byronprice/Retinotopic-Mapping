@@ -35,7 +35,7 @@ for ii=1:length(Animals)
            
            stimLen = round(0.3*sampleFreq); % 300 milliseconds
            vepNegativity = round(0.05*sampleFreq):round(0.12*sampleFreq);
-           vepPositivity = round(0.12*sampleFreq):round(0.2*sampleFreq);
+           vepPositivity = round(0.12*sampleFreq):round(0.3*sampleFreq);
            strobeStart = 33;
            strobeTimes = tsevs{strobeStart};
            smoothKernel = 4;
@@ -74,11 +74,18 @@ for ii=1:length(Animals)
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data{kk}(count,1) = ll;
+                           [minVal,index] = min(squeeze(Response(kk,ll,mm,vepNegativity)));
                            Data{kk}(count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
-                               -min(squeeze(Response(kk,ll,mm,vepNegativity)));
+                               -minVal;
                            count = count+1;
                        end
                    end
+                   tempData = Data{kk};
+                   temp = tempData(:,2);
+                   outlier = mean(temp)+4*std(temp);
+                   indeces = find(temp>outlier);
+                   tempData(indeces,:) = [];
+                   Data{ii} = tempData;
                end
                
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);

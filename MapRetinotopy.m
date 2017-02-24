@@ -45,7 +45,7 @@ mmPerPixel = stimParams.mmPerPixel;
 % get LFP response to each stimulus (the VEPs)
 stimLen = round(0.3*sampleFreq);
 minWin = round(0.05*sampleFreq):1:round(0.12*sampleFreq);
-maxWin = round(.12*sampleFreq):1:round(0.2*sampleFreq);
+maxWin = round(.15*sampleFreq):1:round(0.3*sampleFreq);
 [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
 
 xaxis = 1:w_pixels;
@@ -59,7 +59,7 @@ for ii=1:numChans
         tempData(jj,2) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
     temp = tempData(:,2);
-    outlier = mean(temp)+3*std(temp);
+    outlier = mean(temp)+4*std(temp);
     indeces = find(temp>outlier);
     tempData(indeces,:) = [];
     Data{ii} = tempData;
