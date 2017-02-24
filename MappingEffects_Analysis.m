@@ -35,7 +35,7 @@ for ii=1:length(Animals)
            
            stimLen = round(0.3*sampleFreq); % 300 milliseconds
            vepNegativity = round(0.05*sampleFreq):round(0.12*sampleFreq);
-           vepPositivity = round(0.15*sampleFreq):round(0.25*sampleFreq);
+           vepPositivity = round(0.12*sampleFreq):round(0.2*sampleFreq);
            strobeStart = 33;
            strobeTimes = tsevs{strobeStart};
            smoothKernel = 4;
@@ -81,7 +81,7 @@ for ii=1:length(Animals)
                    end
                end
                
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_InvGauss(Data,xaxis,yaxis,centerVals);
+%                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);

@@ -7,7 +7,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_InvGa
 %    inverse Gaussian likelihood)
 %
 
-%Created: 2017/02/16, 24 Cummington Mall, Boston
+%Created: 2017/02/22, 24 Cummington Mall, Boston
 % Byron Price
 %Updated: 2017/02/22
 % By: Byron Price
@@ -45,7 +45,7 @@ for zz=1:numChans
     % repeat gradient ascent from a number of different starting
     %  positions
 
-    for repeats = 1:numRepeats
+    parfor repeats = 1:numRepeats
         parameterVec = zeros(numParameters,maxITER);
         logLikelihood = zeros(reps,maxITER);
 

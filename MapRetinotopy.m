@@ -37,6 +37,7 @@ numStimuli = stimParams.numStimuli;
 w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
+mmPerPixel = stimParams.mmPerPixel;
 
 % convert from allad to ChanData by filtering
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
@@ -73,7 +74,7 @@ fprintf('Making plots ...\n');
 vepResponse = Response;
 dimReduceData = Data;
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels');
+    'numChans','w_pixels','h_pixels','mmPerPixel');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
