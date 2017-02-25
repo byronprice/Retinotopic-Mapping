@@ -80,7 +80,7 @@ driftSpeed = [w_pixels,h_pixels]./driftTime;
                   % drift speed in pixels / second
 driftSpeed = driftSpeed.*ifi; % pixels / screen refresh
 
-checkRefresh1 = round(checkRefresh/ifi);
+checkRefresh1 = round((checkRefresh*2)/ifi);
 
 dgshader = [directory '/RetinotopyCallaway.vert.txt'];
 GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/RetinotopyCallaway.frag.txt'] }, 1);
@@ -103,6 +103,7 @@ centerPos{3} = 1:driftSpeed(2):h_pixels;
 centerPos{4} = h_pixels:-driftSpeed(2):1;
 
 Flashes = cell(numDirs,1);
+checkPhase = cell(numDirs,1);
 eventNums = cell(numDirs,1);
 centerLen = cell(numDirs,1);
 for ii=1:numDirs
@@ -110,6 +111,7 @@ for ii=1:numDirs
     centerLen{ii} = length(centers);
     values = mod(0:centerLen{ii}-1,checkRefresh1) < checkRefresh1/2;
     temp = diff(values);Flashes{ii} = [0,temp];
+    checkPhase{ii} = values;
     eventNums{ii} = zeros(centerLen{ii},1);
 end
 
@@ -144,7 +146,7 @@ for zz = 1:numDirs
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
             [], [],[Color(1),Color(2),Width,centerPos{zz}(jj),vertOhorz,checkSize, ...
-            Flashes{zz}(jj),0]);
+            checkPhase{zz}(jj),0]);
             % Request stimulus onset
             vbl = Screen('Flip', win,vbl+ifi/2);
             usb.strobeEventWord(eventNums{zz}(jj));

@@ -18,15 +18,12 @@ void main()
     vec2 pos = gl_TexCoord[0].xy;
     float currentPos; 
     float color1;
-    float color2;
 
-    if (checkPhase < 0.5) {
+    if (checkPhase == 0.0) {
         color1 = White;
-        color2 = Black;
          }
     else {
         color1 = Black;
-        color2 = White;
     }
             
     if (vertOhorz < 1.5) {
@@ -37,11 +34,8 @@ void main()
         }
     
     float kernel = exp(-(currentPos*currentPos)/(Width*Width/2.0));
-    if (mod(floor(pos[0]/checkSize)+floor(pos[1]/checkSize),2.0) <= 0.5) {
-        gl_FragColor = vec4(color1,color1,color1,kernel);
-        }
-    else {
-        gl_FragColor = vec4(color2,color2,color2,kernel);
-        }
+    float color = abs(color1-mod(floor(pos[0]/checkSize)+floor(pos[1]/checkSize),2.0));
+    gl_FragColor = vec4(color,color,color,kernel);
+
 
 }

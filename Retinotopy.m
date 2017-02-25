@@ -16,7 +16,7 @@ function [] = Retinotopy(AnimalName,startHold)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/17
+% Updated: 2017/02/25
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -97,13 +97,13 @@ while count <= numStimuli
     xPos = border+unidrnd(w_pixels-2*border);
     yPos = border+unidrnd(h_pixels-2*border);
     dist = DistFun(centerVals(count-1,:),[xPos,yPos]);
-    if dist > Radius
+    if dist > 2*Radius
        centerVals(count,:) = [xPos,yPos];
        count = count+1;
     end
 end
 
-estimatedTime = ((waitTime+stimTime)*reps*blocks+blocks*holdTime)/60;
+estimatedTime = ((waitTime+0.1+stimTime)*reps*blocks+blocks*holdTime)/60;
 fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
 
 % Define first and second ring color as RGBA vector with normalized color
@@ -117,7 +117,7 @@ White = 1;
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 orient = rand([numStimuli,1]).*(2*pi);
-waitTimes = waitTime+exprnd(0.05,[numStimuli,1]);
+waitTimes = waitTime+exprnd(0.1,[numStimuli,1]);
 
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
