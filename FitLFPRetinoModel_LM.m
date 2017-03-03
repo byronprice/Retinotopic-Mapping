@@ -21,7 +21,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Re
 %    and sigma = p(6)
 
 % parameter estimates are constrained to a reasonable range of values
-Bounds = [0,600;min(xaxis),max(xaxis);min(yaxis),max(yaxis);1,1000;1,1000;1,1000;0,1000];
+Bounds = [0,700;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;1,1000;1,1000;1,1000;0,1000];
 numChans = size(Response,1);
 
 numParameters = 7;
@@ -111,8 +111,11 @@ for zz=1:numChans
             gradientVec(jj) = (gradLikelihoodplus-logLikelihood(iter))./h(jj);
         end
         tempParams = parameterVec(iter,:)+lambda*gradientVec;
+        
+        tempParams = max(Bounds(:,1)',min(tempParams,Bounds(:,2)'));
+        
         tempLikelihood = GetLikelihood(reps,tempParams,peakNegativity,flashPoints);
-        check = logLikelihood(iter)-tempLikelihood;
+        check = tempLikelihood-logLikelihood(iter);
         
         if check <= 0
             lambda = lambda/10;

@@ -132,6 +132,12 @@ for ii=1:length(Animals)
                            count = count+1;
                        end
                    end
+                   tempData = Data{kk};
+                   temp = tempData(:,2);
+                   outlier = mean(temp)+4*std(temp);
+                   indeces = find(temp>outlier);
+                   tempData(indeces,:) = [];
+                   Data{ii} = tempData;
                end
                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);

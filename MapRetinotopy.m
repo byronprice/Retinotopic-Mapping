@@ -34,6 +34,7 @@ stimStrobeNum = stimParams.stimStrobeNum;
 stimTime = stimParams.stimTime;
 holdTime = stimParams.holdTime;
 numStimuli = stimParams.numStimuli;
+reps = stimParams.reps;
 w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 DistToScreen = stimParams.DistToScreen;
@@ -46,11 +47,19 @@ mmPerPixel = stimParams.mmPerPixel;
 stimLen = round(0.3*sampleFreq);
 minWin = round(0.05*sampleFreq):1:round(0.12*sampleFreq);
 maxWin = round(.12*sampleFreq):1:round(0.3*sampleFreq);
-[Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
+
 
 xaxis = 1:w_pixels;
 yaxis = 1:h_pixels;
 Data = cell(numChans,1);
+
+if isempty(reps) == 1
+    [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed);
+elseif isempty(reps) == 0
+    tempNumStimuli = numStimuli;
+    numStimuli = numStimuli*reps;
+    [Response,centerVals] = CollectVEPSold(ChanData,timeStamps,tsevs,svStrobed,tempNumStimuli,reps);
+end
 
 for ii=1:numChans
     tempData = zeros(numStimuli,2);
@@ -74,7 +83,7 @@ fprintf('Making plots ...\n');
 vepResponse = Response;
 dimReduceData = Data;
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel');
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -138,6 +147,32 @@ function [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
             fprintf('Error: Number of strobes does not equal number of stimuli');
         end
     end
+end
+
+function [Response,centerVals] = CollectVEPSold(ChanData,timeStamps,tsevs,svStrobed,tempNumStimuli,reps)
+    global numChans numStimuli stimLen centerVals;
+    strobeStart = 33;
+    strobeTimes = tsevs{1,strobeStart};
+    % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
+    
+    tempCenterVals = zeros(numStimuli,2);
+    Response = zeros(numChans,numStimuli,stimLen);
+
+    for ii=1:numChans
+        count = 1;
+        for jj=1:tempNumStimuli
+            stimStrobes = strobeTimes(svStrobed == jj);
+            for kk=1:reps
+                stimOnset = stimStrobes(kk);
+                [~,index] = min(abs(timeStamps-stimOnset));
+                temp = ChanData(index:index+stimLen-1,ii);
+                Response(ii,count,:) = temp;
+                tempCenterVals(count,:) = centerVals(jj,:);
+                count = count+1;
+            end
+        end
+    end
+    centerVals = tempCenterVals;
 end
 
 function [h] = MakePlots(finalParameters,AnimalName,x,y)
