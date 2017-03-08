@@ -8,7 +8,7 @@ function [ ] = MappingEffects_Analysis(Animals,Channels)
 %
 % Created: 2017/02/06
 %  Byron Price
-% Updated: 2017/02/12
+% Updated: 2017/03/06
 % By: Byron Price
 
 cd('~/CloudStation/ByronExp/MappingEffects');
@@ -16,10 +16,12 @@ cd('~/CloudStation/ByronExp/MappingEffects');
 for ii=1:length(Animals)
    dataFiles = dir(sprintf('MappingEffectsData*%d.plx',Animals(ii)));
    stimFiles = dir(sprintf('MappingEffectsStim*%d.mat',Animals(ii)));
+   
    numFiles = length(dataFiles);
-   fprintf('Running animal %d\n',Animals(ii));
+   fprintf('Running animal %d\n\n',Animals(ii));
    
    dailyParameters = cell(numFiles,1);
+   mapData = cell(numFiles,1);
    parameterCI = cell(numFiles,1);
    fisherInformation = cell(numFiles,1);
    srpSize = cell(numFiles,1);
@@ -70,29 +72,30 @@ for ii=1:length(Animals)
                yaxis = 1:h_pixels;
                Data = cell(numChans,1);
                for kk=1:numChans
-                   count = 1;Data{kk} = zeros(reps*numStimuli,2);
+                   count = 1;Data{kk} = zeros(reps*numStimuli,3);
                    for ll=1:numStimuli
                        for mm=1:reps
-                           Data{kk}(count,1) = ll;
-                           [minVal,index] = min(squeeze(Response(kk,ll,mm,vepNegativity)));
-                           Data{kk}(count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                           Data{kk}(count,1:2) = centerVals(ll,:);
+                           [minVal,~] = min(squeeze(Response(kk,ll,mm,vepNegativity)));
+                           Data{kk}(count,3) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
                                -minVal;
                            count = count+1;
                        end
                    end
                    tempData = Data{kk};
-                   temp = tempData(:,2);
+                   temp = tempData(:,3);
                    outlier = mean(temp)+4*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
-                   Data{ii} = tempData;
+                   Data{kk} = tempData;
                end
-               
+
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
+               mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
                fisherInformation{jj} = fisherInfo;
            elseif ConditionNumber == 2
@@ -123,25 +126,27 @@ for ii=1:length(Animals)
                yaxis = 1:h_pixels;
                Data = cell(numChans,1);
                for kk=1:numChans
-                   count = 1;Data{kk} = zeros(numStimuli*reps,2);
+                   count = 1;Data{kk} = zeros(numStimuli*reps,3);
                    for ll=1:numStimuli
                        for mm=1:reps
-                           Data{kk}(count,1) = ll;
-                           Data{kk}(count,2) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                           Data{kk}(count,1:2) = centerVals(ll,:);
+                           Data{kk}(count,3) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
                                -min(squeeze(Response(kk,ll,mm,vepNegativity)));
                            count = count+1;
                        end
                    end
                    tempData = Data{kk};
-                   temp = tempData(:,2);
+                   temp = tempData(:,3);
                    outlier = mean(temp)+4*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
-                   Data{ii} = tempData;
+                   Data{kk} = tempData;
                end
-               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
+
+               [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
+               mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
                fisherInformation{jj} = fisherInfo;
                
@@ -190,12 +195,16 @@ for ii=1:length(Animals)
         clear h;
    end
    filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
-   if exist('w_pixels','var') == 1
+   if ConditionNumber == 1
+       save(filename,'dailyParameters','parameterCI','fisherInformation',...
+            'ConditionNumber','goodChannels','numFiles','w_pixels',...
+            'h_pixels','mapData');
+   elseif ConditionNumber == 2
         save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'srpSize','srpVEP','ConditionNumber','goodChannels','numFiles','w_pixels',...
-            'h_pixels');
-   else
-       save(filename,'dailyParameters','parameterCI','fisherInformation',...
+            'h_pixels','mapData');
+   elseif ConditionNumber == 3
+       save(filename,...
             'srpSize','srpVEP','ConditionNumber','goodChannels','numFiles');
    end
 end
@@ -207,9 +216,7 @@ function [ChanData,timeStamps,tsevs,svStrobed,numChans,sampleFreq] = ExtractSign
     % Extract LFP signals from allad, filter, get timestamps
     % read in the .plx file
 
-    if exist(strcat(EphysFileName(1:end-4),'.mat'),'file') ~= 2
-        readall(EphysFileName);pause(0.5);
-    end
+    readall(EphysFileName);pause(0.5);
 
     EphysFileName = strcat(EphysFileName(1:end-4),'.mat');
     load(EphysFileName)
@@ -286,12 +293,12 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
             for kk=1:length(yaxis)
                 distX = xaxis(jj)-parameterVec(2);
                 distY = yaxis(kk)-parameterVec(3);
-                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
+                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
         imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');
-        colormap('jet');caxis([300 800]);
+        colormap('jet');caxis([parameterVec(6) parameterVec(6)+400]);
         if ii==1
             w=colorbar;ylabel(w,'Pos-Neg (\muV)');
         end

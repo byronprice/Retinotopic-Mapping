@@ -63,7 +63,7 @@ for zz=1:numChans
         while abs(check) > tolerance && iter < maxITER
             [Jacobian,tempLikely] = GetJacobian(reps,parameterVec(:,iter),peakNegativity,flashPoints,numParameters,h,logLikelihood(:,iter));
             H = Jacobian'*Jacobian;
-            update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*((tempLikely-logLikelihood(:,iter))./h(1));
+            update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*((tempLikely-logLikelihood(:,iter))); % or /h(1)
             tempParams = parameterVec(:,iter)+update;
             
             tempParams = max(Bounds(:,1),min(tempParams,Bounds(:,2)));

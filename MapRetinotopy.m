@@ -13,10 +13,8 @@ function [] = MapRetinotopy(AnimalName,Date)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2017/02/21
+% Updated: 2017/03/08
 %  By: Byron Price
-
-cd('~/CloudStation/ByronExp/Retino');
 
 EphysFileName = sprintf('RetinoData%d_%d.plx',Date,AnimalName); 
   
@@ -62,12 +60,12 @@ elseif isempty(reps) == 0
 end
 
 for ii=1:numChans
-    tempData = zeros(numStimuli,2);
+    tempData = zeros(numStimuli,3);
     for jj=1:numStimuli
-        tempData(jj,1) = jj;
-        tempData(jj,2) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
+        tempData(jj,1:2) = centerVals(jj,:);
+        tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
-    temp = tempData(:,2);
+    temp = tempData(:,3);
     outlier = mean(temp)+4*std(temp);
     indeces = find(temp>outlier);
     tempData(indeces,:) = [];
@@ -75,7 +73,7 @@ for ii=1:numChans
 end
 
 fprintf('Fitting model ...\n');
-[finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis,centerVals);
+[finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
 
 fprintf('Making plots ...\n');
 [h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis); 
@@ -195,12 +193,12 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
             for kk=1:length(y)
                 distX = x(jj)-parameterVec(2);
                 distY = y(kk)-parameterVec(3);
-                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(7)];
+                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
-        caxis([parameterVec(7) parameterVec(7)+500]);
+        caxis([parameterVec(6) parameterVec(6)+500]);
         ylabel(w,'Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         
     end
