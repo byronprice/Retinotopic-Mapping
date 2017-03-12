@@ -10,8 +10,8 @@ xaxis = 1:2560; yaxis = 1:1440;
 files = dir(fileStart);
 numFiles = length(files);
 
-numModels = 7;
-numParameters = [2,6,7,8,8,10,11];
+numModels = 9;
+numParameters = [2,6,7,8,8,10,11,10,9];
 AIC = zeros(numModels,1);
 for zz=1:numFiles
    load(files(zz).name);
@@ -77,11 +77,16 @@ for zz=1:numFiles
                AIC(6) = AIC(6)+littleAIC;
                [littleAIC] = FitModel7(gaussResponse,xaxis,yaxis,centerVals);
                AIC(7) = AIC(7)+littleAIC;
+               [littleAIC] = FitModel8(gaussResponse,xaxis,yaxis,centerVals);
+               AIC(8) = AIC(8)+littleAIC;
+               [littleAIC] = FitModel9(gaussResponse,xaxis,yaxis,centerVals);
+               AIC(9) = AIC(9)+littleAIC;
            end
        end
 
 end
-
+numParameters
+AIC
 figure();plot(numParameters,AIC,'b','LineWidth',2);title('Retinotopic-Map Model Comparison: AIC');
 xlabel('Number of Parameters');ylabel('AIC');
 save('LFPRetinotopy_ModelComparison.mat','AIC','numParameters');

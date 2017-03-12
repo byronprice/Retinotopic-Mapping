@@ -24,7 +24,7 @@ global centerVals Radius stimTime holdTime numStimuli w_pixels h_pixels ...
 StimulusFileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 load(StimulusFileName)
 
-fprintf('Opening File: %s ...\n',EphysFileName);
+fprintf('Opening File: %s ...\n\n',EphysFileName);
 
 centerVals = stimParams.centerVals;
 Radius = stimParams.Radius;
@@ -66,22 +66,22 @@ for ii=1:numChans
         tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
     temp = tempData(:,3);
-    outlier = mean(temp)+4*std(temp);
+    outlier = median(temp)+5*std(temp);
     indeces = find(temp>outlier);
     tempData(indeces,:) = [];
     Data{ii} = tempData;
 end
 
-fprintf('Fitting model ...\n');
-[finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
+fprintf('Fitting model ...\n\n');
+[finalParameters,fisherInfo,ninetyfiveErrors,goodMap] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
 
-fprintf('Making plots ...\n');
-[h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis); 
+fprintf('Making plots ...\n\n');
+[h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis,goodMap); 
 
 vepResponse = Response;
 dimReduceData = Data;
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals');
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','goodMap');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -109,10 +109,15 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
     preAmpGain = 1;
     for ii=1:numChans
         voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-        n = 30;
+        n = 100;
         lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
         blo = fir1(n,lowpass,'low',hamming(n+1));
-        ChanData(:,ii) = filter(blo,1,voltage);
+        temp = filter(blo,1,voltage);
+        
+        notch = 60/(sampleFreq/2);
+        bw = notch/n;
+        [b,a] = iirnotch(notch,bw);
+        ChanData(:,ii) = filter(b,a,temp);
     end
 
     timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
@@ -173,7 +178,7 @@ function [Response,centerVals] = CollectVEPSold(ChanData,timeStamps,tsevs,svStro
     centerVals = tempCenterVals;
 end
 
-function [h] = MakePlots(finalParameters,AnimalName,x,y)
+function [h] = MakePlots(finalParameters,AnimalName,x,y,goodMap)
     global numChans w_pixels h_pixels;
 
     
@@ -183,22 +188,25 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
 
     for ii=1:numChans
         figure(h(ii));axis([0 w_pixels 0 h_pixels]);
-        title(sprintf('VEP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
+        title(sprintf('LFP Retinotopy: Chan %d, Animal %d - %d',ii,AnimalName,goodMap(ii)));
         xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
         hold on;
         
         finalIm = zeros(length(x),length(y));
         parameterVec = finalParameters(ii,:);
+        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6),parameterVec(7)];
         for jj=1:length(x)
             for kk=1:length(y)
                 distX = x(jj)-parameterVec(2);
                 distY = y(kk)-parameterVec(3);
-                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
-                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
+                
+                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
+                    (distY.^2)./(2*b(3)*b(3))-...
+                    b(4)*distX*distY/(2*b(2)*b(3)))+b(5);
             end
         end
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
-        caxis([parameterVec(6) parameterVec(6)+500]);
+        caxis([b(5) b(5)+400]);
         ylabel(w,'Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         
     end
