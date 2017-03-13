@@ -73,15 +73,15 @@ for ii=1:numChans
 end
 
 fprintf('Fitting model ...\n\n');
-[finalParameters,fisherInfo,ninetyfiveErrors,goodMap] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
+[finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
 
 fprintf('Making plots ...\n\n');
-[h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis,goodMap); 
+[h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis,signifMap); 
 
 vepResponse = Response;
 dimReduceData = Data;
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','goodMap');
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -194,19 +194,18 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y,goodMap)
         
         finalIm = zeros(length(x),length(y));
         parameterVec = finalParameters(ii,:);
-        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6),parameterVec(7)];
+        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
         for jj=1:length(x)
             for kk=1:length(y)
                 distX = x(jj)-parameterVec(2);
                 distY = y(kk)-parameterVec(3);
                 
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
-                    (distY.^2)./(2*b(3)*b(3))-...
-                    b(4)*distX*distY/(2*b(2)*b(3)))+b(5);
+                    (distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
-        caxis([b(5) b(5)+400]);
+        caxis([b(4) b(4)+400]);
         ylabel(w,'Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         
     end

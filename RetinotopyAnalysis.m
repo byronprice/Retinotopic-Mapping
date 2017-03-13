@@ -11,7 +11,7 @@ files = dir(fileStart);
 numFiles = length(files);
 
 numModels = 9;
-numParameters = [2,6,7,8,8,10,11,10,9];
+numParameters = [2,6,7,8,8,9,10,10,11];
 AIC = zeros(numModels,1);
 for zz=1:numFiles
    load(files(zz).name);
@@ -31,7 +31,7 @@ for zz=1:numFiles
        for ii=1:numChans
            check = sum(ninetyfiveErrors(ii,:));
            
-           if check < 2000
+           if check < 5000
                %                dataFile = [dataFile;files(zz).name];
                gaussResponse = zeros(numStimuli,1);
                
@@ -72,24 +72,29 @@ for zz=1:numFiles
                [littleAIC] = FitModel4(gaussResponse,xaxis,yaxis,centerVals);
                AIC(4) = AIC(4)+littleAIC;
                [littleAIC] = FitModel5(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(5) = AIC(5)+littleAIC;
+               AIC(8) = AIC(8)+littleAIC;
                [littleAIC] = FitModel6(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(6) = AIC(6)+littleAIC;
+               AIC(9) = AIC(9)+littleAIC;
                [littleAIC] = FitModel7(gaussResponse,xaxis,yaxis,centerVals);
                AIC(7) = AIC(7)+littleAIC;
                [littleAIC] = FitModel8(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(8) = AIC(8)+littleAIC;
+               AIC(7) = AIC(7)+littleAIC;
                [littleAIC] = FitModel9(gaussResponse,xaxis,yaxis,centerVals);
-               AIC(9) = AIC(9)+littleAIC;
+               AIC(6) = AIC(6)+littleAIC;
            end
        end
 
 end
 numParameters
 AIC
-figure();plot(numParameters,AIC,'b','LineWidth',2);title('Retinotopic-Map Model Comparison: AIC');
+h = figure();scatter(numParameters(1),AIC(1),'bd');hold on;
+scatter(numParameters(2:4),AIC(2:4),'rx');
+scatter(numParameters(5:9),AIC(5:9),'go');
+legend('Constant','Gaussian','DoG');
+title('Retinotopic-Map Model Comparison: AIC');
 xlabel('Number of Parameters');ylabel('AIC');
 save('LFPRetinotopy_ModelComparison.mat','AIC','numParameters');
+savefig(h,'LFPRetinotopy_ModelComparison.fig');
 end
 
 % finalIm = zeros(length(xaxis),length(yaxis));

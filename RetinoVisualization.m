@@ -26,7 +26,10 @@ yDiff = mean(diff(yAxis));
 xconv = stimLen/xDiff;
 yconv = 800/yDiff; % for height of the stimulus
 
+positivity = 120:300;
+negativity = 50:120;
 for ii=1:numChans
+%     data = max(squeeze(vepResponse(ii,:,positivity)),[],2)-min(squeeze(vepResponse(ii,:,negativity)),[],2);
     data = dimReduceData{ii}(:,3);
     xPos = dimReduceData{ii}(:,1);
     yPos = dimReduceData{ii}(:,2);
