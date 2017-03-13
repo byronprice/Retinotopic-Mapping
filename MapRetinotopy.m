@@ -66,14 +66,18 @@ for ii=1:numChans
         tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
     temp = tempData(:,3);
-    outlier = median(temp)+5*std(temp);
+    outlier = median(temp)+10*std(temp);
     indeces = find(temp>outlier);
+    tempData(indeces,:) = [];
+    
+    temp = tempData(:,3);
+    indeces = find(temp<0.1);
     tempData(indeces,:) = [];
     Data{ii} = tempData;
 end
 
 fprintf('Fitting model ...\n\n');
-[finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
+[finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis);
 
 fprintf('Making plots ...\n\n');
 [h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis,signifMap); 

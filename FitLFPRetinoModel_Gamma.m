@@ -1,4 +1,4 @@
-function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Response,xaxis,yaxis)
+function [finalParameters,fisherInfo,ninetyfiveErrors,conclusion] = FitLFPRetinoModel_Gamma(Response,xaxis,yaxis)
 %FitLFPRetinoModel_Gamma.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
 %    model of that retinotopy (data is maximum LFP magnitude in window 
@@ -9,7 +9,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma
 
 %Created: 2017/02/22, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/02/22
+%Updated: 2017/03/13
 % By: Byron Price
 
 %  model has 7 parameters, defined by vector p
@@ -33,6 +33,7 @@ numParameters = 7;
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
+conclusion = zeros(numChans,1);
 numRepeats = 5000;
 maxITER = 500;
 likelyTolerance = 1e-3;
@@ -57,7 +58,7 @@ for zz=1:numChans
         parameterVec = zeros(numParameters,maxITER);
         logLikelihood = zeros(reps,maxITER);
 
-        proposal = [1.75,100;4,250;4,250;1.75,150;1.75,150;1.5,200;1.5,0.5];
+        proposal = [2.5,78;5,200;2.6,152;6.7,38.6;5.9,40.3;8.6,43.1;1.5,0.5];
         for ii=1:numParameters 
               parameterVec(ii,1) = gamrnd(proposal(ii,1),proposal(ii,2));
         end
@@ -67,9 +68,8 @@ for zz=1:numChans
 
         check = 1;
         iter = 1;
-        lambda = 1000;
+        lambda = 100;
         update = ones(numParameters,1);
-
         try
             % for each starting position, do maxITER iterations
             while abs(check) > likelyTolerance && iter < maxITER && sum(abs(update)) > gradientTolerance
@@ -103,17 +103,33 @@ for zz=1:numChans
             
         end
     end
-    [~,index] = max(bigLikelihood(bigLikelihood~=0));
-    finalParameters(zz,:) = bigParameterVec(:,index)';
+    logicalInds = bigLikelihood~=0;
+    [~,index] = max(bigLikelihood(logicalInds));
+    
+    tempBigParams = bigParameterVec(:,logicalInds);
+    finalParameters(zz,:) = tempBigParams(:,index)';
     
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
+    
+    totalError = sum(ninetyfiveErrors(zz,:));
+    test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
+    
+    test2 = finalParameters(zz,:)'-Bounds;
+    test2([2,3,6],:) = [];
+    check = sum(sum(test2==0));
+    if totalError > 2000 || test(1) < 0 || check > 0
+       conclusion(zz) = 0;
+    else
+        conclusion(zz) = 1;
+    end
     display(zz);
+    display(conclusion(zz));
     display(finalParameters(zz,:));
     display(ninetyfiveErrors(zz,:));
 end
 end
 
-function [Jacobian,tempLikely] = GetJacobian(reps,parameterVec,peakNegativity,flashPoints,numParameters,h,prevLikely)
+function [Jacobian,tempLikely] = GetJacobian(reps,parameterVec,vepMagnitude,flashPoints,numParameters,h,prevLikely)
 Jacobian = zeros(reps,numParameters);
 tempLikely = zeros(reps,1);
 for kk=1:reps
@@ -121,27 +137,27 @@ for kk=1:reps
        tempParams = parameterVec;tempParams(jj) = tempParams(jj)+h(jj);
        mu = tempParams(1)*exp(-((flashPoints(kk,1)-tempParams(2)).^2)./(2*tempParams(4).^2)-...
         ((flashPoints(kk,2)-tempParams(3)).^2)./(2*tempParams(5).^2))+tempParams(6);
-       likelihood = (-peakNegativity(kk)/mu-log(mu))/tempParams(7)-log(tempParams(7))/tempParams(7)+...
-           (1/tempParams(7)-1)*log(peakNegativity(kk))-log(gamma(1/tempParams(7)));
+       likelihood = (-vepMagnitude(kk)/mu-log(mu))/tempParams(7)-log(tempParams(7))/tempParams(7)+...
+           (1/tempParams(7)-1)*log(vepMagnitude(kk))-log(gamma(1/tempParams(7)));
        Jacobian(kk,jj) = (likelihood-prevLikely(kk))/h(jj);
     end
     tempParams = parameterVec+h;
     mu = tempParams(1)*exp(-((flashPoints(kk,1)-tempParams(2)).^2)./(2*tempParams(4).^2)-...
         ((flashPoints(kk,2)-tempParams(3)).^2)./(2*tempParams(5).^2))+tempParams(6);
     
-    tempLikely(kk) = (-peakNegativity(kk)/mu-log(mu))/tempParams(7)-log(tempParams(7))/tempParams(7)+...
-           (1/tempParams(7)-1)*log(peakNegativity(kk))-log(gamma(1/tempParams(7)));
+    tempLikely(kk) = (-vepMagnitude(kk)/mu-log(mu))/tempParams(7)-log(tempParams(7))/tempParams(7)+...
+           (1/tempParams(7)-1)*log(vepMagnitude(kk))-log(gamma(1/tempParams(7)));
 end
 end
 
 
-function [loglikelihood] = GetLikelihood(reps,parameterVec,peakNegativity,flashPoints)
+function [loglikelihood] = GetLikelihood(reps,parameterVec,vepMagnitude,flashPoints)
 loglikelihood = zeros(reps,1);
 for kk=1:reps
     mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
         ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2))+parameterVec(6);
-    loglikelihood(kk) = (-peakNegativity(kk)/mu-log(mu))/parameterVec(7)-log(parameterVec(7))/parameterVec(7)+...
-           (1/parameterVec(7)-1)*log(peakNegativity(kk))-log(gamma(1/parameterVec(7)));
+    loglikelihood(kk) = (-vepMagnitude(kk)/mu-log(mu))/parameterVec(7)-log(parameterVec(7))/parameterVec(7)+...
+           (1/parameterVec(7)-1)*log(vepMagnitude(kk))-log(gamma(1/parameterVec(7)));
 end
 end
 
