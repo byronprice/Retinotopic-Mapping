@@ -70,35 +70,40 @@ for zz=1:numChans
         lambda = 1000;
         update = ones(numParameters,1);
 
-        % for each starting position, do maxITER iterations
-        while abs(check) > likelyTolerance && iter < maxITER && sum(abs(update)) > gradientTolerance
-            [Jacobian,tempLikely] = GetJacobian(reps,parameterVec(:,iter),vepMagnitude,flashPoints,numParameters,h,logLikelihood(:,iter));
-            H = Jacobian'*Jacobian;
-            update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*((logLikelihood(:,iter)-tempLikely)); % or /h(1)
-            
-            tempParams = parameterVec(:,iter)+update;
-            
-            tempParams = max(Bounds(:,1),min(tempParams,Bounds(:,2)));
-            
-            [tempLikely] = GetLikelihood(reps,tempParams,vepMagnitude,flashPoints);
-            check = sum(tempLikely)-sum(logLikelihood(:,iter));
-            if check <= 0
-                parameterVec(:,iter+1) = parameterVec(:,iter);
-                logLikelihood(:,iter+1) = logLikelihood(:,iter);
-                lambda = min(lambda*10,1e10);
-%                 check = 1;
-            else
-                parameterVec(:,iter+1) = tempParams;
-                logLikelihood(:,iter+1) = tempLikely;
-                lambda = max(lambda/10,1e-10);
+        try
+            % for each starting position, do maxITER iterations
+            while abs(check) > likelyTolerance && iter < maxITER && sum(abs(update)) > gradientTolerance
+                [Jacobian,tempLikely] = GetJacobian(reps,parameterVec(:,iter),vepMagnitude,flashPoints,numParameters,h,logLikelihood(:,iter));
+                H = Jacobian'*Jacobian;
+                update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*((logLikelihood(:,iter)-tempLikely)); % or /h(1)
+                
+                tempParams = parameterVec(:,iter)+update;
+                
+                tempParams = max(Bounds(:,1),min(tempParams,Bounds(:,2)));
+                
+                [tempLikely] = GetLikelihood(reps,tempParams,vepMagnitude,flashPoints);
+                check = sum(tempLikely)-sum(logLikelihood(:,iter));
+                if check <= 0
+                    parameterVec(:,iter+1) = parameterVec(:,iter);
+                    logLikelihood(:,iter+1) = logLikelihood(:,iter);
+                    lambda = min(lambda*10,1e10);
+                    %                 check = 1;
+                else
+                    parameterVec(:,iter+1) = tempParams;
+                    logLikelihood(:,iter+1) = tempLikely;
+                    lambda = max(lambda/10,1e-10);
+                end
+                iter = iter+1;
             end
-            iter = iter+1;
+            
+            maxLikelies = sum(logLikelihood(:,1:iter),1);
+            [bigLikelihood(repeats),index] = max(maxLikelies);
+            bigParameterVec(:,repeats) = parameterVec(:,index);
+        catch
+            
         end
-        maxLikelies = sum(logLikelihood(:,1:iter),1);
-        [bigLikelihood(repeats),index] = max(maxLikelies);
-        bigParameterVec(:,repeats) = parameterVec(:,index);
     end
-    [~,index] = max(bigLikelihood);
+    [~,index] = max(bigLikelihood(bigLikelihood~=0));
     finalParameters(zz,:) = bigParameterVec(:,index)';
     
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
