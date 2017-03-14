@@ -37,8 +37,8 @@ for ii=1:numChans
     fprintf('Horizontal spread: %3.0f +/- %3.0f mm\n',parameterVec(4)*mmPerPixel,errors(4)*mmPerPixel);
     fprintf('Vertical spread: %3.0f +/- %3.0f mm\n',parameterVec(5)*mmPerPixel,errors(5)*mmPerPixel);
   
-    varianceExplained = (origVariance-parameterVec(7)^2)./origVariance;
-    fprintf('Variance Explained: %3.1f %%\n\n',varianceExplained*100);
+%     varianceExplained = (origVariance-parameterVec(7)^2)./origVariance;
+%     fprintf('Variance Explained: %3.1f %%\n\n',varianceExplained*100);
     
     for jj=1:length(x)
         for kk=1:length(y)

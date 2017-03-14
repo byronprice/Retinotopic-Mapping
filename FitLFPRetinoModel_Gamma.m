@@ -34,8 +34,8 @@ finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 conclusion = zeros(numChans,1);
-numRepeats = 5000;
-maxITER = 500;
+numRepeats = 10000;
+maxITER = 100;
 likelyTolerance = 1e-3;
 gradientTolerance = 1e-5;
 
@@ -53,29 +53,35 @@ for zz=1:numChans
     bigLikelihood = zeros(numRepeats,1);
     % repeat gradient ascent from a number of different starting
     %  positions
-
+    
+    phat = gamfit(vepMagnitude);medianVal = median(vepMagnitude);
+%     meanVal = mean(vepMagnitude);modeVal = (phat(1)-1)*phat(2);
     parfor repeats = 1:numRepeats
         parameterVec = zeros(numParameters,maxITER);
         logLikelihood = zeros(reps,maxITER);
 
         proposal = [2.5,78;5,200;2.6,152;6.7,38.6;5.9,40.3;8.6,43.1;1.5,0.5];
-        for ii=1:numParameters 
+        for ii=1:numParameters-2
               parameterVec(ii,1) = gamrnd(proposal(ii,1),proposal(ii,2));
         end
-        parameterVec(6,1) = median(vepMagnitude)+normrnd(0,50);
+        parameterVec(6,1) = medianVal+normrnd(0,50);
+        parameterVec(7,1) = 1/phat(1)+normrnd(0,0.1);
+        
+        parameterVec(:,1) = max(Bounds(:,1),min(parameterVec(:,1),Bounds(:,2)));
         
         [logLikelihood(:,1)] = GetLikelihood(reps,parameterVec(:,1),vepMagnitude,flashPoints);
 
         check = 1;
         iter = 1;
-        lambda = 100;
+        lambda = 1000;
         update = ones(numParameters,1);
+%         figure();scatter(iter,sum(logLikelihood(:,iter)));pause(1);hold on;
         try
             % for each starting position, do maxITER iterations
             while abs(check) > likelyTolerance && iter < maxITER && sum(abs(update)) > gradientTolerance
                 [Jacobian,tempLikely] = GetJacobian(reps,parameterVec(:,iter),vepMagnitude,flashPoints,numParameters,h,logLikelihood(:,iter));
                 H = Jacobian'*Jacobian;
-                update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*((logLikelihood(:,iter)-tempLikely)); % or /h(1)
+                update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*((logLikelihood(:,iter)-tempLikely)/h(1)); % or /h(1)
                 
                 tempParams = parameterVec(:,iter)+update;
                 
@@ -87,13 +93,20 @@ for zz=1:numChans
                     parameterVec(:,iter+1) = parameterVec(:,iter);
                     logLikelihood(:,iter+1) = logLikelihood(:,iter);
                     lambda = min(lambda*10,1e10);
-                    %                 check = 1;
+                    check = 1;
+% %                     display('no');
+% %                 elseif check == 0
+% %                     check = 1;
+%                     tempParams = parameterVec(:,iter)+normrnd(0,10,[numParameters,1]);
+%                     tempParams = max(Bounds(:,1),min(tempParams,Bounds(:,2)));
+%                     logLikelihood(:,iter+1) = GetLikelihood(reps,tempParams,vepMagnitude,flashPoints);
+%                     lambda = min(lambda*10,1e10);
                 else
                     parameterVec(:,iter+1) = tempParams;
                     logLikelihood(:,iter+1) = tempLikely;
                     lambda = max(lambda/10,1e-10);
                 end
-                iter = iter+1;
+                iter = iter+1;%scatter(iter,sum(logLikelihood(:,iter)));pause(0.01);
             end
             
             maxLikelies = sum(logLikelihood(:,1:iter),1);
@@ -104,17 +117,19 @@ for zz=1:numChans
         end
     end
     logicalInds = bigLikelihood~=0;
-    [~,index] = max(bigLikelihood(logicalInds));
+    [maxVal,index] = max(bigLikelihood(logicalInds));
     
     tempBigParams = bigParameterVec(:,logicalInds);
     finalParameters(zz,:) = tempBigParams(:,index)';
     
+    allInds = bigLikelihood(logicalInds) == maxVal;
+    sum(allInds)
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
     totalError = sum(ninetyfiveErrors(zz,:));
     test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
     
-    test2 = finalParameters(zz,:)'-Bounds;
+    test2 = repmat(finalParameters(zz,:)',[1,2])-Bounds;
     test2([2,3,6],:) = [];
     check = sum(sum(test2==0));
     if totalError > 2000 || test(1) < 0 || check > 0
