@@ -34,7 +34,7 @@ finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 conclusion = zeros(numChans,1);
-numRepeats = 10000;
+numRepeats = 1e4;
 maxITER = 100;
 likelyTolerance = 1e-3;
 gradientTolerance = 1e-5;
@@ -122,8 +122,6 @@ for zz=1:numChans
     tempBigParams = bigParameterVec(:,logicalInds);
     finalParameters(zz,:) = tempBigParams(:,index)';
     
-    allInds = bigLikelihood(logicalInds) == maxVal;
-    sum(allInds)
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
     totalError = sum(ninetyfiveErrors(zz,:));
@@ -132,7 +130,7 @@ for zz=1:numChans
     test2 = repmat(finalParameters(zz,:)',[1,2])-Bounds;
     test2([2,3,6],:) = [];
     check = sum(sum(test2==0));
-    if totalError > 2000 || test(1) < 0 || check > 0
+    if totalError > 2000 || test(1) < 0 || check > 0 %|| test(4) < 0 || test(5) < 0
        conclusion(zz) = 0;
     else
         conclusion(zz) = 1;
