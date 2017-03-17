@@ -133,7 +133,7 @@ for zz=1:numChans
             logLikelihood(iter+1) = logLikelihood(iter);
         else
             parameterVec(iter+1,:) = tempParams;
-            logLikelihood(iter+1,:) = tempLikelihood;
+            logLikelihood(iter+1) = tempLikelihood;
         end
         iter = iter+1;
     end

@@ -1,15 +1,15 @@
-function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = FitLFPRetinoModel_Gamma(Response,xaxis,yaxis,numRepeats)
+function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = FitLFPRetinoModel_Loglog(Response,xaxis,yaxis,numRepeats)
 %FitLFPRetinoModel_Gamma.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
 %    model of that retinotopy (data is maximum LFP magnitude in window 
 %    from 150 to 250msec minus minimum magnitude in window from 50 to
 %    120 msec after stimulus presentation, assumes a
-%    Gamma likelihood)
+%    log-logistic likelihood)
 %
 
-%Created: 2017/02/22, 24 Cummington Mall, Boston
+%Created: 2017/03/17, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/03/16
+%Updated: 2017/03/17
 % By: Byron Price
 
 %  model has 7 parameters, defined by vector p
@@ -25,7 +25,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 %      as theta = variance/mu = phi*mu and k = 1/phi
 
 % parameter estimates are constrained to a reasonable range of values
-Bounds = [0,2000;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;1,1000;1,1000;0,1000;-1,1;1e-2,100];
+Bounds = [1e-1,10;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;50,1000;50,1000;1e-3,10;-1,1;1e-3,1];
 numChans = size(Response,1);
 
 numParameters = 8;
@@ -49,29 +49,28 @@ for zz=1:numChans
     reps = size(Data,1);
     
     flashPoints = Data(:,1:2);
-    vepMagnitude = abs(Data(:,3));
+    vepMagnitude = Data(:,3);
     
     h = ones(numParameters,1)./1000;
-    bigParameterVec = zeros(numParameters-1,numRepeats);
+    bigParameterVec = zeros(numParameters,numRepeats);
     bigDeviance = zeros(numRepeats,1);
     % repeat gradient ascent from a number of different starting
     %  positions
     
-%     phat = gamfit(vepMagnitude);
-    medianVal = median(vepMagnitude);
-%     meanVal = mean(vepMagnitude);modeVal = (phat(1)-1)*phat(2);
+    phat = mle(vepMagnitude,'distribution','loglogistic');
     parfor repeats = 1:numRepeats
-        parameterVec = zeros(numParameters-1,maxITER);
+        parameterVec = zeros(numParameters,maxITER);
         totalDeviance = zeros(maxITER,1);
         
-        proposal = [2.5,78;5,200;2.6,152;6.7,38.6;5.9,40.3;8.6,43.1;0,0.25;1.5,0.5];
+        proposal = [2.5,5;5,200;2.6,152;6.7,38.6;5.9,40.3;8.6,10;0,0.25;1.5,0.1];
         for ii=1:numParameters-3
               parameterVec(ii,1) = gamrnd(proposal(ii,1),proposal(ii,2));
         end
-        parameterVec(6,1) = medianVal+normrnd(0,50);
+        parameterVec(6,1) = phat(1)+normrnd(0,1);
         parameterVec(7,1) = normrnd(proposal(7,1),proposal(7,2));
-        
-        parameterVec(:,1) = max(Bounds(1:numParameters-1,1),min(parameterVec(:,1),Bounds(1:numParameters-1,2)));
+        parameterVec(8,1) = phat(2)+normrnd(0,proposal(8,2));
+
+        parameterVec(:,1) = max(Bounds(1:numParameters,1),min(parameterVec(:,1),Bounds(1:numParameters,2)));
         
         deviance = GetDeviance(reps,parameterVec,vepMagnitude,flashPoints);
         mu = GetMu(reps,parameterVec,flashPoints);
@@ -87,26 +86,27 @@ for zz=1:numChans
             % for each starting position, do maxITER iterations
             
             while abs(check) > likelyTolerance && iter < maxITER && sum(abs(update)) > gradientTolerance
-                [Jacobian] = GetJacobian(reps,parameterVec(:,iter),flashPoints,numParameters-1,h,mu);
+                [Jacobian] = GetJacobian(reps,parameterVec(:,iter),flashPoints,numParameters,h,mu);
                 H = Jacobian'*Jacobian;
-                update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*(vepMagnitude-mu);
+                update = pinv(H+lambda.*diag(diag(H)))*Jacobian'*(log(vepMagnitude)-mu);
                 tempParams = parameterVec(:,iter)+update;
             
-                tempParams = max(Bounds(1:numParameters-1,1),min(tempParams,Bounds(1:numParameters-1,2)));
+                tempParams = max(Bounds(1:numParameters,1),min(tempParams,Bounds(1:numParameters,2)));
             
                 [tempMu] = GetMu(reps,tempParams,flashPoints);
-               
-                totalDeviance(iter+1) = sum(2*(log(tempMu./vepMagnitude)+(vepMagnitude-tempMu)./tempMu));
+                deviance = GetDeviance(reps,tempParams,vepMagnitude,flashPoints);
+                
+                totalDeviance(iter+1) = sum(deviance);
                 check = diff(totalDeviance(iter:iter+1));
                 if check >= 0
                     parameterVec(:,iter+1) = parameterVec(:,iter);
-                    lambda = min(lambda*10,1e10);
+                    lambda = min(lambda*10,1e15);
                     check = 1;
                     totalDeviance(iter+1) = totalDeviance(iter);
                 else
                     parameterVec(:,iter+1) = tempParams;
                     mu = tempMu;
-                    lambda = max(lambda/10,1e-10);
+                    lambda = max(lambda/10,1e-15);
                 end
                 iter = iter+1;%scatter(iter,totalDeviance(iter));pause(0.01);
             end
@@ -117,13 +117,11 @@ for zz=1:numChans
             
         end
     end
-    logicalInds = bigDeviance~=0;
+    logicalInds = bigDeviance~=0;figure();histogram(bigDeviance(logicalInds),1:50:1000);
     [minimumDev,index] = min(bigDeviance(logicalInds));
     
-    dispersionEstimate = minimumDev/(reps-numParameters);
     tempBigParams = bigParameterVec(:,logicalInds);
-    finalParameters(zz,1:numParameters-1) = tempBigParams(:,index)';
-    finalParameters(zz,end) = dispersionEstimate;
+    finalParameters(zz,1:numParameters) = tempBigParams(:,index)';
     
     parameterVec = zeros(maxITER,numParameters);
     logLikelihood = zeros(reps,maxITER);
@@ -167,7 +165,7 @@ for zz=1:numChans
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
     Deviance(zz) = sum(deviance);
-    chi2p(zz) = 1-chi2cdf(Deviance(zz)/finalParameters(zz,end),reps-numParameters);
+    chi2p(zz) = 1-chi2cdf(Deviance(zz),reps-numParameters);
     
     totalError = sum(ninetyfiveErrors(zz,:));
     test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
@@ -209,8 +207,8 @@ for kk=1:reps
     mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
         ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2)-...
         parameterVec(7)*(flashPoints(kk,1)-parameterVec(2))*(flashPoints(kk,2)-parameterVec(3))/(2*parameterVec(4)*parameterVec(5)))+parameterVec(6);
-    loglikelihood(kk) = (-vepMagnitude(kk)/mu-log(mu))/parameterVec(8)-log(parameterVec(8))/parameterVec(8)+...
-           (1/parameterVec(8)-1)*log(vepMagnitude(kk))-log(gamma(1/parameterVec(8)));
+    loglikelihood(kk) = -log(parameterVec(8))-log(vepMagnitude(kk))+(log(vepMagnitude(kk))-mu)/parameterVec(8)-...
+        2*log(1+exp((log(vepMagnitude(kk))-mu)/parameterVec(8)));
 end
 end
 
@@ -231,7 +229,8 @@ for kk=1:reps
     mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
         ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2)-...
         parameterVec(7)*(flashPoints(kk,1)-parameterVec(2))*(flashPoints(kk,2)-parameterVec(3))/(2*parameterVec(4)*parameterVec(5)))+parameterVec(6);
-    deviance(kk) =  2*(log(mu/vepMagnitude(kk))+(vepMagnitude(kk)-mu)/mu);
+    deviance(kk) =  2*(-2*log(2)-(log(vepMagnitude(kk))-mu)/parameterVec(8)+...
+        2*log(1+exp((log(vepMagnitude(kk))-mu)/parameterVec(8))));
 end
 end
 

@@ -87,15 +87,19 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+5*std(temp);
+                   outlier = median(temp)+10*std(temp);
                    indeces = find(temp>outlier);
+                   tempData(indeces,:) = [];
+                   
+                   temp = tempData(:,3);
+                   indeces = find(temp<0.1);
                    tempData(indeces,:) = [];
                    Data{kk} = tempData;
                end
 
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
+               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
@@ -141,8 +145,12 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+5*std(temp);
+                   outlier = median(temp)+10*std(temp);
                    indeces = find(temp>outlier);
+                   tempData(indeces,:) = [];
+                   
+                   temp = tempData(:,3);
+                   indeces = find(temp<0.1);
                    tempData(indeces,:) = [];
                    Data{kk} = tempData;
                end

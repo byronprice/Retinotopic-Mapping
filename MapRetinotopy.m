@@ -43,8 +43,8 @@ mmPerPixel = stimParams.mmPerPixel;
 
 % get LFP response to each stimulus (the VEPs)
 stimLen = round(0.3*sampleFreq);
-minWin = round(0.05*sampleFreq):1:round(0.12*sampleFreq);
-maxWin = round(.12*sampleFreq):1:round(0.3*sampleFreq);
+minWin = round(0.05*sampleFreq):1:round(0.1*sampleFreq);
+maxWin = round(.1*sampleFreq):1:round(0.25*sampleFreq);
 
 
 xaxis = 1:w_pixels;
@@ -63,21 +63,50 @@ for ii=1:numChans
     tempData = zeros(numStimuli,3);
     for jj=1:numStimuli
         tempData(jj,1:2) = centerVals(jj,:);
-        tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
+        [minVal,index] = min(squeeze(Response(ii,jj,minWin)));
+        index = index+minWin(1)-1;
+        tempData(jj,3) = max(squeeze(Response(ii,jj,1:40)))+max(squeeze(Response(ii,jj,index:index+150)))-minVal;
+%         tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
-    temp = tempData(:,3);
+    temp = abs(tempData(:,3));
     outlier = median(temp)+10*std(temp);
     indeces = find(temp>outlier);
     tempData(indeces,:) = [];
     
     temp = tempData(:,3);
-    indeces = find(temp<0.1);
+    indeces = find(temp==0);
     tempData(indeces,:) = [];
-    Data{ii} = tempData;
+    Data{ii} = abs(tempData);
+%     figure();histogram(Data{ii}(:,3));
+%     phat = mle(Data{ii}(:,3),'distribution','loglogistic');
+%     [f,x] = ecdf(Data{ii}(:,3));
+%     mycdf = cdf('loglogistic',x,phat(1),phat(2));
+%     ks = max(abs(f-mycdf));
 end
 
 fprintf('Fitting model ...\n\n');
-[finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis);
+numRepeats = 2e3;
+[finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTest_pval] = FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+
+if sum(signifMap) ~= numChans
+    badChans = find(signifMap==0);
+    newData = cell(length(badChans),1);
+    for ii=1:length(badChans)
+       newData{ii} = Data{badChans(ii)};
+    end
+    
+    numRepeats = 5e4;
+    [tempParams,tempFisher,tempErrors,tempSignifMap,tempDev,tempDevTest] = FitLFPRetinoModel_Gamma(newData,xaxis,yaxis,numRepeats);
+    
+    for ii=1:length(badChans)
+        finalParameters(badChans(ii),:) = tempParams(ii,:);
+        fisherInfo(badChans(ii),:,:) = tempFisher(ii,:,:);
+        ninetyfiveErrors(badChans(ii),:) = tempErrors(ii,:);
+        signifMap(badChans(ii)) = tempSignifMap(ii);
+        Deviance(badChans(ii)) = tempDev(ii);
+        residDevTest_pval(badChans(ii)) = tempDevTest(ii);
+    end
+end
 
 fprintf('Making plots ...\n\n');
 [h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis,signifMap); 
@@ -85,7 +114,7 @@ fprintf('Making plots ...\n\n');
 vepResponse = Response;
 dimReduceData = Data;
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap');
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap','Deviance','residDevTest_pval');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
