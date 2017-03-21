@@ -87,14 +87,14 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+10*std(temp);
+                   outlier = median(temp)+4*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
                    
                    temp = tempData(:,3);
-                   indeces = find(temp<0.1);
+                   indeces = find(temp==0);
                    tempData(indeces,:) = [];
-                   Data{kk} = tempData;
+                   Data{kk} = abs(tempData);
                end
 
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);

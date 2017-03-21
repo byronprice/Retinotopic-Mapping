@@ -117,7 +117,7 @@ for zz=1:numChans
             
         end
     end
-    logicalInds = bigDeviance~=0;figure();histogram(bigDeviance(logicalInds),1:50:1000);
+    logicalInds = bigDeviance~=0;%figure();histogram(bigDeviance(logicalInds),1:50:1000);
     [minimumDev,index] = min(bigDeviance(logicalInds));
     
     tempBigParams = bigParameterVec(:,logicalInds);
@@ -159,7 +159,6 @@ for zz=1:numChans
     end
     [~,index] = max(sum(logLikelihood(:,1:iter),1));
     finalParameters(zz,:) = parameterVec(index,:);
-    
     
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
@@ -284,7 +283,7 @@ for ii=1:numParameters
     end
 end
 
-inverseFisherInfo = inv(fisherInfo);
+inverseFisherInfo = pinv(fisherInfo);
 for ii=1:numParameters
     errors(ii) = sqrt(inverseFisherInfo(ii,ii));
 end
