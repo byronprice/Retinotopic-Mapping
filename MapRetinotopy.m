@@ -42,9 +42,7 @@ mmPerPixel = stimParams.mmPerPixel;
 [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName);
 
 % get LFP response to each stimulus (the VEPs)
-stimLen = round(0.3*sampleFreq);
-minWin = round(0.05*sampleFreq):1:round(0.12*sampleFreq);
-maxWin = round(.12*sampleFreq):1:round(0.25*sampleFreq);
+stimLen = round(0.5*sampleFreq);
 
 
 xaxis = 1:w_pixels;
@@ -61,10 +59,24 @@ end
 
 for ii=1:numChans
     tempData = zeros(numStimuli,3);
+    meanVEP = mean(squeeze(Response(ii,:,:)),1);
+    allVEPs = squeeze(Response(ii,:,:));
+    [~,minLatency] = min(meanVEP);
+    [~,maxLatency] = max(meanVEP);
+    hMin = ttest(allVEPs(:,minLatency));
+    hMax = ttest(allVEPs(:,maxLatency));
+    if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 200 && maxLatency > minLatency
+        minWin = minLatency-30:minLatency+30;
+        maxWin = maxLatency-50:maxLatency+50;
+    else
+        minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+        maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+    end
+    
     for jj=1:numStimuli
         tempData(jj,1:2) = centerVals(jj,:);
-        [minVal,index] = min(squeeze(Response(ii,jj,minWin)));
-        index = index+minWin(1)-1;
+%         [minVal,index] = min(squeeze(Response(ii,jj,minWin)));
+%         index = index+minWin(1)-1;
 %         tempData(jj,3) = max(squeeze(Response(ii,jj,1:40)))+max(squeeze(Response(ii,jj,index:index+150)))-minVal;
         tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
@@ -78,10 +90,10 @@ for ii=1:numChans
     tempData(indeces,:) = [];
     Data{ii} = abs(tempData);
 %     figure();histogram(Data{ii}(:,3));
-    phat = mle(Data{ii}(:,3),'distribution','loglogistic');
-    [f,x] = ecdf(Data{ii}(:,3));
-    mycdf = cdf('loglogistic',x,phat(1),phat(2));
-    ks = max(abs(f-mycdf))
+%     phat = mle(Data{ii}(:,3),'distribution','loglogistic');
+%     [f,x] = ecdf(Data{ii}(:,3));
+%     mycdf = cdf('loglogistic',x,phat(1),phat(2));
+%     ks = max(abs(f-mycdf))
 end
 
 fprintf('Fitting model ...\n\n');
@@ -113,8 +125,9 @@ fprintf('Making plots ...\n\n');
 
 vepResponse = Response;
 dimReduceData = Data;
+model = 'Log-logistic';
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap','Deviance','residDevTest_pval');
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap','Deviance','residDevTest_pval','model');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)

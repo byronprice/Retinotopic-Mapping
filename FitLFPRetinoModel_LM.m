@@ -1,4 +1,4 @@
-function [finalParameters,fisherInfo,ninetyfiveErrors,conclusion] = FitLFPRetinoModel_LM(Response,xaxis,yaxis)
+function [finalParameters,fisherInfo,ninetyfiveErrors,conclusion,Deviance,chi2p] = FitLFPRetinoModel_LM(Response,xaxis,yaxis,numRepeats)
 %FitLFPRetinoModel_LM.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
 %    model of that retinotopy (data is maximum LFP magnitude in window 
@@ -26,13 +26,15 @@ Bounds = [0,800;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;10,800;1
 numChans = size(Response,1);
 
 conclusion = zeros(numChans,1);
+Deviance = zeros(numChans,1);
+chi2p = zeros(numChans,1);
 
 numParameters = length(Bounds);
    
 finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
-numRepeats = 1000;
+
 maxITER = 500;
 likelyTolerance = 1e-3;
 gradientTolerance = 1e-5;
@@ -141,6 +143,9 @@ for zz=1:numChans
     finalParameters(zz,:) = parameterVec(index,:);
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
+    Deviance(zz) = sum((Getyhat(reps,finalParameters(zz,:),flashPoints)-vepMagnitude).^2)/(finalParameters(zz,end).^2);
+    chi2p(zz) = 1-chi2cdf(Deviance(zz),reps-numParameters);
+    
     totalError = sum(ninetyfiveErrors(zz,:));
     test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
     
@@ -154,6 +159,7 @@ for zz=1:numChans
     end
     display(zz);
     display(conclusion(zz));
+    display(chi2p(zz));
     display(finalParameters(zz,:));
     display(ninetyfiveErrors(zz,:));
 end

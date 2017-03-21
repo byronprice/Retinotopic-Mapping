@@ -12,17 +12,14 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 %Updated: 2017/03/17
 % By: Byron Price
 
-%  model has 7 parameters, defined by vector p
-%  data ~ gamma(k,theta), 
-%    where the mean of the data follows
-%     mean = (p(1)*exp(-(xpos-p(2)).^2./(2*p(4)*p(4))-(ypos-p(3)).^2./(2*p(5)*p(5)))+p(6));
-%    and mean = k*theta
-%        var = k*theta^2
+%  model has 8 parameters, defined by vector p
+%  data ~ log-logistic(log mean, log scale), 
+%    where the log mean of the data is as follows
+%     log mean = p(1)*exp(-(xpos-p(2)).^2./(2*p(4)*p(4))-
+%        (ypos-p(3)).^2./(2*p(5)*p(5))-p(7)*(xpos-p(2))*(ypos-p(3))/(2*p(4)*p(5)))+p(6);
 %
-%      to fit, however, I use a gamma(mean,dispersion) parameterization, so
-%       the last parameter in the fit is phi, the dispersion.
-%      With phi, the variance = phi*mu^2, so we can solve for k and theta
-%      as theta = variance/mu = phi*mu and k = 1/phi
+%  and p(8) = log scale
+
 
 % parameter estimates are constrained to a reasonable range of values
 Bounds = [1e-1,10;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;50,1000;50,1000;1e-3,10;-1,1;1e-3,1];
@@ -164,7 +161,7 @@ for zz=1:numChans
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
     Deviance(zz) = sum(deviance);
-    chi2p(zz) = 1-chi2cdf(Deviance(zz),reps-numParameters);
+    chi2p(zz) = 1-chi2cdf(Deviance(zz)/finalParameters(zz,end),reps-numParameters);
     
     totalError = sum(ninetyfiveErrors(zz,:));
     test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
