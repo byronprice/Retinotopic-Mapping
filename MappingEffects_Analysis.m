@@ -4,7 +4,7 @@ function [ ] = MappingEffects_Analysis(Animals)
 %  Three experimental conditions:
 %   1) retinotopic mapping, followed by fake SRP (grey screen)
 %   2) retinotopic mapping, followed by SRP
-%   3) fake mappin (grey screen), followed by SRP
+%   3) fake mapping (grey screen), followed by SRP
 %
 % Created: 2017/02/06
 %  Byron Price
@@ -20,13 +20,14 @@ for ii=1:length(Animals)
    numFiles = length(dataFiles);
    fprintf('Running animal %d\n\n',Animals(ii));
    
+   pix_to_degree = cell(numFiles,1);
    dailyParameters = cell(numFiles,1);
    mapData = cell(numFiles,1);
    parameterCI = cell(numFiles,1);
    fisherInformation = cell(numFiles,1);
    srpSize = cell(numFiles,1);
    srpVEP = cell(numFiles,1);
-   significantMap = cell(numFiles,1);
+   residualDevianceTest_pVal = cell(numFiles,1);
    significantVEP = cell(numFiles,1);
    numChans = 2;
    
@@ -38,12 +39,9 @@ for ii=1:length(Animals)
            [ChanData,timeStamps,tsevs,svStrobed,~,sampleFreq] = ExtractSignal(ePhysFileName);
            load(stimFiles(jj).name);
            
-           stimLen = round(0.3*sampleFreq); % 300 milliseconds
-           vepNegativity = round(0.05*sampleFreq):round(0.12*sampleFreq);
-           vepPositivity = round(0.12*sampleFreq):round(0.3*sampleFreq);
+           stimLen = round(0.5*sampleFreq); % 500 milliseconds
            strobeStart = 33;
            strobeTimes = tsevs{strobeStart};
-           smoothKernel = 4;
            
            
            if ConditionNumber == 1
@@ -53,6 +51,10 @@ for ii=1:length(Animals)
                w_pixels = stimParams.w_pixels;
                h_pixels = stimParams.h_pixels;
                numStimuli = stimParams.numStimuli;
+               mmPerPixel = stimParams.mmPerPixel;
+               DistToScreen = stimParams.DistToScreen*10;
+               
+               pix_to_degree{jj} = mmPerPixel/DistToScreen;
                
                
                % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
@@ -67,7 +69,7 @@ for ii=1:length(Animals)
                            temp = ChanData(index:index+stimLen-1,kk);
                            Response(kk,ll,mm,:) = temp;
                        end
-                       meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
+                       meanResponse(kk,ll,:) = mean(squeeze(Response(kk,ll,:,:)),1);
                    end
                end
 
@@ -76,18 +78,32 @@ for ii=1:length(Animals)
                Data = cell(numChans,1);
                for kk=1:numChans
                    count = 1;Data{kk} = zeros(reps*numStimuli,3);
+                   
+                   allVEPs = reshape(squeeze(Response(ii,:,:,:)),[reps*numStimuli,stimLen]);
+                   meanVEP = mean(allVEPs,1);
+                   [~,minLatency] = min(meanVEP);
+                   [~,maxLatency] = max(meanVEP);
+                   hMin = ttest(allVEPs(:,minLatency));
+                   hMax = ttest(allVEPs(:,maxLatency));
+                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency
+                       minWin = minLatency-30:minLatency+30;
+                       maxWin = maxLatency-50:maxLatency+50;
+                   else
+                       minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+                       maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                   end
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data{kk}(count,1:2) = centerVals(ll,:);
-                           [minVal,~] = min(squeeze(Response(kk,ll,mm,vepNegativity)));
-                           Data{kk}(count,3) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
+                           [minVal,~] = min(squeeze(Response(kk,ll,mm,minWin)));
+                           Data{kk}(count,3) = max(squeeze(Response(kk,ll,mm,maxWin)))...
                                -minVal;
                            count = count+1;
                        end
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+4*std(temp);
+                   outlier = median(temp)+10*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
                    
@@ -99,12 +115,14 @@ for ii=1:length(Animals)
 
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis);
+               numRepeats = 5e3;
+               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
+                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
-               significantMap{jj} = signifMap;
+               residualDevianceTest_pVal{jj} = residDevTestp;
                fisherInformation{jj} = fisherInfo;
            elseif ConditionNumber == 2
                centerVals = stimParams.centerVals;
@@ -113,6 +131,10 @@ for ii=1:length(Animals)
                w_pixels = stimParams.w_pixels;
                h_pixels = stimParams.h_pixels;
                numStimuli = stimParams.numStimuli;
+               mmPerPixel = stimParams.mmPerPixel;
+               DistToScreen = stimParams.DistToScreen*10;
+               
+               pix_to_degree{jj} = mmPerPixel/DistToScreen;
                
                % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
                Response = zeros(numChans,numStimuli,reps,stimLen);
@@ -126,7 +148,7 @@ for ii=1:length(Animals)
                            temp = ChanData(index:index+stimLen-1,kk);
                            Response(kk,ll,mm,:) = temp;
                        end
-                       meanResponse(kk,ll,:) = smooth(mean(squeeze(Response(kk,ll,:,:)),1),smoothKernel);
+                       meanResponse(kk,ll,:) = mean(squeeze(Response(kk,ll,:,:)),1);
                    end
                end
                
@@ -134,12 +156,27 @@ for ii=1:length(Animals)
                yaxis = 1:h_pixels;
                Data = cell(numChans,1);
                for kk=1:numChans
-                   count = 1;Data{kk} = zeros(numStimuli*reps,3);
+                   count = 1;Data{kk} = zeros(reps*numStimuli,3);
+                   
+                   allVEPs = reshape(squeeze(Response(ii,:,:,:)),[reps*numStimuli,stimLen]);
+                   meanVEP = mean(allVEPs,1);
+                   [~,minLatency] = min(meanVEP);
+                   [~,maxLatency] = max(meanVEP);
+                   hMin = ttest(allVEPs(:,minLatency));
+                   hMax = ttest(allVEPs(:,maxLatency));
+                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency
+                       minWin = minLatency-30:minLatency+30;
+                       maxWin = maxLatency-50:maxLatency+50;
+                   else
+                       minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+                       maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                   end
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data{kk}(count,1:2) = centerVals(ll,:);
-                           Data{kk}(count,3) = max(squeeze(Response(kk,ll,mm,vepPositivity)))...
-                               -min(squeeze(Response(kk,ll,mm,vepNegativity)));
+                           [minVal,~] = min(squeeze(Response(kk,ll,mm,minWin)));
+                           Data{kk}(count,3) = max(squeeze(Response(kk,ll,mm,maxWin)))...
+                               -minVal;
                            count = count+1;
                        end
                    end
@@ -150,17 +187,21 @@ for ii=1:length(Animals)
                    tempData(indeces,:) = [];
                    
                    temp = tempData(:,3);
-                   indeces = find(temp<0.1);
+                   indeces = find(temp==0);
                    tempData(indeces,:) = [];
-                   Data{kk} = tempData;
+                   Data{kk} = abs(tempData);
                end
 
-               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap] = FitLFPRetinoModel_LM(Data,xaxis,yaxis);
+%                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
+%                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
+               numRepeats = 5e3;
+               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
+                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
-               significantMap{jj} = signifMap;
+               residualDevianceTest_pVal{jj} = residDevTestp;
                fisherInformation{jj} = fisherInfo;
                
                srpResponse = zeros(numChans,srp_reps,stimLen);
@@ -174,13 +215,20 @@ for ii=1:length(Animals)
                        temp = ChanData(index:index+stimLen-1,kk);
                        srpResponse(kk,ll,:) = temp;
                    end
-                   meanVEP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-                   [minVal,index] = min(meanVEP(kk,:));
-                   [maxVal,index2] = max(meanVEP(kk,:));
-                   maxMinStdev = std(squeeze(srpResponse(kk,:,index2))-squeeze(srpResponse(kk,:,index)));
-                   maxMinusMin = maxVal-minVal;
-                   if maxMinusMin-1.96*maxMinStdev/sqrt(srp_reps) > 0 && maxMinusMin < 1000
+                   allVEPs = squeeze(srpResponse(kk,:,:));
+                   meanVEP(kk,:) = mean(allVEPs,1);
+                   [minVal,minLatency] = min(meanVEP(kk,:));
+                   [maxVal,maxLatency] = max(meanVEP(kk,:));
+                   
+                   hMin = ttest(allVEPs(:,minLatency));
+                   hMax = ttest(allVEPs(:,maxLatency));
+                   if hMin == 1 && hMax == 1 && maxLatency > minLatency
+                       minWin = minLatency-30:minLatency+30;
+                       maxWin = maxLatency-50:maxLatency+50;
                        signifVEP(kk) = 1;
+                   else
+                       minWin = round(0.04*sampleFreq):1:round(0.12*sampleFreq);
+                       maxWin = round(.12*sampleFreq):1:round(0.25*sampleFreq);
                    end
                    subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
                    if kk==1
@@ -188,12 +236,13 @@ for ii=1:length(Animals)
                        title(sprintf('SRP VEP: Day %d',jj));
                    end
                end
-               srpSize{jj} = max(srpResponse(:,:,vepPositivity),[],3)-min(srpResponse(:,:,vepNegativity),[],3);
+               srpSize{jj} = max(srpResponse(:,:,maxWin),[],3)-min(srpResponse(:,:,minWin),[],3);
                srpVEP{jj} = meanVEP;
                significantVEP{jj} = signifVEP;
            elseif ConditionNumber == 3
                srpResponse = zeros(numChans,srp_reps,stimLen);
                meanVEP = zeros(numChans,stimLen);
+               signifVEP = zeros(numChans,1);
                for kk=1:numChans
                    stimStrobes = strobeTimes(svStrobed == srp_word);
                    for ll=1:srp_reps
@@ -202,13 +251,20 @@ for ii=1:length(Animals)
                        temp = ChanData(index:index+stimLen-1,kk);
                        srpResponse(kk,ll,:) = temp;
                    end
-                   meanVEP(kk,:) = smooth(mean(squeeze(srpResponse(kk,:,:)),1),smoothKernel);
-                   [minVal,index] = min(meanVEP(kk,:));
-                   [maxVal,index2] = max(meanVEP(kk,:));
-                   maxMinStdev = std(squeeze(srpResponse(kk,:,index2))-squeeze(srpResponse(kk,:,index)));
-                   maxMinusMin = maxVal-minVal;
-                   if maxMinusMin-1.96*maxMinStdev/sqrt(srp_reps) > 0 && maxMinusMin < 1000
+                   allVEPs = squeeze(srpResponse(kk,:,:));
+                   meanVEP(kk,:) = mean(allVEPs,1);
+                   [minVal,minLatency] = min(meanVEP(kk,:));
+                   [maxVal,maxLatency] = max(meanVEP(kk,:));
+                   
+                   hMin = ttest(allVEPs(:,minLatency));
+                   hMax = ttest(allVEPs(:,maxLatency));
+                   if hMin == 1 && hMax == 1 && maxLatency > minLatency
+                       minWin = minLatency-30:minLatency+30;
+                       maxWin = maxLatency-50:maxLatency+50;
                        signifVEP(kk) = 1;
+                   else
+                       minWin = round(0.05*sampleFreq):1:round(0.13*sampleFreq);
+                       maxWin = round(.12*sampleFreq):1:round(0.27*sampleFreq);
                    end
                    
                    subplot(numFiles,numChans,kk+(jj-1)*numChans);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
@@ -217,7 +273,7 @@ for ii=1:length(Animals)
                        title(sprintf('SRP VEP: Day %d',jj));
                    end
                end
-               srpSize{jj} = max(srpResponse(:,:,vepPositivity),[],3)-min(srpResponse(:,:,vepNegativity),[],3);
+               srpSize{jj} = max(srpResponse(:,:,maxWin),[],3)-min(srpResponse(:,:,minWin),[],3);
                srpVEP{jj} = meanVEP;
                significantVEP{jj} = signifVEP;
            end
@@ -229,11 +285,11 @@ for ii=1:length(Animals)
    if ConditionNumber == 1
        save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'ConditionNumber','numFiles','w_pixels',...
-            'h_pixels','mapData','significantMap');
+            'h_pixels','mapData','residualDevianceTest_pVal','pix_to_degree');
    elseif ConditionNumber == 2
         save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'srpSize','srpVEP','ConditionNumber','numFiles','w_pixels',...
-            'h_pixels','mapData','significantMap','significantVEP');
+            'h_pixels','mapData','residualDevianceTest_pVal','significantVEP','pix_to_degree');
    elseif ConditionNumber == 3
        save(filename,...
             'srpSize','srpVEP','ConditionNumber','numFiles','significantVEP');
@@ -248,7 +304,7 @@ function [ChanData,timeStamps,tsevs,svStrobed,numChans,sampleFreq] = ExtractSign
     % read in the .plx file
 
     if exist(strcat(EphysFileName(1:end-4),'.mat'),'file') ~= 2
-        readall(EphysFileName);pause(0.5);
+        readall(EphysFileName);pause(0.1);
     end
 
     EphysFileName = strcat(EphysFileName(1:end-4),'.mat');
@@ -326,19 +382,19 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
         
         finalIm = zeros(length(xaxis),length(yaxis));
         parameterVec = finalParameters(ii,:);
+        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6),parameterVec(7)];
         for jj=1:length(xaxis)
             for kk=1:length(yaxis)
-                distX = xaxis(jj)-parameterVec(2);
-                distY = yaxis(kk)-parameterVec(3);
-                b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
-                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-(distY.^2)./(2*b(3)*b(3)))+b(4);
+                distX = x(jj)-parameterVec(2);
+                distY = y(kk)-parameterVec(3);
+                
+                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
+                    (distY.^2)./(2*b(3)*b(3))-b(5)*distX*distY/(2*b(2)*b(3)))+b(4);
             end
         end
-        imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');
-        colormap('jet');caxis([parameterVec(6) parameterVec(6)+400]);
-        if ii==1
-            w=colorbar;ylabel(w,'Pos-Neg (\muV)');
-        end
+        imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
+        caxis([b(4) b(4)+1]);
+        ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         hold off;
     end
 end

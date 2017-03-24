@@ -9,7 +9,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 
 %Created: 2017/03/17, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/03/17
+%Updated: 2017/03/24
 % By: Byron Price
 
 %  model has 8 parameters, defined by vector p
@@ -167,19 +167,11 @@ for zz=1:numChans
     Deviance.Null(zz) = sum(nullDeviance)*exp(phat(2));
     chi2p.Full_Null(zz) = 1-chi2cdf(Deviance.Null(zz)-Deviance.Full(zz),numParameters-length(phat));
     
-    totalError = sum(ninetyfiveErrors(zz,:));
-    test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
-    
-    test2 = repmat(finalParameters(zz,:)',[1,2])-Bounds;
-    test2([2,3,6],:) = [];
-    check = sum(sum(test2==0));
-    if totalError > 2000 || test(1) < 0 || check > 0 %|| test(4) < 0 || test(5) < 0
-       result(zz) = 0;
-    else
+    if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05
         result(zz) = 1;
+        fprintf('Map for Channel %d Significant\n',zz);
     end
-    display(zz);
-    display(result(zz));
+    
     display(chi2p.Saturated_Full(zz));
     display(chi2p.Full_Null(zz));
     display(finalParameters(zz,:));
@@ -304,6 +296,7 @@ end
 if isreal(errors) == 0
     temp = sqrt(errors.*conj(errors));
     errors = 1.96.*temp;
+    fprintf('Warning: Complex Errors in Model Fit');
 elseif isreal(errors) == 1
     errors = 1.96.*errors;
 end
