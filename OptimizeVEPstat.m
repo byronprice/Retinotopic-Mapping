@@ -310,8 +310,8 @@ for bigEta = 1:length(myRange)
             end
             [myNet] = GradientDescent(myNet,dCostdWeight,dCostdBias,batchSize,myRange(bigEta),N,myRange(bigLambda));
             [Output,~] = Feedforward(downSampledVEPs(13456,:)',myNet);
-            display(Output{end})
-            display(DesireOutput(:,13456))
+%             display(Output{end})
+%             display(DesireOutput(:,13456))
             
             clear indeces;% dCostdWeight dCostdBias;
             check = isnan(myNet.Weights{1});

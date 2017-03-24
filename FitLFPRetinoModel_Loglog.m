@@ -2,8 +2,8 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 %FitLFPRetinoModel_Gamma.m
 %   Use data from LFP retinotopic mapping experiment to fit a non-linear
 %    model of that retinotopy (data is maximum LFP magnitude in window 
-%    from 150 to 250msec minus minimum magnitude in window from 50 to
-%    120 msec after stimulus presentation, assumes a
+%    from 180 to 270msec minus minimum magnitude in window from 100 to
+%    160 msec after stimulus presentation, assumes a
 %    log-logistic likelihood)
 %
 
@@ -31,8 +31,8 @@ finalParameters = zeros(numChans,numParameters);
 fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 result = zeros(numChans,1);
-chi2p = zeros(numChans,1);
-Deviance = zeros(numChans,1);
+chi2p = struct('Saturated_Full',zeros(numChans,1),'Full_Null',zeros(numChans,1));
+Deviance = struct('Full',zeros(numChans,1),'Null',zeros(numChans,1));
 
 % numRepeats = 1e4;
 maxITER = 100;
@@ -160,8 +160,12 @@ for zz=1:numChans
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
-    Deviance(zz) = sum(deviance);
-    chi2p(zz) = 1-chi2cdf(Deviance(zz)/finalParameters(zz,end),reps-numParameters);
+    Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
+    chi2p.Saturated_Full(zz) = 1-chi2cdf(Deviance.Full(zz),reps-numParameters);
+    
+    [nullDeviance] = GetNullDeviance(reps,vepMagnitude,phat);
+    Deviance.Null(zz) = sum(nullDeviance)*exp(phat(2));
+    chi2p.Full_Null(zz) = 1-chi2cdf(Deviance.Null(zz)-Deviance.Full(zz),numParameters-length(phat));
     
     totalError = sum(ninetyfiveErrors(zz,:));
     test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
@@ -176,7 +180,8 @@ for zz=1:numChans
     end
     display(zz);
     display(result(zz));
-    display(chi2p(zz));
+    display(chi2p.Saturated_Full(zz));
+    display(chi2p.Full_Null(zz));
     display(finalParameters(zz,:));
     display(ninetyfiveErrors(zz,:));
 end
@@ -228,6 +233,17 @@ for kk=1:reps
     deviance(kk) =  2*(-2*log(2)-(log(vepMagnitude(kk))-mu)/parameterVec(8)+...
         2*log(1+exp((log(vepMagnitude(kk))-mu)/parameterVec(8))));
 end
+end
+
+function [nullDeviance] = GetNullDeviance(reps,vepMagnitude,phat)
+nullDeviance = zeros(reps,1);
+
+for kk=1:reps
+    nullDeviance(kk) =  2*(-2*log(2)-(log(vepMagnitude(kk))-phat(1))/phat(2)+...
+        2*log(1+exp((log(vepMagnitude(kk))-phat(1))/phat(2)))); 
+end
+
+
 end
 
 function [fisherInfo,errors] = getFisherInfo(parameters,numParameters,h,reps,peakNegativity,flashPoints)

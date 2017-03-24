@@ -65,7 +65,7 @@ for ii=1:numChans
     [~,maxLatency] = max(meanVEP);
     hMin = ttest(allVEPs(:,minLatency));
     hMax = ttest(allVEPs(:,maxLatency));
-    if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 200 && maxLatency > minLatency
+    if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency
         minWin = minLatency-30:minLatency+30;
         maxWin = maxLatency-50:maxLatency+50;
     else
@@ -81,7 +81,7 @@ for ii=1:numChans
         tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
     temp = abs(tempData(:,3));
-    outlier = median(temp)+4*std(temp);
+    outlier = median(temp)+10*std(temp);
     indeces = find(temp>outlier);
     tempData(indeces,:) = [];
     
@@ -98,7 +98,7 @@ end
 
 fprintf('Fitting model ...\n\n');
 numRepeats = 5e3;
-[finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTest_pval] = FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+[finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
 
 % if sum(signifMap) ~= numChans
 %     badChans = find(signifMap==0);
@@ -127,7 +127,7 @@ vepResponse = Response;
 dimReduceData = Data;
 model = 'Log-logistic';
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap','Deviance','residDevTest_pval','model');
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap','Deviance','residDevTestp','model');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
