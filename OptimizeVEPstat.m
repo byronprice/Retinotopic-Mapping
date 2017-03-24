@@ -183,7 +183,7 @@ tempVepCov = cov(downSampledVEPs(trainingLabels==1,:));
 tempGreyMu = mean(downSampledVEPs(trainingLabels==0,:),1)';
 tempGreyCov = cov(downSampledVEPs(trainingLabels==0,:));
 
-threshold = -2:0.5:1;
+threshold = -5:1:5;
 truePositives = zeros(length(threshold),1);
 falsePositives = zeros(length(threshold),1);
 mvnAccuracy = zeros(length(threshold),1);
@@ -203,9 +203,9 @@ for ii=1:length(threshold)
     mvnAccuracy(ii) = (sum(combined==0)+sum(combined==2))/length(combined);
 end
 
- figure(3);subplot(2,1,1);plot(falsePositives,truePositives,'LineWidth',2);
- title(sprintf('ROC Curve: Multivariate Normal'));
- figure(3);subplot(2,1,2);plot(threshold,mvnAccuracy,'LineWidth',2);axis([threshold(1) threshold(end) 0 1]);
+figure(3);subplot(2,1,1);plot(falsePositives,truePositives,'LineWidth',2);
+title(sprintf('ROC Curve: Multivariate Normal'));
+figure(3);subplot(2,1,2);plot(threshold,mvnAccuracy,'LineWidth',2);axis([threshold(1) threshold(end) 0 1]);
 
 [mvnAccuracy,index] = max(mvnAccuracy);
 mvnThreshold = threshold(index);
@@ -250,10 +250,11 @@ fprintf('Accuracy: %3.3f\n\n',mvnAccuracy);
 % % on those "runs" times
 % runs = 1e6;
 
-myRange = [1e-4,1e-3,1e-2,1e-1,1e0,0.5e1,1e1,1e2,1e3];
-perceptronAccuracy = zeros(length(myRange),length(myRange));
-for bigEta = 1:length(myRange)
-    for bigLambda = 1:length(myRange)
+etaRange = [1e-4,1e-3,1e-2,1e-1,1e0,0.5e1,1e1];
+lambdaRange = [1e-4,1e-3,1e0,0.5e1,1e1,1e2];
+perceptronAccuracy = zeros(length(etaRange),length(lambdaRange));
+for bigEta = 1:length(etaRange)
+    for bigLambda = 1:length(lambdaRange)
         downSampledVEPs = trainingVEPs(:,1:2:end);
         [N,stimLen] = size(downSampledVEPs);
         downSampledVEPs = downSampledVEPs./2000;
@@ -285,7 +286,7 @@ for bigEta = 1:length(myRange)
         % STOCHASTIC GRADIENT DESCENT
         batchSize = 10; % make mini batches and run the algorithm
         % on those "runs" times
-        runs = 1e6;
+        runs = 1e5;
 
         numCalcs = size(myNet.Weights,2);
         dCostdWeight = cell(1,numCalcs);
@@ -308,10 +309,8 @@ for bigEta = 1:length(myRange)
                     dCostdBias{kk} = dCostdBias{kk}+costbias{kk};
                 end
             end
-            [myNet] = GradientDescent(myNet,dCostdWeight,dCostdBias,batchSize,myRange(bigEta),N,myRange(bigLambda));
-            [Output,~] = Feedforward(downSampledVEPs(13456,:)',myNet);
-%             display(Output{end})
-%             display(DesireOutput(:,13456))
+            [myNet] = GradientDescent(myNet,dCostdWeight,dCostdBias,batchSize,etaRange(bigEta),N,lambdaRange(bigLambda));
+
             
             clear indeces;% dCostdWeight dCostdBias;
             check = isnan(myNet.Weights{1});
@@ -321,6 +320,9 @@ for bigEta = 1:length(myRange)
                break; 
             end
         end
+        [Output,~] = Feedforward(downSampledVEPs(13456,:)',myNet);
+         display(Output{end})
+         display(DesireOutput(:,13456))
         
         % COMPARE ON TEST DATA
         downSampledTestVEPs = testVEPs(:,1:2:end);
@@ -353,6 +355,7 @@ for bigEta = 1:length(myRange)
             end
         end
         perceptronAccuracy(bigEta,bigLambda) = count/N;
+        fprintf('Acurracy: %3.2f\n',count/N);
     end
 end
 save('OptimizeResults.mat','maxMinAccuracy','maxMinThreshold','medianMaxMinAccuracy','medianMaxMinThreshold',...
