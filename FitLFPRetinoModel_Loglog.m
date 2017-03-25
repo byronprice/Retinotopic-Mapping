@@ -22,7 +22,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 
 
 % parameter estimates are constrained to a reasonable range of values
-Bounds = [1e-1,10;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;50,1000;50,1000;1e-3,10;-1,1;1e-3,1];
+Bounds = [1e-2,10;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;50,1000;50,1000;1e-3,10;-1,1;1e-3,1];
 numChans = size(Response,1);
 
 numParameters = 8;
@@ -167,13 +167,13 @@ for zz=1:numChans
     Deviance.Null(zz) = sum(nullDeviance)*exp(phat(2));
     chi2p.Full_Null(zz) = 1-chi2cdf(Deviance.Null(zz)-Deviance.Full(zz),numParameters-length(phat));
     
-    if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05
+    if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05 && sum(ninetyfiveErrors(zz,:)) < 1000
         result(zz) = 1;
         fprintf('Map for Channel %d Significant\n',zz);
+    else
+       fprintf('Map for Channel %d Not Significant\n',zz); 
     end
     
-    display(chi2p.Saturated_Full(zz));
-    display(chi2p.Full_Null(zz));
     display(finalParameters(zz,:));
     display(ninetyfiveErrors(zz,:));
 end
@@ -296,7 +296,7 @@ end
 if isreal(errors) == 0
     temp = sqrt(errors.*conj(errors));
     errors = 1.96.*temp;
-    fprintf('Warning: Complex Errors in Model Fit');
+    fprintf('Warning: Complex Errors in Model Fit\n\n');
 elseif isreal(errors) == 1
     errors = 1.96.*errors;
 end

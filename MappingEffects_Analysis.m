@@ -28,6 +28,7 @@ for ii=1:length(Animals)
    srpSize = cell(numFiles,1);
    srpVEP = cell(numFiles,1);
    residualDevianceTest_pVal = cell(numFiles,1);
+   fullDeviance = cell(numFiles,1);
    significantVEP = cell(numFiles,1);
    numChans = 2;
    
@@ -79,13 +80,13 @@ for ii=1:length(Animals)
                for kk=1:numChans
                    count = 1;Data{kk} = zeros(reps*numStimuli,3);
                    
-                   allVEPs = reshape(squeeze(Response(ii,:,:,:)),[reps*numStimuli,stimLen]);
+                   allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
                    [~,minLatency] = min(meanVEP);
                    [~,maxLatency] = max(meanVEP);
                    hMin = ttest(allVEPs(:,minLatency));
                    hMax = ttest(allVEPs(:,maxLatency));
-                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency
+                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
                        minWin = minLatency-30:minLatency+30;
                        maxWin = maxLatency-50:maxLatency+50;
                    else
@@ -103,7 +104,7 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+10*std(temp);
+                   outlier = median(temp)+8*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
                    
@@ -123,6 +124,7 @@ for ii=1:length(Animals)
                mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
                residualDevianceTest_pVal{jj} = residDevTestp;
+               fullDeviance{jj} = Deviance;
                fisherInformation{jj} = fisherInfo;
            elseif ConditionNumber == 2
                centerVals = stimParams.centerVals;
@@ -158,13 +160,13 @@ for ii=1:length(Animals)
                for kk=1:numChans
                    count = 1;Data{kk} = zeros(reps*numStimuli,3);
                    
-                   allVEPs = reshape(squeeze(Response(ii,:,:,:)),[reps*numStimuli,stimLen]);
+                   allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
                    [~,minLatency] = min(meanVEP);
                    [~,maxLatency] = max(meanVEP);
                    hMin = ttest(allVEPs(:,minLatency));
                    hMax = ttest(allVEPs(:,maxLatency));
-                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency
+                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
                        minWin = minLatency-30:minLatency+30;
                        maxWin = maxLatency-50:maxLatency+50;
                    else
@@ -182,7 +184,7 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+10*std(temp);
+                   outlier = median(temp)+8*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
                    
@@ -203,6 +205,7 @@ for ii=1:length(Animals)
                parameterCI{jj} = ninetyfiveErrors;
                residualDevianceTest_pVal{jj} = residDevTestp;
                fisherInformation{jj} = fisherInfo;
+               fullDeviance{jj} = Deviance;
                
                srpResponse = zeros(numChans,srp_reps,stimLen);
                meanVEP = zeros(numChans,stimLen);
@@ -227,8 +230,8 @@ for ii=1:length(Animals)
                        maxWin = maxLatency-50:maxLatency+50;
                        signifVEP(kk) = 1;
                    else
-                       minWin = round(0.04*sampleFreq):1:round(0.12*sampleFreq);
-                       maxWin = round(.12*sampleFreq):1:round(0.25*sampleFreq);
+                       minWin = round(0.05*sampleFreq):1:round(0.13*sampleFreq);
+                       maxWin = round(.12*sampleFreq):1:round(0.27*sampleFreq);
                    end
                    subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
                    if kk==1
@@ -285,15 +288,18 @@ for ii=1:length(Animals)
    if ConditionNumber == 1
        save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'ConditionNumber','numFiles','w_pixels',...
-            'h_pixels','mapData','residualDevianceTest_pVal','pix_to_degree');
+            'h_pixels','mapData','residualDevianceTest_pVal','pix_to_degree',...
+            'fullDeviance');
    elseif ConditionNumber == 2
         save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'srpSize','srpVEP','ConditionNumber','numFiles','w_pixels',...
-            'h_pixels','mapData','residualDevianceTest_pVal','significantVEP','pix_to_degree');
+            'h_pixels','mapData','residualDevianceTest_pVal','significantVEP',...
+            'fullDeviance','pix_to_degree');
    elseif ConditionNumber == 3
        save(filename,...
             'srpSize','srpVEP','ConditionNumber','numFiles','significantVEP');
    end
+   fprintf('Done with animal %d\n\n',Animals(ii));pause(1);
 end
 
 
@@ -385,14 +391,14 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
         b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6),parameterVec(7)];
         for jj=1:length(xaxis)
             for kk=1:length(yaxis)
-                distX = x(jj)-parameterVec(2);
-                distY = y(kk)-parameterVec(3);
+                distX = xaxis(jj)-parameterVec(2);
+                distY = yaxis(kk)-parameterVec(3);
                 
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
                     (distY.^2)./(2*b(3)*b(3))-b(5)*distX*distY/(2*b(2)*b(3)))+b(4);
             end
         end
-        imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
+        imagesc(xaxis,yaxis,finalIm');set(gca,'YDir','normal');w=colorbar;
         caxis([b(4) b(4)+1]);
         ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         hold off;
