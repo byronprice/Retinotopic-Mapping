@@ -1,4 +1,4 @@
-function [ ] = MappingEffects_Analysis(Animals)
+function [ ] = MappingEffects_Analysis(Animals,Channels)
 %MappingEffects_Analysis.m
 %  Analyze data from mapping effects experiment, see MappingEffects.m
 %  Three experimental conditions:
@@ -30,7 +30,8 @@ for ii=1:length(Animals)
    residualDevianceTest_pVal = cell(numFiles,1);
    fullDeviance = cell(numFiles,1);
    significantVEP = cell(numFiles,1);
-   numChans = 2;
+   currentChannel = Channels{ii};
+   numChans = length(currentChannel);
    
    % could add back check for "goodChannels"
    if numChans ~= 0
@@ -67,7 +68,7 @@ for ii=1:length(Animals)
                        for mm=1:reps
                            stimOnset = stimStrobes(mm);
                            [~,index] = min(abs(timeStamps-stimOnset));
-                           temp = ChanData(index:index+stimLen-1,kk);
+                           temp = ChanData(index:index+stimLen-1,currentChannel(kk));
                            Response(kk,ll,mm,:) = temp;
                        end
                        meanResponse(kk,ll,:) = mean(squeeze(Response(kk,ll,:,:)),1);
@@ -82,17 +83,30 @@ for ii=1:length(Animals)
                    
                    allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
-                   [~,minLatency] = min(meanVEP);
-                   [~,maxLatency] = max(meanVEP);
-                   hMin = ttest(allVEPs(:,minLatency));
-                   hMax = ttest(allVEPs(:,maxLatency));
-                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
-                       minWin = minLatency-30:minLatency+30;
-                       maxWin = maxLatency-50:maxLatency+50;
+                  
+                   [minVal,minLatency] = min(meanVEP);
+                   [maxVal,maxLatency] = max(meanVEP);
+                   figure();plot(meanVEP);hold on;
+                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   x = input('Max and min look good: (y/n)','s');
+                   if x=='n'
+                       minLatency = input('Min Latency: ');
+                       maxLatency = input('Max Latency: ');
+                       minWin = (minLatency-30):(minLatency+30);
+                       maxWin = (maxLatency-50):(maxLatency+50);
                    else
-                       minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-                       maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                       hMin = ttest(allVEPs(:,minLatency));
+                       hMax = ttest(allVEPs(:,maxLatency));
+                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
+                           
+                           minWin = (minLatency-30):(minLatency+30);
+                           maxWin = (maxLatency-50):(maxLatency+50);
+                       else
+                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                       end
                    end
+                   
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data{kk}(count,1:2) = centerVals(ll,:);
@@ -104,7 +118,7 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+8*std(temp);
+                   outlier = median(temp)+10*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
                    
@@ -147,7 +161,7 @@ for ii=1:length(Animals)
                        for mm=1:reps
                            stimOnset = stimStrobes(mm);
                            [~,index] = min(abs(timeStamps-stimOnset));
-                           temp = ChanData(index:index+stimLen-1,kk);
+                           temp = ChanData(index:index+stimLen-1,currentChannel(kk));
                            Response(kk,ll,mm,:) = temp;
                        end
                        meanResponse(kk,ll,:) = mean(squeeze(Response(kk,ll,:,:)),1);
@@ -162,17 +176,30 @@ for ii=1:length(Animals)
                    
                    allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
-                   [~,minLatency] = min(meanVEP);
-                   [~,maxLatency] = max(meanVEP);
-                   hMin = ttest(allVEPs(:,minLatency));
-                   hMax = ttest(allVEPs(:,maxLatency));
-                   if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
-                       minWin = minLatency-30:minLatency+30;
-                       maxWin = maxLatency-50:maxLatency+50;
+                   [minVal,minLatency] = min(meanVEP);
+                   [maxVal,maxLatency] = max(meanVEP);
+                   
+                   figure();plot(meanVEP);hold on;
+                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   x = input('Max and min look good: (y/n)','s');
+                   if x=='n'
+                       minLatency = input('Min Latency: ');
+                       maxLatency = input('Max Latency: ');
+                       minWin = (minLatency-30):(minLatency+30);
+                       maxWin = (maxLatency-50):(maxLatency+50);
                    else
-                       minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-                       maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                       hMin = ttest(allVEPs(:,minLatency));
+                       hMax = ttest(allVEPs(:,maxLatency));
+                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
+                           
+                           minWin = (minLatency-30):(minLatency+30);
+                           maxWin = (maxLatency-50):(maxLatency+50);
+                       else
+                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                       end
                    end
+                   
                    for ll=1:numStimuli
                        for mm=1:reps
                            Data{kk}(count,1:2) = centerVals(ll,:);
@@ -184,7 +211,7 @@ for ii=1:length(Animals)
                    end
                    tempData = Data{kk};
                    temp = tempData(:,3);
-                   outlier = median(temp)+8*std(temp);
+                   outlier = median(temp)+10*std(temp);
                    indeces = find(temp>outlier);
                    tempData(indeces,:) = [];
                    
@@ -199,6 +226,7 @@ for ii=1:length(Animals)
                numRepeats = 5e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+                    
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
@@ -215,7 +243,7 @@ for ii=1:length(Animals)
                    for ll=1:srp_reps
                        stimOnset = stimStrobes(ll);
                        [~,index] = min(abs(timeStamps-stimOnset));
-                       temp = ChanData(index:index+stimLen-1,kk);
+                       temp = ChanData(index:index+stimLen-1,currentChannel(kk));
                        srpResponse(kk,ll,:) = temp;
                    end
                    allVEPs = squeeze(srpResponse(kk,:,:));
@@ -223,21 +251,29 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP(kk,:));
                    [maxVal,maxLatency] = max(meanVEP(kk,:));
                    
-                   hMin = ttest(allVEPs(:,minLatency));
-                   hMax = ttest(allVEPs(:,maxLatency));
-                   if hMin == 1 && hMax == 1 && maxLatency > minLatency
-                       minWin = minLatency-30:minLatency+30;
-                       maxWin = maxLatency-50:maxLatency+50;
-                       signifVEP(kk) = 1;
+                   figure();plot(meanVEP);hold on;
+                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   x = input('Max and min look good: (y/n)','s');
+                   if x=='n'
+                       minLatency = input('Min Latency: ');
+                       maxLatency = input('Max Latency: ');
+                       minWin = (minLatency-30):(minLatency+30);
+                       maxWin = (maxLatency-50):(maxLatency+50);
                    else
-                       minWin = round(0.05*sampleFreq):1:round(0.13*sampleFreq);
-                       maxWin = round(.12*sampleFreq):1:round(0.27*sampleFreq);
+                       hMin = ttest(allVEPs(:,minLatency));
+                       hMax = ttest(allVEPs(:,maxLatency));
+                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
+                           
+                           minWin = (minLatency-30):(minLatency+30);
+                           maxWin = (maxLatency-50):(maxLatency+50);
+                       else
+                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                       end
                    end
                    subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
-                   if kk==1
-                       xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
-                       title(sprintf('SRP VEP: Day %d',jj));
-                   end
+                   xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
+                   title(sprintf('SRP VEP: Day %d',jj));
                end
                srpSize{jj} = max(srpResponse(:,:,maxWin),[],3)-min(srpResponse(:,:,minWin),[],3);
                srpVEP{jj} = meanVEP;
@@ -246,12 +282,13 @@ for ii=1:length(Animals)
                srpResponse = zeros(numChans,srp_reps,stimLen);
                meanVEP = zeros(numChans,stimLen);
                signifVEP = zeros(numChans,1);
+
                for kk=1:numChans
                    stimStrobes = strobeTimes(svStrobed == srp_word);
                    for ll=1:srp_reps
                        stimOnset = stimStrobes(ll);
                        [~,index] = min(abs(timeStamps-stimOnset));
-                       temp = ChanData(index:index+stimLen-1,kk);
+                       temp = ChanData(index:index+stimLen-1,currentChannel(kk));
                        srpResponse(kk,ll,:) = temp;
                    end
                    allVEPs = squeeze(srpResponse(kk,:,:));
@@ -259,22 +296,30 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP(kk,:));
                    [maxVal,maxLatency] = max(meanVEP(kk,:));
                    
-                   hMin = ttest(allVEPs(:,minLatency));
-                   hMax = ttest(allVEPs(:,maxLatency));
-                   if hMin == 1 && hMax == 1 && maxLatency > minLatency
-                       minWin = minLatency-30:minLatency+30;
-                       maxWin = maxLatency-50:maxLatency+50;
-                       signifVEP(kk) = 1;
+                   figure();plot(meanVEP);hold on;
+                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   x = input('Max and min look good: (y/n)','s');
+                   if x=='n'
+                       minLatency = input('Min Latency: ');
+                       maxLatency = input('Max Latency: ');
+                       minWin = (minLatency-30):(minLatency+30);
+                       maxWin = (maxLatency-50):(maxLatency+50);
                    else
-                       minWin = round(0.05*sampleFreq):1:round(0.13*sampleFreq);
-                       maxWin = round(.12*sampleFreq):1:round(0.27*sampleFreq);
+                       hMin = ttest(allVEPs(:,minLatency));
+                       hMax = ttest(allVEPs(:,maxLatency));
+                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
+                           
+                           minWin = (minLatency-30):(minLatency+30);
+                           maxWin = (maxLatency-50):(maxLatency+50);
+                       else
+                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
+                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
+                       end
                    end
                    
                    subplot(numFiles,numChans,kk+(jj-1)*numChans);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
-                   if kk==1
-                       xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
-                       title(sprintf('SRP VEP: Day %d',jj));
-                   end
+                   xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
+                   title(sprintf('SRP VEP: Day %d',jj));
                end
                srpSize{jj} = max(srpResponse(:,:,maxWin),[],3)-min(srpResponse(:,:,minWin),[],3);
                srpVEP{jj} = meanVEP;

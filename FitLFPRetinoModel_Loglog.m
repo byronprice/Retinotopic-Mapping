@@ -32,7 +32,7 @@ fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 result = zeros(numChans,1);
 chi2p = struct('Saturated_Full',zeros(numChans,1),'Full_Null',zeros(numChans,1));
-Deviance = struct('Full',zeros(numChans,1),'Null',zeros(numChans,1));
+Deviance = struct('Full',cell(numChans,1),'Null',cell(numChans,1));
 
 % numRepeats = 1e4;
 maxITER = 100;
@@ -160,20 +160,27 @@ for zz=1:numChans
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
-    Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
-    chi2p.Saturated_Full(zz) = 1-chi2cdf(Deviance.Full(zz),reps-numParameters);
+    %Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
+    Deviance.Full{zz} = deviance./(exp(finalParameters(zz,end)));
+    chi2p.Saturated_Full(zz) = 1-chi2cdf(sum(Deviance.Full{zz}),reps-numParameters);
+    
+    [mu] = GetMu(reps,finalParameters(zz,:),flashPoints);
+    residuals = sqrt(Deviance.Full{zz}).*sign(log(vepMagnitude)-mu);
+    [h_ks,p_ks] = kstest(residuals);
     
     [nullDeviance] = GetNullDeviance(reps,vepMagnitude,phat);
-    Deviance.Null(zz) = sum(nullDeviance)*exp(phat(2));
-    chi2p.Full_Null(zz) = 1-chi2cdf(Deviance.Null(zz)-Deviance.Full(zz),numParameters-length(phat));
+    Deviance.Null{zz} = nullDeviance./exp(phat(2));
+    chi2p.Full_Null(zz) = 1-chi2cdf(sum(Deviance.Null{zz})-sum(Deviance.Full{zz}),numParameters-length(phat));
     
-    if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05 && sum(ninetyfiveErrors(zz,:)) < 1000
+    if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05 && h_ks == 0
         result(zz) = 1;
         fprintf('Map for Channel %d Significant\n',zz);
     else
        fprintf('Map for Channel %d Not Significant\n',zz); 
     end
-    
+    display(chi2p.Saturated_Full(zz));
+    display(chi2p.Full_Null(zz));
+    display(p_ks);
     display(finalParameters(zz,:));
     display(ninetyfiveErrors(zz,:));
 end
@@ -296,7 +303,7 @@ end
 if isreal(errors) == 0
     temp = sqrt(errors.*conj(errors));
     errors = 1.96.*temp;
-    fprintf('Warning: Complex Errors in Model Fit\n\n');
+%     fprintf('Warning: Complex Errors in Model Fit\n\n');
 elseif isreal(errors) == 1
     errors = 1.96.*errors;
 end
