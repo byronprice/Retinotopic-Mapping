@@ -9,7 +9,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 
 %Created: 2017/03/17, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/03/17
+%Updated: 2017/03/24
 % By: Byron Price
 
 %  model has 8 parameters, defined by vector p
@@ -22,7 +22,7 @@ function [finalParameters,fisherInfo,ninetyfiveErrors,result,Deviance,chi2p] = F
 
 
 % parameter estimates are constrained to a reasonable range of values
-Bounds = [1e-1,10;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;50,1000;50,1000;1e-3,10;-1,1;1e-3,1];
+Bounds = [1e-2,10;min(xaxis)-50,max(xaxis)+50;min(yaxis)-50,max(yaxis)+50;50,1000;50,1000;1e-3,10;-1,1;1e-3,1];
 numChans = size(Response,1);
 
 numParameters = 8;
@@ -32,7 +32,7 @@ fisherInfo = zeros(numChans,numParameters,numParameters);
 ninetyfiveErrors = zeros(numChans,numParameters);
 result = zeros(numChans,1);
 chi2p = struct('Saturated_Full',zeros(numChans,1),'Full_Null',zeros(numChans,1));
-Deviance = struct('Full',zeros(numChans,1),'Null',zeros(numChans,1));
+Deviance = struct('Full',cell(numChans,1),'Null',cell(numChans,1));
 
 % numRepeats = 1e4;
 maxITER = 100;
@@ -160,28 +160,28 @@ for zz=1:numChans
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
-    Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
-    chi2p.Saturated_Full(zz) = 1-chi2cdf(Deviance.Full(zz),reps-numParameters);
+    %Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
+    Deviance(zz).Full = deviance./(exp(finalParameters(zz,end)));
+    chi2p.Saturated_Full(zz) = 1-chi2cdf(sum(Deviance(zz).Full),reps-numParameters);
+    
+    [mu] = GetMu(reps,finalParameters(zz,:),flashPoints);
+    residuals = sqrt(Deviance.Full{zz}).*sign(log(vepMagnitude)-mu);
+    figure();histogram(residuals);
+    [h_ks,p_ks] = kstest(residuals);
     
     [nullDeviance] = GetNullDeviance(reps,vepMagnitude,phat);
-    Deviance.Null(zz) = sum(nullDeviance)*exp(phat(2));
-    chi2p.Full_Null(zz) = 1-chi2cdf(Deviance.Null(zz)-Deviance.Full(zz),numParameters-length(phat));
+    Deviance(zz).Null = nullDeviance./exp(phat(2));
+    chi2p.Full_Null(zz) = 1-chi2cdf(sum(Deviance(zz).Null)-sum(Deviance(zz).Full),numParameters-length(phat));
     
-    totalError = sum(ninetyfiveErrors(zz,:));
-    test = finalParameters(zz,:)-ninetyfiveErrors(zz,:);
-    
-    test2 = repmat(finalParameters(zz,:)',[1,2])-Bounds;
-    test2([2,3,6],:) = [];
-    check = sum(sum(test2==0));
-    if totalError > 2000 || test(1) < 0 || check > 0 %|| test(4) < 0 || test(5) < 0
-       result(zz) = 0;
-    else
+    if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05 && h_ks == 0
         result(zz) = 1;
+        fprintf('Map for Channel %d Significant\n',zz);
+    else
+       fprintf('Map for Channel %d Not Significant\n',zz); 
     end
-    display(zz);
-    display(result(zz));
     display(chi2p.Saturated_Full(zz));
     display(chi2p.Full_Null(zz));
+    display(p_ks);
     display(finalParameters(zz,:));
     display(ninetyfiveErrors(zz,:));
 end
@@ -304,6 +304,7 @@ end
 if isreal(errors) == 0
     temp = sqrt(errors.*conj(errors));
     errors = 1.96.*temp;
+%     fprintf('Warning: Complex Errors in Model Fit\n\n');
 elseif isreal(errors) == 1
     errors = 1.96.*errors;
 end
