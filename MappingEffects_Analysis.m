@@ -8,7 +8,7 @@ function [ ] = MappingEffects_Analysis(Animals,Channels)
 %
 % Created: 2017/02/06
 %  Byron Price
-% Updated: 2017/03/10
+% Updated: 2017/03/27
 % By: Byron Price
 
 cd('~/CloudStation/ByronExp/MappingEffects');
@@ -86,26 +86,15 @@ for ii=1:length(Animals)
                   
                    [minVal,minLatency] = min(meanVEP);
                    [maxVal,maxLatency] = max(meanVEP);
-                   figure();plot(meanVEP);hold on;
+                   figure(50);plot(meanVEP);hold on;
                    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
-                   x = input('Max and min look good: (y/n)','s');
-                   if x=='n'
-                       minLatency = input('Min Latency: ');
-                       maxLatency = input('Max Latency: ');
-                       minWin = (minLatency-30):(minLatency+30);
-                       maxWin = (maxLatency-50):(maxLatency+50);
-                   else
-                       hMin = ttest(allVEPs(:,minLatency));
-                       hMax = ttest(allVEPs(:,maxLatency));
-                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
-                           
-                           minWin = (minLatency-30):(minLatency+30);
-                           maxWin = (maxLatency-50):(maxLatency+50);
-                       else
-                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
-                       end
-                   end
+                
+                   minLatency = input('Min Latency: ');
+                   maxLatency = input('Max Latency: ');
+                   minWin = (minLatency-30):(minLatency+30);
+                   maxWin = (maxLatency-30):(maxLatency+70);
+                   close 50;
+                 
                    
                    for ll=1:numStimuli
                        for mm=1:reps
@@ -130,10 +119,19 @@ for ii=1:length(Animals)
 
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               numRepeats = 5e3;
+               numRepeats = 2e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               
+               x = input('Maps okay? (y/n): ','s');
+               if x == 'n'
+                   numRepeats = 1e4;
+                   [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
+                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+                        MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               end
+               
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
@@ -179,26 +177,15 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP);
                    [maxVal,maxLatency] = max(meanVEP);
                    
-                   figure();plot(meanVEP);hold on;
+                   figure(50);plot(meanVEP);hold on;
                    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
-                   x = input('Max and min look good: (y/n)','s');
-                   if x=='n'
-                       minLatency = input('Min Latency: ');
-                       maxLatency = input('Max Latency: ');
-                       minWin = (minLatency-30):(minLatency+30);
-                       maxWin = (maxLatency-50):(maxLatency+50);
-                   else
-                       hMin = ttest(allVEPs(:,minLatency));
-                       hMax = ttest(allVEPs(:,maxLatency));
-                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
-                           
-                           minWin = (minLatency-30):(minLatency+30);
-                           maxWin = (maxLatency-50):(maxLatency+50);
-                       else
-                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
-                       end
-                   end
+
+                   minLatency = input('Min Latency: ');
+                   maxLatency = input('Max Latency: ');
+                   minWin = (minLatency-30):(minLatency+30);
+                   maxWin = (maxLatency-30):(maxLatency+70);
+                   close 50;
+
                    
                    for ll=1:numStimuli
                        for mm=1:reps
@@ -223,11 +210,20 @@ for ii=1:length(Animals)
 
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               numRepeats = 5e3;
+               numRepeats = 2e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
                     
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               
+               x = input('Maps okay? (y/n): ','s');
+               if x == 'n'
+                   numRepeats = 1e4;
+                   [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
+                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+                        MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               end
+               
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
                parameterCI{jj} = ninetyfiveErrors;
@@ -251,26 +247,15 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP(kk,:));
                    [maxVal,maxLatency] = max(meanVEP(kk,:));
                    
-                   figure();plot(meanVEP(kk,:));hold on;
+                   figure(50);plot(meanVEP(kk,:));hold on;
                    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
-                   x = input('Max and min look good: (y/n)','s');
-                   if x=='n'
-                       minLatency = input('Min Latency: ');
-                       maxLatency = input('Max Latency: ');
-                       minWin = (minLatency-30):(minLatency+30);
-                       maxWin = (maxLatency-50):(maxLatency+50);
-                   else
-                       hMin = ttest(allVEPs(:,minLatency));
-                       hMax = ttest(allVEPs(:,maxLatency));
-                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
-                           
-                           minWin = (minLatency-30):(minLatency+30);
-                           maxWin = (maxLatency-50):(maxLatency+50);
-                       else
-                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
-                       end
-                   end
+
+                   minLatency = input('Min Latency: ');
+                   maxLatency = input('Max Latency: ');
+                   minWin = (minLatency-30):(minLatency+30);
+                   maxWin = (maxLatency-30):(maxLatency+70);
+                   close(50);
+
                    subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
                    title(sprintf('SRP VEP: Day %d',jj));
@@ -296,26 +281,15 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP(kk,:));
                    [maxVal,maxLatency] = max(meanVEP(kk,:));
                    
-                   figure();plot(meanVEP(kk,:));hold on;
+                   figure(50);plot(meanVEP(kk,:));hold on;
                    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
-                   x = input('Max and min look good: (y/n)','s');
-                   if x=='n'
-                       minLatency = input('Min Latency: ');
-                       maxLatency = input('Max Latency: ');
-                       minWin = (minLatency-30):(minLatency+30);
-                       maxWin = (maxLatency-50):(maxLatency+50);
-                   else
-                       hMin = ttest(allVEPs(:,minLatency));
-                       hMax = ttest(allVEPs(:,maxLatency));
-                       if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency && maxLatency < (stimLen-51)
-                           
-                           minWin = (minLatency-30):(minLatency+30);
-                           maxWin = (maxLatency-50):(maxLatency+50);
-                       else
-                           minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-                           maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
-                       end
-                   end
+  
+                   minLatency = input('Min Latency: ');
+                   maxLatency = input('Max Latency: ');
+                   minWin = (minLatency-30):(minLatency+30);
+                   maxWin = (maxLatency-30):(maxLatency+70);
+                   close 50;
+  
                    
                    subplot(numFiles,numChans,kk+(jj-1)*numChans);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
@@ -433,14 +407,14 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
         
         finalIm = zeros(length(xaxis),length(yaxis));
         parameterVec = finalParameters(ii,:);
-        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6),parameterVec(7)];
+        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
         for jj=1:length(xaxis)
             for kk=1:length(yaxis)
                 distX = xaxis(jj)-parameterVec(2);
                 distY = yaxis(kk)-parameterVec(3);
                 
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
-                    (distY.^2)./(2*b(3)*b(3))-b(5)*distX*distY/(2*b(2)*b(3)))+b(4);
+                    (distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
         imagesc(xaxis,yaxis,finalIm');set(gca,'YDir','normal');w=colorbar;

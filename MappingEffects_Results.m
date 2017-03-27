@@ -9,7 +9,7 @@ function [ ] = MappingEffects_Results(Animals,Channels)
 %
 %Created: 2017/02/07
 %  Byron Price
-%Updated: 2017/02/07
+%Updated: 2017/03/27
 % By: Byron Price
 
 numAnimals = length(Animals);
