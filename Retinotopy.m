@@ -24,7 +24,7 @@ load('RetinotopyVars.mat');
 
 directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 if nargin < 2
-    startHold = 30; % 30 second pauses between blocks
+    startHold = 10; % 30 second pauses between blocks
 end
 
 numStimuli = numStimuli-mod(numStimuli,blocks);
@@ -103,7 +103,7 @@ while count <= numStimuli
     end
 end
 
-estimatedTime = ((waitTime+0.1+stimTime)*reps*blocks+blocks*holdTime)/60;
+estimatedTime = ((waitTime+0.05+stimTime)*reps*blocks+blocks*holdTime)/60;
 fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
 
 % Define first and second ring color as RGBA vector with normalized color
@@ -117,7 +117,7 @@ White = 1;
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 orient = rand([numStimuli,1]).*(2*pi);
-waitTimes = waitTime+exprnd(0.1,[numStimuli,1]);
+waitTimes = waitTime-0.05+exprnd(0.1,[numStimuli,1]);
 
 % Perform initial flip to gray background and sync us to the retrace:
 Priority(9);
@@ -136,7 +136,7 @@ for yy = 1:blocks
             [], [],[White,Black,...
             Radius,centerVals(count,1),centerVals(count,2),spatFreq,orient(count),0]);
         % Request stimulus onset
-        vbl = Screen('Flip', win,vbl+ifi/2);usb.strobeEventWord(stimStrobeNum);
+        vbl = Screen('Flip', win);usb.strobeEventWord(stimStrobeNum);
         vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
         vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(count));
         count = count+1;
