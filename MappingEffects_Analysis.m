@@ -251,7 +251,7 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP(kk,:));
                    [maxVal,maxLatency] = max(meanVEP(kk,:));
                    
-                   figure();plot(meanVEP);hold on;
+                   figure();plot(meanVEP(kk,:));hold on;
                    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
                    x = input('Max and min look good: (y/n)','s');
                    if x=='n'
@@ -296,7 +296,7 @@ for ii=1:length(Animals)
                    [minVal,minLatency] = min(meanVEP(kk,:));
                    [maxVal,maxLatency] = max(meanVEP(kk,:));
                    
-                   figure();plot(meanVEP);hold on;
+                   figure();plot(meanVEP(kk,:));hold on;
                    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
                    x = input('Max and min look good: (y/n)','s');
                    if x=='n'

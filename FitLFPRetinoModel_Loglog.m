@@ -161,16 +161,17 @@ for zz=1:numChans
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
     %Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
-    Deviance.Full{zz} = deviance./(exp(finalParameters(zz,end)));
-    chi2p.Saturated_Full(zz) = 1-chi2cdf(sum(Deviance.Full{zz}),reps-numParameters);
+    Deviance(zz).Full = deviance./(exp(finalParameters(zz,end)));
+    chi2p.Saturated_Full(zz) = 1-chi2cdf(sum(Deviance(zz).Full),reps-numParameters);
     
     [mu] = GetMu(reps,finalParameters(zz,:),flashPoints);
     residuals = sqrt(Deviance.Full{zz}).*sign(log(vepMagnitude)-mu);
+    figure();histogram(residuals);
     [h_ks,p_ks] = kstest(residuals);
     
     [nullDeviance] = GetNullDeviance(reps,vepMagnitude,phat);
-    Deviance.Null{zz} = nullDeviance./exp(phat(2));
-    chi2p.Full_Null(zz) = 1-chi2cdf(sum(Deviance.Null{zz})-sum(Deviance.Full{zz}),numParameters-length(phat));
+    Deviance(zz).Null = nullDeviance./exp(phat(2));
+    chi2p.Full_Null(zz) = 1-chi2cdf(sum(Deviance(zz).Null)-sum(Deviance(zz).Full),numParameters-length(phat));
     
     if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05 && h_ks == 0
         result(zz) = 1;
