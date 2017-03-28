@@ -43,7 +43,7 @@ AssertOpenGL;
 usb = usb1208FSPlusClass;
 display(usb);
 
-WaitSecs(10);
+WaitSecs(5);
 
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
@@ -81,7 +81,7 @@ Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number 
      % that degreeRadius degrees of visual space will occupy
      
 temp = (tan((1/spatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
-spatFreq = 1/temp;
+newSpatFreq = 1/temp;
 
 % calculate stimulus locations from a uniform distribution, but prevent
 %  a stimulus from being followed by one that is close to it
@@ -134,17 +134,15 @@ for yy = 1:blocks
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[Grey Grey Grey Grey],...
             [], [],[White,Black,...
-            Radius,centerVals(count,1),centerVals(count,2),spatFreq,orient(count),0]);
+            Radius,centerVals(count,1),centerVals(count,2),newSpatFreq,orient(count),0]);
         % Request stimulus onset
         vbl = Screen('Flip', win);usb.strobeEventWord(stimStrobeNum);
         vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
         vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(count));
         count = count+1;
     end
-    if yy ~= blocks
-        usb.strobeEventWord(0);
-        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
-    end
+    usb.strobeEventWord(0);
+    vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
 WaitSecs(2);
 usb.stopRecording;
