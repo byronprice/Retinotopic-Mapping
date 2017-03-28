@@ -183,7 +183,7 @@ tempVepCov = cov(downSampledVEPs(trainingLabels==1,:));
 tempGreyMu = mean(downSampledVEPs(trainingLabels==0,:),1)';
 tempGreyCov = cov(downSampledVEPs(trainingLabels==0,:));
 
-threshold = -2:0.5:1;
+threshold = -5:1:5;
 truePositives = zeros(length(threshold),1);
 falsePositives = zeros(length(threshold),1);
 mvnAccuracy = zeros(length(threshold),1);
@@ -203,9 +203,9 @@ for ii=1:length(threshold)
     mvnAccuracy(ii) = (sum(combined==0)+sum(combined==2))/length(combined);
 end
 
- figure(3);subplot(2,1,1);plot(falsePositives,truePositives,'LineWidth',2);
- title(sprintf('ROC Curve: Multivariate Normal'));
- figure(3);subplot(2,1,2);plot(threshold,mvnAccuracy,'LineWidth',2);axis([threshold(1) threshold(end) 0 1]);
+figure(3);subplot(2,1,1);plot(falsePositives,truePositives,'LineWidth',2);
+title(sprintf('ROC Curve: Multivariate Normal'));
+figure(3);subplot(2,1,2);plot(threshold,mvnAccuracy,'LineWidth',2);axis([threshold(1) threshold(end) 0 1]);
 
 [mvnAccuracy,index] = max(mvnAccuracy);
 mvnThreshold = threshold(index);
@@ -250,14 +250,20 @@ fprintf('Accuracy: %3.3f\n\n',mvnAccuracy);
 % % on those "runs" times
 % runs = 1e6;
 
-myRange = [1e-4,1e-3,1e-2,1e-1,1e0,0.5e1,1e1,1e2,1e3];
-perceptronAccuracy = zeros(length(myRange),length(myRange));
-for bigEta = 1:length(myRange)
-    for bigLambda = 1:length(myRange)
+% etaRange = [1e-4,1e-3,1e-2,1e-1,1e0,0.5e1,1e1];
+% lambdaRange = [1e-4,1e-3,1e0,0.5e1,1e1,1e2];
+% perceptronAccuracy = zeros(length(etaRange),length(lambdaRange));
+
+% max accuracy at eta 1e-4 and lambda = 100
+% for bigEta = 1:length(etaRange)
+%     for bigLambda = 1:length(lambdaRange)
         downSampledVEPs = trainingVEPs(:,1:2:end);
         [N,stimLen] = size(downSampledVEPs);
         downSampledVEPs = downSampledVEPs./2000;
         downSampledVEPs(downSampledVEPs>1) = 1;
+        
+        eta = 5;
+        lambda = 1e-3;
         
         numOutputs = 2;
         numHidden1 = 150;
@@ -285,7 +291,7 @@ for bigEta = 1:length(myRange)
         % STOCHASTIC GRADIENT DESCENT
         batchSize = 10; % make mini batches and run the algorithm
         % on those "runs" times
-        runs = 1e6;
+        runs = 1e5;
 
         numCalcs = size(myNet.Weights,2);
         dCostdWeight = cell(1,numCalcs);
@@ -308,10 +314,8 @@ for bigEta = 1:length(myRange)
                     dCostdBias{kk} = dCostdBias{kk}+costbias{kk};
                 end
             end
-            [myNet] = GradientDescent(myNet,dCostdWeight,dCostdBias,batchSize,myRange(bigEta),N,myRange(bigLambda));
-            [Output,~] = Feedforward(downSampledVEPs(13456,:)',myNet);
-%             display(Output{end})
-%             display(DesireOutput(:,13456))
+            [myNet] = GradientDescent(myNet,dCostdWeight,dCostdBias,batchSize,eta,N,lambda);
+
             
             clear indeces;% dCostdWeight dCostdBias;
             check = isnan(myNet.Weights{1});
@@ -321,6 +325,9 @@ for bigEta = 1:length(myRange)
                break; 
             end
         end
+         [Output,~] = Feedforward(downSampledVEPs(13456,:)',myNet);
+         display(Output{end})
+         display(DesireOutput(:,13456))
         
         % COMPARE ON TEST DATA
         downSampledTestVEPs = testVEPs(:,1:2:end);
@@ -329,32 +336,62 @@ for bigEta = 1:length(myRange)
         [N,~] = size(downSampledTestVEPs);
         numOutputs = 2;
         
-        DesireOutput = zeros(numOutputs,N);
-        
-        for ii=1:N
-            if testLabels(ii) == 1
-                DesireOutput(1,ii) = 1;
-                DesireOutput(2,ii) = 0;
-            elseif testLabels(ii) == 0
-                DesireOutput(1,ii) = 0;
-                DesireOutput(2,ii) = 1;
-            end
-        end
-        
-        classifiedVals = zeros(N,1);
-        count = 0;
+%         DesireOutput = zeros(numOutputs,N);
+%         
+%         for ii=1:N
+%             if testLabels(ii) == 1
+%                 DesireOutput(1,ii) = 1;
+%                 DesireOutput(2,ii) = 0;
+%             elseif testLabels(ii) == 0
+%                 DesireOutput(1,ii) = 0;
+%                 DesireOutput(2,ii) = 1;
+%             end
+%         end
+        threshold = 0.05:0.01:0.95;
+        perceptronAccuracy = zeros(length(threshold),1);
+        truePositives = zeros(length(threshold),1);
+        falsePositives = zeros(length(threshold),1);
+
+        netOutput = zeros(numOutputs,N);
         for ii=1:N
             [Output,~] = Feedforward(downSampledTestVEPs(ii,:)',myNet);
-            [~,realVal] = max(DesireOutput(:,ii));
-            [~,netVal] = max(Output{end});
-            classifiedVals(ii) = netVal;
-            if realVal == netVal
-                count = count+1;
-            end
+            netOutput(:,ii) = Output{end};
         end
-        perceptronAccuracy(bigEta,bigLambda) = count/N;
-    end
-end
+        
+        for jj=1:length(threshold)
+            labels = zeros(N,1);
+            for ii=1:N
+               stat =  exp(netOutput(1,ii))/(exp(netOutput(1,ii))+exp(netOutput(2,ii)));
+               labels(ii) = stat>threshold(jj);
+            end
+            
+            
+            combined = labels+testLabels;
+            truePositives(jj) = sum(combined==2)/sum(testLabels==1);
+            
+            trueNegs = testLabels==0;
+            labelledPos = labels==1;
+            tempCombined = trueNegs+labelledPos;
+            falsePositives(jj) = sum(tempCombined==2)/sum(trueNegs);
+            perceptronAccuracy(jj) = (sum(combined==0)+sum(combined==2))/length(combined);
+        end
+        
+        figure(4);subplot(2,1,1);plot(falsePositives,truePositives,'LineWidth',2);
+        title(sprintf('ROC Curve: 5-Layer Perceptron'));
+        figure(4);subplot(2,1,2);plot(threshold,perceptronAccuracy,'LineWidth',2);axis([threshold(1) threshold(end) 0 1]);
+        
+        [perceptronAccuracy,index] = max(perceptronAccuracy);
+        perceptronThreshold = threshold(index);
+        
+        fprintf('5-Layer Perceptron Results\n');
+        fprintf('True Positive Rate: %3.3f\n',truePositives(index));
+        fprintf('False Positive Rate: %3.3f\n',falsePositives(index));
+        fprintf('Accuracy: %3.3f\n\n',perceptronAccuracy);
+        
+        VEPclassificationNetwork = myNet;
+%         fprintf('Acurracy: %3.2f\n',count/N);
+%     end
+% end
 save('OptimizeResults.mat','maxMinAccuracy','maxMinThreshold','medianMaxMinAccuracy','medianMaxMinThreshold',...
-    'mvnAccuracy','mvnThreshold','perceptronAccuracy','myNet');
+    'mvnAccuracy','mvnThreshold','perceptronAccuracy','perceptronThreshold','VEPclassificationNetwork');
 end

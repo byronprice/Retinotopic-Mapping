@@ -60,18 +60,19 @@ end
 for ii=1:numChans
     tempData = zeros(numStimuli,3);
     meanVEP = mean(squeeze(Response(ii,:,:)),1);
-    allVEPs = squeeze(Response(ii,:,:));
-    [~,minLatency] = min(meanVEP);
-    [~,maxLatency] = max(meanVEP);
-    hMin = ttest(allVEPs(:,minLatency));
-    hMax = ttest(allVEPs(:,maxLatency));
-    if hMin == 1 && hMax == 1 && minLatency > 60 && minLatency < 170 && maxLatency > minLatency
-        minWin = minLatency-30:minLatency+30;
-        maxWin = maxLatency-50:maxLatency+50;
-    else
-        minWin = round(0.10*sampleFreq):1:round(0.16*sampleFreq);
-        maxWin = round(.18*sampleFreq):1:round(0.27*sampleFreq);
-    end
+
+    [minVal,minLatency] = min(meanVEP);
+    [maxVal,maxLatency] = max(meanVEP);
+
+    figure(50);plot(meanVEP);hold on;
+    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+
+    minLatency = input('Min Latency: ');
+    maxLatency = input('Max Latency: ');
+    minWin = (minLatency-30):(minLatency+30); 
+    maxWin = (maxLatency-30):(maxLatency+70);
+    close 50;
+   
     
     for jj=1:numStimuli
         tempData(jj,1:2) = centerVals(jj,:);
@@ -98,7 +99,7 @@ end
 
 fprintf('Fitting model ...\n\n');
 numRepeats = 5e3;
-[finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+[finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_test(Data,xaxis,yaxis,numRepeats);
 
 % if sum(signifMap) ~= numChans
 %     badChans = find(signifMap==0);
