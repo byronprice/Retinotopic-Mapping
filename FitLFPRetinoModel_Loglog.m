@@ -71,7 +71,7 @@ for zz=1:numChans
         deviance = GetDeviance(reps,parameterVec,vepMagnitude,flashPoints);
         mu = GetMu(reps,parameterVec,flashPoints);
         
-        totalDeviance(1) = sum(deviance)./exp(parameterVec(end,1));
+        totalDeviance(1) = sum(deviance);
 
         check = 1;
         iter = 1;
@@ -92,7 +92,7 @@ for zz=1:numChans
                 [tempMu] = GetMu(reps,tempParams,flashPoints);
                 deviance = GetDeviance(reps,tempParams,vepMagnitude,flashPoints);
                 
-                totalDeviance(iter+1) = sum(deviance)./exp(tempParams(end));
+                totalDeviance(iter+1) = sum(deviance);
                 check = diff(totalDeviance(iter:iter+1));
                 if check >= 0
                     parameterVec(:,iter+1) = parameterVec(:,iter);
@@ -159,8 +159,9 @@ for zz=1:numChans
     [fisherInfo(zz,:,:),ninetyfiveErrors(zz,:)] = getFisherInfo(finalParameters(zz,:),numParameters,h,reps,vepMagnitude,flashPoints);
     
     [deviance] = GetDeviance(reps,finalParameters(zz,:),vepMagnitude,flashPoints);
-    %Deviance.Full(zz) = sum(deviance)*exp(finalParameters(zz,end));
-    Deviance(zz).Full = deviance./(exp(finalParameters(zz,end)));
+    %Deviance.Full(zz) = sum(deviance)./exp(finalParameters(zz,end));
+    % need to divide by constant 1.228
+    Deviance(zz).Full = deviance./1.228;
     chi2p.Saturated_Full(zz) = 1-chi2cdf(sum(Deviance(zz).Full),reps-numParameters);
     
     [mu] = GetMu(reps,finalParameters(zz,:),flashPoints);
@@ -171,7 +172,7 @@ for zz=1:numChans
     scatter(distToCenterMass,residuals);
     
     [nullDeviance] = GetNullDeviance(reps,vepMagnitude,phat);
-    Deviance(zz).Null = nullDeviance./exp(phat(2));
+    Deviance(zz).Null = nullDeviance./1.228;
     chi2p.Full_Null(zz) = 1-chi2cdf(sum(Deviance(zz).Null)-sum(Deviance(zz).Full),numParameters-length(phat));
     
     if chi2p.Saturated_Full(zz) > 0.05 && chi2p.Full_Null(zz) < 0.05 && h_ks == 0
