@@ -24,7 +24,7 @@ Y_retino = [];Design_retino = [];
 
 conditionNames = {'Retino-Grey','Retino-SRP','Grey-SRP'};
 linespecs = {'or','*b','xg'};
-h(1) = figure();h(2) = figure();h(3) = figure();h(4) = figure();
+h(1) = figure();h(3) = figure();h(4) = figure();
 h(5) = figure();
 
 allRelativeDistToCenterMass_1 = [];
@@ -53,7 +53,7 @@ for ii=1:numAnimals
                 Design_retino = [Design_retino;tempMapXPos,tempMapYPos,(Animals(ii)+kk)*ones(tempNum,1),jj*ones(tempNum,1)];
             end
         end
-        
+        figure(h(1));hold on;
         for jj=1:numChans
             xdata = atand(squeeze(parameters(:,jj,2)).*pix_to_degree{1});
             ydata = atand(squeeze(parameters(:,jj,3)).*pix_to_degree{1});
@@ -61,16 +61,16 @@ for ii=1:numAnimals
             xErr = atand(squeeze(confIntervals(:,jj,2)).*pix_to_degree{1});
             yErr = atand(squeeze(confIntervals(:,jj,3)).*pix_to_degree{1});
             
-            figure(h(1));
+            
             xDist = xdata-xdata(1);yDist = ydata-ydata(1);
-            for zz=1:length(xDist)
-                allRelativeDistToCenterMass_1 = [allRelativeDistToCenterMass_1,sqrt(xDist(zz)^2+yDist(zz)^2)];
+            for zz=2:length(xDist)
+                allRelativeDistToCenterMass_1 = [allRelativeDistToCenterMass_1;xDist(zz),yDist(zz)];
             end
             errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
-            title(sprintf('Center of Mass Relative to Day 1: %s',conditionNames{ConditionNumber}));
+            title(sprintf('Center of Mass Relative to Day 1'));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
-            axis([-w_pixels/2 w_pixels/2 -h_pixels/2 h_pixels/2]);
+            axis([-20 20 -20 20]);
         end
         hold off;
     elseif ConditionNumber == 2 
@@ -97,6 +97,7 @@ for ii=1:numAnimals
             end
         end
         
+        figure(h(1));hold on;
         for jj=1:numChans
             xdata = atand(squeeze(parameters(:,jj,2)).*pix_to_degree{1});
             ydata = atand(squeeze(parameters(:,jj,3)).*pix_to_degree{1});
@@ -104,16 +105,16 @@ for ii=1:numAnimals
             xErr = atand(squeeze(confIntervals(:,jj,2)).*pix_to_degree{1});
             yErr = atand(squeeze(confIntervals(:,jj,3)).*pix_to_degree{1});
             
-            figure(h(2));
+            
             xDist = xdata-xdata(1);yDist = ydata-ydata(1);
-            for zz=1:length(xDist)
-                allRelativeDistToCenterMass_2 = [allRelativeDistToCenterMass_2,sqrt(xDist(zz)^2+yDist(zz)^2)];
+            for zz=2:length(xDist)
+                allRelativeDistToCenterMass_2 = [allRelativeDistToCenterMass_2;xDist(zz),yDist(zz)];
             end
             errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
-            title(sprintf('Center of Mass Relative to Day 1: %s',conditionNames{ConditionNumber}));
+            title(sprintf('Center of Mass Relative to Day 1'));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
-            axis([-w_pixels/2 w_pixels/2 -h_pixels/2 h_pixels/2]);
+            axis([-20 20 -20 20]);
         end
         hold off;
         
@@ -152,56 +153,71 @@ for ii=1:numAnimals
          end
     end
 end
+figure(h(1));
+legend(conditionNames{1},conditionNames{2});
 
-figure(h(3));
-day1 = Design_srp(:,1)==1;
-day2 = Design_srp(:,1)==2;
-day3 = Design_srp(:,1)==3;
-day4 = Design_srp(:,1)==4;
-day5 = Design_srp(:,1)==5;
-
-cond2 = Design_srp(:,2)==1;
-cond3 = Design_srp(:,2)==0;
-
-barMean = [mean(Y_srp(day1 & cond2)),mean(Y_srp(day1 & cond3));...
-    mean(Y_srp(day2 & cond2)),mean(Y_srp(day2 & cond3));...
-    mean(Y_srp(day3 & cond2)),mean(Y_srp(day3 & cond3));...
-    mean(Y_srp(day4 & cond2)),mean(Y_srp(day4 & cond3));...
-    mean(Y_srp(day5 & cond2)),mean(Y_srp(day5 & cond3))];
-
-barError = [std(Y_srp(day1 & cond2))/sqrt(length(Y_srp(day1 & cond2))),...
-    std(Y_srp(day1 & cond3))/sqrt(length(Y_srp(day1 & cond3)));...
-    std(Y_srp(day2 & cond2))/sqrt(length(Y_srp(day2 & cond2))),...
-    std(Y_srp(day2 & cond3))/sqrt(length(Y_srp(day2 & cond3)));...
-    std(Y_srp(day3 & cond2))/sqrt(length(Y_srp(day3 & cond2))),...
-    std(Y_srp(day3 & cond3))/sqrt(length(Y_srp(day3 & cond3)));...
-    std(Y_srp(day4 & cond2))/sqrt(length(Y_srp(day4 & cond2))),...
-    std(Y_srp(day4 & cond3))/sqrt(length(Y_srp(day4 & cond3)));...
-    std(Y_srp(day5 & cond2))/sqrt(length(Y_srp(day5 & cond2))),...
-    std(Y_srp(day5 & cond3))/sqrt(length(Y_srp(day5 & cond3)))];
-
-superbar(1:5,barMean','E',barError');title('SRP Protocol Mean VEP Magnitude');
-xlabel('Experimental Day');ylabel('Magnitude (\muV)');
-legend(conditionNames{2},conditionNames{3});
+% 
+% figure(h(3));
+% day1 = Design_srp(:,1)==1;
+% day2 = Design_srp(:,1)==2;
+% day3 = Design_srp(:,1)==3;
+% day4 = Design_srp(:,1)==4;
+% day5 = Design_srp(:,1)==5;
+% 
+% cond2 = Design_srp(:,2)==1;
+% cond3 = Design_srp(:,2)==0;
+% 
+% barMean = [mean(Y_srp(day1 & cond2)),mean(Y_srp(day1 & cond3));...
+%     mean(Y_srp(day2 & cond2)),mean(Y_srp(day2 & cond3));...
+%     mean(Y_srp(day3 & cond2)),mean(Y_srp(day3 & cond3));...
+%     mean(Y_srp(day4 & cond2)),mean(Y_srp(day4 & cond3));...
+%     mean(Y_srp(day5 & cond2)),mean(Y_srp(day5 & cond3))];
+% 
+% barError = [std(Y_srp(day1 & cond2))/sqrt(length(Y_srp(day1 & cond2))),...
+%     std(Y_srp(day1 & cond3))/sqrt(length(Y_srp(day1 & cond3)));...
+%     std(Y_srp(day2 & cond2))/sqrt(length(Y_srp(day2 & cond2))),...
+%     std(Y_srp(day2 & cond3))/sqrt(length(Y_srp(day2 & cond3)));...
+%     std(Y_srp(day3 & cond2))/sqrt(length(Y_srp(day3 & cond2))),...
+%     std(Y_srp(day3 & cond3))/sqrt(length(Y_srp(day3 & cond3)));...
+%     std(Y_srp(day4 & cond2))/sqrt(length(Y_srp(day4 & cond2))),...
+%     std(Y_srp(day4 & cond3))/sqrt(length(Y_srp(day4 & cond3)));...
+%     std(Y_srp(day5 & cond2))/sqrt(length(Y_srp(day5 & cond2))),...
+%     std(Y_srp(day5 & cond3))/sqrt(length(Y_srp(day5 & cond3)))];
+% 
+% days = [1:5;1:5];
+% superbar(days,barMean','E',barError')
+% title('SRP Protocol Mean VEP Magnitude');
+% xlabel('Experimental Day');ylabel('Magnitude (\muV)');
+% legend(conditionNames{2},conditionNames{3});
 
 figure(h(4));
-histogram(allRelativeDistToCenterMass_1);hold on;
-histogram(allRelativeDistToCenterMass_2);
+subplot(2,1,1);
+histogram(allRelativeDistToCenterMass_1(:,1),-20:2:20,'FaceColor','r');hold on;
+histogram(allRelativeDistToCenterMass_2(:,1),-20:2:20,'FaceColor','b');
 legend(conditionNames{1},conditionNames{2});
-title('Center of Mass (CoM) Relative To Day 1');
-xlabel('Distance to Day 1 CoM (dva)');
+title('Horizontal Center of Mass (hCoM) Relative To Day 1');
+xlabel('Distance to Day 1 hCoM (dva)');
+ylabel('Count');
+
+subplot(2,1,2);
+histogram(allRelativeDistToCenterMass_1(:,2),-20:2:20,'FaceColor','r');hold on;
+histogram(allRelativeDistToCenterMass_2(:,2),-20:2:20,'FaceColor','b');
+legend(conditionNames{1},conditionNames{2});
+title('Vertical Center of Mass (vCoM) Relative To Day 1');
+xlabel('Distance to Day 1 vCoM (dva)');
 ylabel('Count');
 
 figure(h(5));numDays = 5;
 allData = zeros(numDays,3);
 alpha = 0.05;
+N = length(Y_srp);
 for ii=1:numDays
     dayData = Y_srp(Design_srp(:,1)==ii);
     allQuantiles = quantile(dayData,[alpha/2,0.5,1-alpha/2]);
     allQuantiles(2) = mean(dayData);
     allData(ii,:) = allQuantiles;
 end
-subplot(2,1,1);boundedline(1:numDays,allData(:,2),[abs(allData(:,1)-allData(:,2)),abs(allData(:,3)-allData(:,2))]);
+subplot(2,1,1);boundedline(1:numDays,allData(:,2),[abs(allData(:,1)-allData(:,2))/sqrt(N),abs(allData(:,3)-allData(:,2))/sqrt(N)]);
 title('Combined SRP Data Across Days');ylabel('Max-Min Statistic Magnitude (\muV)');
 xlabel('Experimental Day');
 
@@ -221,8 +237,10 @@ for ii=1:numDays
     cond2Data(ii,:) = cond2quantiles;
     cond3Data(ii,:) = cond3quantiles;
 end
-subplot(2,1,2);boundedline(1:numDays,cond2Data(:,2),[abs(cond2Data(:,1)-cond2Data(:,2)),abs(cond2Data(:,3)-cond2Data(:,2))]);hold on;
-boundedline(1:numDays,cond3Data(:,2),[abs(cond3Data(:,1)-cond3Data(:,2)),abs(cond3Data(:,3)-cond3Data(:,2))]);
+N2 = length(cond2y);
+N3 = length(cond3y);
+subplot(2,1,2);boundedline(1:numDays,cond2Data(:,2),[abs(cond2Data(:,1)-cond2Data(:,2))/sqrt(N2),abs(cond2Data(:,3)-cond2Data(:,2))/sqrt(N2)],linespecs{2},...
+       1:numDays,cond3Data(:,2),[abs(cond3Data(:,1)-cond3Data(:,2))/sqrt(N3),abs(cond3Data(:,3)-cond3Data(:,2))/sqrt(N4)],linespecs{3});
 title('Separated SRP Data');ylabel('Max-Min Statistic Magnitude (\muV)');
 xlabel('Experimental Day');legend(conditionNames{2},conditionNames{3});
 
