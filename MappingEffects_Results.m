@@ -93,7 +93,7 @@ for ii=1:numAnimals
                 tempMapYPos = squeeze(mapData{jj}{kk}(:,2));
                 tempMapXPos = tempMapXPos-squeeze(parameters(jj,kk,2));
                 tempMapYPos = tempMapYPos-squeeze(parameters(jj,kk,3));
-                Design_retino = [Design_retino;tempMapXpos,tempMapYPos,(Animals(ii)+kk)*ones(tempNum,1),jj*ones(tempNum,1)];
+                Design_retino = [Design_retino;tempMapXPos,tempMapYPos,(Animals(ii)+kk)*ones(tempNum,1),jj*ones(tempNum,1)];
             end
         end
         
@@ -129,8 +129,7 @@ for ii=1:numAnimals
          end
 
     elseif ConditionNumber == 3
-        numChans = length(currentChannels);
-        [~,srp_reps] = size(srpSize{1});
+        [numChans,srp_reps] = size(srpSize{1});
         stimLen = size(srpVEP{1},2);
         vepSize = zeros(numDays,numChans,srp_reps);
         meanVEP = zeros(numDays,numChans,stimLen);
@@ -139,7 +138,7 @@ for ii=1:numAnimals
             meanVEP(jj,:,:) = srpVEP{jj};
         end
         
-         for jj=currentChannels
+         for jj=1:numChans
             data = zeros(numDays,srp_reps);dayVec = zeros(numDays,srp_reps);
             for kk=1:numDays
                 for ll=1:srp_reps
