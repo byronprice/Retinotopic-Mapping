@@ -1,4 +1,4 @@
-function [ ] = MappingEffects_Results(Animals,Channels)
+function [ ] = MappingEffects_Results(Animals)
 %MappingEffects_Results.m
 %
 %  Use with MappingEffects.m stimuli and MappingEffects_Analysis.m
@@ -33,26 +33,28 @@ for ii=1:numAnimals
     filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
     load(filename);
     
-    currentChannels = Channels{ii};
     numDays = numFiles;
     
     if ConditionNumber == 1
-        numChans = length(currentChannels);
-        [~,numParameters] = size(dailyParameters{1});
+        [numChans,numParameters] = size(dailyParameters{1});
         parameters = zeros(numDays,numChans,numParameters);
         confIntervals = zeros(numDays,numChans,numParameters);
         
         for jj=1:numDays
             parameters(jj,:,:) = dailyParameters{jj};
             confIntervals(jj,:,:) = parameterCI{jj};
-            for kk=currentChannels
+            for kk=1:numChans
                 tempNum = length(mapData{jj}{kk}(:,3));
-                Y_retino = [Y_retino;mapData{jj}{kk}(:,3)];
-                Design_retino = [Design_retino;mapData{jj}{kk}(:,1:2),(Animals(ii)+kk)*ones(tempNum,1)];
+                Y_retino = [Y_retino;squeeze(mapData{jj}{kk}(:,3))];
+                tempMapXPos = squeeze(mapData{jj}{kk}(:,1));
+                tempMapYPos = squeeze(mapData{jj}{kk}(:,2));
+                tempMapXPos = tempMapXPos-squeeze(parameters(jj,kk,2));
+                tempMapYPos = tempMapYPos-squeeze(parameters(jj,kk,3));
+                Design_retino = [Design_retino;tempMapXPos,tempMapYPos,(Animals(ii)+kk)*ones(tempNum,1),jj*ones(tempNum,1)];
             end
         end
         
-        for jj=currentChannels
+        for jj=1:numChans
             xdata = atand(squeeze(parameters(:,jj,2)).*pix_to_degree{1});
             ydata = atand(squeeze(parameters(:,jj,3)).*pix_to_degree{1});
         
@@ -64,7 +66,7 @@ for ii=1:numAnimals
             for zz=1:length(xDist)
                 allRelativeDistToCenterMass_1 = [allRelativeDistToCenterMass_1,sqrt(xDist(zz)^2+yDist(zz)^2)];
             end
-            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,'o','LineWidth',2);hold on;
+            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
             title(sprintf('Center of Mass Relative to Day 1: %s',conditionNames{ConditionNumber}));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
@@ -72,8 +74,7 @@ for ii=1:numAnimals
         end
         hold off;
     elseif ConditionNumber == 2 
-        numChans = length(currentChannels);
-        [~,numParameters] = size(dailyParameters{1});
+        [numChans,numParameters] = size(dailyParameters{1});
         srp_reps = size(srpSize{1},2);
         stimLen = size(srpVEP{1},2);
         parameters = zeros(numDays,numChans,numParameters);
@@ -85,14 +86,18 @@ for ii=1:numAnimals
             confIntervals(jj,:,:) = parameterCI{jj};
             vepSize(jj,:,:) = srpSize{jj};
             meanVEP(jj,:,:) = srpVEP{jj};
-            for kk=currentChannels
+            for kk=1:numChans
                 tempNum = length(mapData{jj}{kk}(:,3));
                 Y_retino = [Y_retino;mapData{jj}{kk}(:,3)];
-                Design_retino = [Design_retino;mapData{jj}{kk}(:,1:2),(Animals(ii)+kk)*ones(tempNum,1)];
+                tempMapXPos = squeeze(mapData{jj}{kk}(:,1));
+                tempMapYPos = squeeze(mapData{jj}{kk}(:,2));
+                tempMapXPos = tempMapXPos-squeeze(parameters(jj,kk,2));
+                tempMapYPos = tempMapYPos-squeeze(parameters(jj,kk,3));
+                Design_retino = [Design_retino;tempMapXpos,tempMapYPos,(Animals(ii)+kk)*ones(tempNum,1),jj*ones(tempNum,1)];
             end
         end
         
-        for jj=1:currentChannels
+        for jj=1:numChans
             xdata = atand(squeeze(parameters(:,jj,2)).*pix_to_degree{1});
             ydata = atand(squeeze(parameters(:,jj,3)).*pix_to_degree{1});
         
@@ -104,7 +109,7 @@ for ii=1:numAnimals
             for zz=1:length(xDist)
                 allRelativeDistToCenterMass_2 = [allRelativeDistToCenterMass_2,sqrt(xDist(zz)^2+yDist(zz)^2)];
             end
-            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,'o','LineWidth',2);hold on;
+            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
             title(sprintf('Center of Mass Relative to Day 1: %s',conditionNames{ConditionNumber}));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
@@ -112,7 +117,7 @@ for ii=1:numAnimals
         end
         hold off;
         
-         for jj=currentChannels
+         for jj=1:numChans
              data = zeros(numDays,srp_reps);dayVec = zeros(numDays,srp_reps);
             for kk=1:numDays
                 for ll=1:srp_reps
@@ -150,14 +155,14 @@ for ii=1:numAnimals
 end
 
 figure(h(3));
-day1 = find(Design_srp(:,1)==1);
-day2 = find(Design_srp(:,1)==2);
-day3 = find(Design_srp(:,1)==3);
-day4 = find(Design_srp(:,1)==4);
-day5 = find(Design_srp(:,1)==5);
+day1 = Design_srp(:,1)==1;
+day2 = Design_srp(:,1)==2;
+day3 = Design_srp(:,1)==3;
+day4 = Design_srp(:,1)==4;
+day5 = Design_srp(:,1)==5;
 
-cond2 = find(Design_srp(:,2)==1);
-cond3 = find(Design_srp(:,2)==0);
+cond2 = Design_srp(:,2)==1;
+cond3 = Design_srp(:,2)==0;
 
 barMean = [mean(Y_srp(day1 & cond2)),mean(Y_srp(day1 & cond3));...
     mean(Y_srp(day2 & cond2)),mean(Y_srp(day2 & cond3));...
@@ -187,6 +192,40 @@ legend(conditionNames{1},conditionNames{2});
 title('Center of Mass (CoM) Relative To Day 1');
 xlabel('Distance to Day 1 CoM (dva)');
 ylabel('Count');
+
+figure(h(5));numDays = 5;
+allData = zeros(numDays,3);
+alpha = 0.05;
+for ii=1:numDays
+    dayData = Y_srp(Design_srp(:,1)==ii);
+    allQuantiles = quantile(dayData,[alpha/2,0.5,1-alpha/2]);
+    allQuantiles(2) = mean(dayData);
+    allData(ii,:) = allQuantiles;
+end
+subplot(2,1,1);boundedline(1:numDays,allData(:,2),[abs(allData(:,1)-allData(:,2)),abs(allData(:,3)-allData(:,2))]);
+title('Combined SRP Data Across Days');ylabel('Max-Min Statistic Magnitude (\muV)');
+xlabel('Experimental Day');
+
+cond2Data = zeros(numDays,3);
+cond3Data = zeros(numDays,3);
+cond2y = Y_srp(Design_srp(:,2)==1);
+cond3y = Y_srp(Design_srp(:,2)==0);
+cond2Design = Design_srp(Design_srp(:,2)==1,:);
+cond3Design = Design_srp(Design_srp(:,2)==0,:);
+for ii=1:numDays
+    cond2temp = cond2y(cond2Design(:,1)==ii);
+    cond3temp = cond3y(cond3Design(:,1)==ii);
+    cond2quantiles = quantile(cond2temp,[alpha/2,0.5,1-alpha/2]);
+    cond3quantiles = quantile(cond3temp,[alpha/2,0.5,1-alpha/2]);
+    cond2quantiles(2) = mean(cond2temp);
+    cond3quantiles(2) = mean(cond3temp);
+    cond2Data(ii,:) = cond2quantiles;
+    cond3Data(ii,:) = cond3quantiles;
+end
+subplot(2,1,2);boundedline(1:numDays,cond2Data(:,2),[abs(cond2Data(:,1)-cond2Data(:,2)),abs(cond2Data(:,3)-cond2Data(:,2))]);hold on;
+boundedline(1:numDays,cond3Data(:,2),[abs(cond3Data(:,1)-cond3Data(:,2)),abs(cond3Data(:,3)-cond3Data(:,2))]);
+title('Separated SRP Data');ylabel('Max-Min Statistic Magnitude (\muV)');
+xlabel('Experimental Day');legend(conditionNames{2},conditionNames{3});
 
 savefig(h,'MappingEffects_FinalResults.fig');
 
