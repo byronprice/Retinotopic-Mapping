@@ -13,7 +13,7 @@ function [] = MapRetinotopy(AnimalName,Date)
 %
 % Created: 2016/05/25, 8 St. Mary's Street, Boston
 %  Byron Price
-% Updated: 2017/03/08
+% Updated: 2017/03/30
 %  By: Byron Price
 
 EphysFileName = sprintf('RetinoData%d_%d.plx',Date,AnimalName); 
@@ -61,17 +61,10 @@ for ii=1:numChans
     tempData = zeros(numStimuli,3);
     meanVEP = mean(squeeze(Response(ii,:,:)),1);
 
-    [minVal,minLatency] = min(meanVEP);
-    [maxVal,maxLatency] = max(meanVEP);
+    [~,minLatency] = min(meanVEP);
 
-    figure(50);plot(meanVEP);hold on;
-    plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
-
-    minLatency = input('Min Latency: ');
-    maxLatency = input('Max Latency: ');
     minWin = (minLatency-30):(minLatency+30); 
-    maxWin = (maxLatency-30):(maxLatency+70);
-    close 50;
+    maxWin = (minLatency+60):(minLatency+60+100);
    
     
     for jj=1:numStimuli
