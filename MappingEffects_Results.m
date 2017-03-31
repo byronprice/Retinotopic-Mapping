@@ -65,7 +65,9 @@ for ii=1:numAnimals
             ydata = atand(squeeze(parameters(:,jj,3)).*pix_to_degree{1});
         
             xstd = atand(4.*squeeze(parameters(:,jj,4)).*pix_to_degree{1});
+            xstdErr = atand(4.*squeeze(confIntervals(:,jj,4)).*pix_to_degree{1});
             ystd = atand(4.*squeeze(parameters(:,jj,5)).*pix_to_degree{1});
+            ystdErr = atand(4.*squeeze(confIntervals(:,jj,5).*pix_to_degree{1}));
             
             height = exp(squeeze(parameters(:,jj,1))+squeeze(parameters(:,jj,6)));
             heightErr = exp(sqrt(squeeze(confIntervals(:,jj,1)).^2+squeeze(confIntervals(:,jj,6)).^2));
@@ -85,7 +87,7 @@ for ii=1:numAnimals
             end
             for zz=1:length(xDist)
                 if (parameters(zz,jj,1)-confIntervals(zz,jj,1)) > 0 && sum(squeeze(confIntervals(zz,jj,:))) < 1500
-                    allStd_1 = [allStd_1;xstd(zz),ystd(zz)];
+                    allStd_1 = [allStd_1;xstd(zz),xstdErr(zz),ystd(zz),ystdErr(zz),zz];
                     allHeight_1 = [allHeight_1;height(zz),heightErr(zz),zz];
                 end
             end
@@ -128,7 +130,9 @@ for ii=1:numAnimals
             ydata = atand(squeeze(parameters(:,jj,3)).*pix_to_degree{1});
             
             xstd = atand(4.*squeeze(parameters(:,jj,4)).*pix_to_degree{1});
+            xstdErr = atand(4.*squeeze(confIntervals(:,jj,4)).*pix_to_degree{1});
             ystd = atand(4.*squeeze(parameters(:,jj,5)).*pix_to_degree{1});
+            ystdErr = atand(4.*squeeze(confIntervals(:,jj,5).*pix_to_degree{1}));
             
             height = exp(squeeze(parameters(:,jj,1))+squeeze(parameters(:,jj,6)));
             heightErr = exp(sqrt(squeeze(confIntervals(:,jj,1)).^2+squeeze(confIntervals(:,jj,6)).^2));
@@ -148,7 +152,7 @@ for ii=1:numAnimals
             end
             for zz=1:length(xDist)
                 if (parameters(zz,jj,1)-confIntervals(zz,jj,1)) > 0 && sum(squeeze(confIntervals(zz,jj,:))) < 1500
-                    allStd_2 = [allStd_2;xstd(zz),ystd(zz)];
+                    allStd_2 = [allStd_2;xstd(zz),xstdErr(zz),ystd(zz),ystdErr(zz),zz];
                     allHeight_2 = [allHeight_2;height(zz),heightErr(zz),zz];
                 end
             end
@@ -322,6 +326,10 @@ errorbar(allHeight_1(:,3),allHeight_1(:,1),allHeight_1(:,2),linespecs{1},'Linewi
 errorbar(allHeight_2(:,3),allHeight_2(:,1),allHeight_2(:,2),linespecs{2},'Linewidth',2);
 legend(conditionNames{1},conditionNames{2},'location','northwest');
 % savefig(h,'MappingEffects_FinalResults.fig');
+
+figure();
+errorbar(allStd_1(:,end),allStd_1(:,1),allStd_1(:,2),linespecs{1},'Linewidth',2);hold on;
+errorbar(allStd_2(:,end),allStd_2(:,3),allStd_2(:,4),linespecs{2},'LineWidth',2);
 
 save('MappingEffects_FinalResults.mat','Y_srp','Design_srp','Y_retino','Design_retino');
 end
