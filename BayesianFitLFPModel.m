@@ -1,4 +1,4 @@
-function [finalParameters,covariance] = BayesianFitLFPModel(Response,xaxis,yaxis,centerVals)
+function [finalParameters,covariance,confIntervals] = BayesianFitLFPModel(Response,xaxis,yaxis,centerVals)
 % BayesianFitLFPModel.m
 tic
 numChans = size(Response,1);
@@ -7,9 +7,10 @@ reps = size(Response,2);
 numParameters = 7;
    
 finalParameters = zeros(numChans,numParameters);
+confIntervals = zeros(numChans,numParameters,2);
 covariance = zeros(numChans,numParameters,numParameters);
 
-priorParams = [1.75,100;4,300;4,250;1.75,200;1.75,200;1.5,200;1.75,200];
+priorParams = [0.5,0.5;4,300;4,250;1.75,200;1.75,200;1.5,2;0.5,0.5];
 % proposal = [150,100;1000,500;700,500;300,200;250,300;200,150;200,150];
 
 initSigma = [1,2,2,1,1,1,1].*5;
@@ -60,23 +61,23 @@ for zz=1:numChans
     for ii=1:numParameters
        figure(1);subplot(4,2,ii);histogram(x(burnIn:500:end,ii));
        figure(2);subplot(4,2,ii);autocorr(x(burnIn:500:end,ii));
+       confIntervals(zz,ii,:) = quantile(x(burnIn:500:end,ii),[0.05/2,1-0.05/2]);
     end
     finalParameters(zz,:) = mean(x(burnIn:500:end,:),1);
-    median(x(burnIn:end,:))
+    
     covariance(zz,:,:) = cov(x(burnIn:500:end,:));
 end
 
 toc
 end
 
-function [loglikelihood] = GetLikelihood(reps,parameterVec,peakNegativity,flashPoints)
-loglikelihood = 0;
+function [loglikelihood] = GetLikelihood(reps,parameterVec,vepMagnitude,flashPoints)
+loglikelihood = zeros(reps,1);
 for kk=1:reps
-      mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
-        ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2))+parameterVec(7);
-
-    loglikelihood = loglikelihood-(1/2)*log(2*pi*parameterVec(6)*parameterVec(6))-...
-        (1/(2*parameterVec(6)*parameterVec(6)))*(peakNegativity(kk)-mu).^2;
+    mu = parameterVec(1)*exp(-((flashPoints(kk,1)-parameterVec(2)).^2)./(2*parameterVec(4).^2)-...
+        ((flashPoints(kk,2)-parameterVec(3)).^2)./(2*parameterVec(5).^2))+parameterVec(6);
+    loglikelihood(kk) = -log(parameterVec(7))-log(vepMagnitude(kk))+(log(vepMagnitude(kk))-mu)/parameterVec(7)-...
+        2*log(1+exp((log(vepMagnitude(kk))-mu)/parameterVec(7)));
 end
 end
 

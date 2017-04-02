@@ -202,7 +202,6 @@ for kk=1:reps
 end
 end
 
-
 function [loglikelihood] = GetLikelihood(reps,parameterVec,vepMagnitude,flashPoints)
 loglikelihood = zeros(reps,1);
 for kk=1:reps

@@ -64,7 +64,7 @@ for ii=1:numChans
     [~,minLatency] = min(meanVEP);
 
     minWin = (minLatency-30):(minLatency+30); 
-    maxWin = (minLatency+60):(minLatency+60+100);
+    maxWin = (minLatency+50):(minLatency+150);
    
     
     for jj=1:numStimuli

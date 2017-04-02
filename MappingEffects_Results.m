@@ -70,7 +70,8 @@ for ii=1:numAnimals
             ystdErr = atand(4.*squeeze(confIntervals(:,jj,5).*pix_to_degree{1}));
             
             height = exp(squeeze(parameters(:,jj,1))+squeeze(parameters(:,jj,6)));
-            heightErr = exp(sqrt(squeeze(confIntervals(:,jj,1)).^2+squeeze(confIntervals(:,jj,6)).^2));
+            heightErr = exp(squeeze(parameters(:,jj,1))+squeeze(parameters(:,jj,6))+...
+                squeeze(confIntervals(:,jj,1))+squeeze(confIntervals(:,jj,6)));
             
             xErr = atand(squeeze(confIntervals(:,jj,2)).*pix_to_degree{1});
             yErr = atand(squeeze(confIntervals(:,jj,3)).*pix_to_degree{1});
@@ -91,7 +92,7 @@ for ii=1:numAnimals
                     allHeight_1 = [allHeight_1;height(zz),heightErr(zz),zz];
                 end
             end
-            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
+%             errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
             title(sprintf('Center of Mass Relative to Day 1'));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
@@ -135,7 +136,8 @@ for ii=1:numAnimals
             ystdErr = atand(4.*squeeze(confIntervals(:,jj,5).*pix_to_degree{1}));
             
             height = exp(squeeze(parameters(:,jj,1))+squeeze(parameters(:,jj,6)));
-            heightErr = exp(sqrt(squeeze(confIntervals(:,jj,1)).^2+squeeze(confIntervals(:,jj,6)).^2));
+            heightErr = exp(squeeze(parameters(:,jj,1))+squeeze(parameters(:,jj,6))+...
+                squeeze(confIntervals(:,jj,1))+squeeze(confIntervals(:,jj,6)));
         
             xErr = atand(squeeze(confIntervals(:,jj,2)).*pix_to_degree{1});
             yErr = atand(squeeze(confIntervals(:,jj,3)).*pix_to_degree{1});
@@ -156,7 +158,7 @@ for ii=1:numAnimals
                     allHeight_2 = [allHeight_2;height(zz),heightErr(zz),zz];
                 end
             end
-            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
+%             errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
             title(sprintf('Center of Mass Relative to Day 1'));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
@@ -322,8 +324,8 @@ ylabel('Count');
 
 
 figure();
-errorbar(allHeight_1(:,3),allHeight_1(:,1),allHeight_1(:,2),linespecs{1},'Linewidth',2);hold on;
-errorbar(allHeight_2(:,3),allHeight_2(:,1),allHeight_2(:,2),linespecs{2},'Linewidth',2);
+errorbar(allHeight_1(:,3),allHeight_1(:,1),abs(allHeight_1(:,2)-allHeight_1(:,1)),linespecs{1},'Linewidth',2);hold on;
+errorbar(allHeight_2(:,3),allHeight_2(:,1),abs(allHeight_2(:,2)-allHeight_2(:,2)),linespecs{2},'Linewidth',2);
 legend(conditionNames{1},conditionNames{2},'location','northwest');
 % savefig(h,'MappingEffects_FinalResults.fig');
 

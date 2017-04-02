@@ -84,16 +84,10 @@ for ii=1:length(Animals)
                    allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
                   
-                   [minVal,minLatency] = min(meanVEP);
-                   [maxVal,maxLatency] = max(meanVEP);
-                   figure(50);plot(meanVEP);hold on;
-                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   [~,minLatency] = min(meanVEP);
                 
-                   minLatency = input('Min Latency: ');
-                   maxLatency = input('Max Latency: ');
                    minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (maxLatency-30):(maxLatency+70);
-                   close 50;
+                   maxWin = (minLatency+50):(minLatency+150);
                  
                    
                    for ll=1:numStimuli
@@ -117,8 +111,6 @@ for ii=1:length(Animals)
                    Data{kk} = abs(tempData);
                end
 
-%                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
-%                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
                numRepeats = 2e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
@@ -174,17 +166,10 @@ for ii=1:length(Animals)
                    
                    allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
-                   [minVal,minLatency] = min(meanVEP);
-                   [maxVal,maxLatency] = max(meanVEP);
-                   
-                   figure(50);plot(meanVEP);hold on;
-                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   [~,minLatency] = min(meanVEP);
 
-                   minLatency = input('Min Latency: ');
-                   maxLatency = input('Max Latency: ');
                    minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (maxLatency-30):(maxLatency+70);
-                   close 50;
+                   maxWin = (minLatency+50):(minLatency+150);
 
                    
                    for ll=1:numStimuli
@@ -244,17 +229,10 @@ for ii=1:length(Animals)
                    end
                    allVEPs = squeeze(srpResponse(kk,:,:));
                    meanVEP(kk,:) = mean(allVEPs,1);
-                   [minVal,minLatency] = min(meanVEP(kk,:));
-                   [maxVal,maxLatency] = max(meanVEP(kk,:));
-                   
-                   figure(50);plot(meanVEP(kk,:));hold on;
-                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   [~,minLatency] = min(meanVEP(kk,:));
 
-                   minLatency = input('Min Latency: ');
-                   maxLatency = input('Max Latency: ');
                    minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (maxLatency-30):(maxLatency+70);
-                   close(50);
+                   maxWin = (minLatency+50):(minLatency+150);
 
                    subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
@@ -278,17 +256,10 @@ for ii=1:length(Animals)
                    end
                    allVEPs = squeeze(srpResponse(kk,:,:));
                    meanVEP(kk,:) = mean(allVEPs,1);
-                   [minVal,minLatency] = min(meanVEP(kk,:));
-                   [maxVal,maxLatency] = max(meanVEP(kk,:));
-                   
-                   figure(50);plot(meanVEP(kk,:));hold on;
-                   plot(minLatency,minVal,'vb','LineWidth',2);plot(maxLatency,maxVal,'^r','LineWidth',2);
+                   [~,minLatency] = min(meanVEP(kk,:));
   
-                   minLatency = input('Min Latency: ');
-                   maxLatency = input('Max Latency: ');
                    minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (maxLatency-30):(maxLatency+70);
-                   close 50;
+                   maxWin = (minLatency+50):(minLatency+150);
   
                    
                    subplot(numFiles,numChans,kk+(jj-1)*numChans);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
@@ -391,17 +362,18 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
             xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position');
         end
         hold on;
-
+%         figure();axis([0 max(xaxis) 0 max(yaxis)]);
         for jj=1:numStimuli
             tempx = centerVals(jj,1);
             tempy = centerVals(jj,2);
             plot(((1:1:stimLen)./xconv+centerVals(jj,1)-0.5*xDiff),...
                 (squeeze(meanResponse(ii,jj,:))'./yconv+centerVals(jj,2)),'k','LineWidth',2);
-
+            hold on;
             plot((tempx-Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx+Radius)*ones(Radius*2+1,1),(tempy-Radius):(tempy+Radius),'k','LineWidth',2);
             plot((tempx-Radius):(tempx+Radius),(tempy-Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
             plot((tempx-Radius):(tempx+Radius),(tempy+Radius)*ones(Radius*2+1,1),'k','LineWidth',2);
+            hold on;
 
         end
         
@@ -419,7 +391,7 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
         end
         imagesc(xaxis,yaxis,finalIm');set(gca,'YDir','normal');w=colorbar;
         caxis([b(4) b(4)+1]);
-        ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
+        ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');
         hold off;
     end
 end
