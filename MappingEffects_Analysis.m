@@ -389,7 +389,7 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
                     (distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
-        imagesc(xaxis,yaxis,finalIm');set(gca,'YDir','normal');w=colorbar;
+        imagesc(xaxis,yaxis,finalIm','AlphaData',0.3);set(gca,'YDir','normal');w=colorbar;
         caxis([b(4) b(4)+1]);
         ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');
         hold off;
