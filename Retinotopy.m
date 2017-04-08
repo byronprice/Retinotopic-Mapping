@@ -22,7 +22,9 @@ function [] = Retinotopy(AnimalName,startHold)
 cd('~/CloudStation/ByronExp/Retino');
 load('RetinotopyVars.mat');
 
-directory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
+currentdirectory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
+cd(currentdirectory);
+
 if nargin < 2
     startHold = 10; % 30 second pauses between blocks
 end
@@ -65,8 +67,8 @@ Screen('ColorRange', win, 1);
 % Retrieve monitor refresh duration
 ifi = Screen('GetFlipInterval', win);
 
-dgshader = [directory '/Retinotopy.vert.txt'];
-GratingShader = LoadGLSLProgramFromFiles({ dgshader, [directory '/Retinotopy.frag.txt'] }, 1);
+dgshader = [currentdirectory '/Retinotopy.vert.txt'];
+GratingShader = LoadGLSLProgramFromFiles({ dgshader, [currentdirectory '/Retinotopy.frag.txt'] }, 1);
 gratingTex = Screen('SetOpenGLTexture', win, [], 0, GL.TEXTURE_3D,w_pixels,...
     h_pixels, 1, GratingShader);
 
@@ -89,15 +91,15 @@ DistFun = @(stimCenter,centerVals) (ceil(sqrt((stimCenter(1)-centerVals(:,1)).^2
 
 border = round(Radius);
 centerVals = zeros(numStimuli,2);
-centerVals(1,1) = border+unidrnd(w_pixels-2*border);
+centerVals(1,1) = border+unidrnd(w_pixels-5*border);
 centerVals(1,2) = border+unidrnd(h_pixels-2*border);
 
 count = 2;
 while count <= numStimuli
-    xPos = border+unidrnd(w_pixels-2*border);
+    xPos = border+unidrnd(w_pixels-5*border);
     yPos = border+unidrnd(h_pixels-2*border);
     dist = DistFun(centerVals(count-1,:),[xPos,yPos]);
-    if dist > 2*Radius
+    if dist > 4*Radius
        centerVals(count,:) = [xPos,yPos];
        count = count+1;
     end
@@ -164,6 +166,7 @@ stimParams.mmPerPixel = mmPerPixel;
 stimParams.DistToScreen = DistToScreen;
 stimParams.orient = orient;
 
+cd('~/CloudStation/ByronExp/Retino');
 
 fileName = sprintf('RetinoStim%d_%d.mat',Date,AnimalName);
 save(fileName,'stimParams')
