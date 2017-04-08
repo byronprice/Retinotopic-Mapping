@@ -160,7 +160,7 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
         ChanData(:,ii) = filter(b,a,temp);
     end
 
-    timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
+    timeStamps = 0:1/sampleFreq:(dataLength/sampleFreq-1/sampleFreq);
 
     if length(timeStamps) ~= dataLength
         fprintf('Error: Review allad cell array and timing')
