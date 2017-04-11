@@ -48,14 +48,18 @@ for ii=1:numAnimals
             parameters(jj,:,:) = dailyParameters{jj};
             confIntervals(jj,:,:) = parameterCI{jj};
             for kk=1:numChans
-                if (parameters(jj,kk,1)-confIntervals(jj,kk,1)) > 0
+                if (squeeze(parameters(jj,kk,1))-squeeze(confIntervals(jj,kk,1))) > 0.05
                     tempNum = length(mapData{jj}{kk}(:,3));
-                    Y_retino = [Y_retino;squeeze(mapData{jj}{kk}(:,3))];
+                    
                     tempMapXPos = squeeze(mapData{jj}{kk}(:,1));
                     tempMapYPos = squeeze(mapData{jj}{kk}(:,2));
                     tempMapXPos = tempMapXPos-squeeze(parameters(jj,kk,2));
                     tempMapYPos = tempMapYPos-squeeze(parameters(jj,kk,3));
+                    
+                
                     Design_retino = [Design_retino;tempMapXPos,tempMapYPos,zeros(tempNum,1),jj*ones(tempNum,1)];
+                    Y_retino = [Y_retino;squeeze(mapData{jj}{kk}(:,3))];
+    
                 end
             end
         end
@@ -113,14 +117,17 @@ for ii=1:numAnimals
             vepSize(jj,:,:) = srpSize{jj};
             meanVEP(jj,:,:) = srpVEP{jj};
             for kk=1:numChans
-                if (parameters(jj,kk,1)-confIntervals(jj,kk,1)) > 0
+                if (squeeze(parameters(jj,kk,1))-squeeze(confIntervals(jj,kk,1))) > 0.05 
                     tempNum = length(mapData{jj}{kk}(:,3));
-                    Y_retino = [Y_retino;mapData{jj}{kk}(:,3)];
+                    
                     tempMapXPos = squeeze(mapData{jj}{kk}(:,1));
                     tempMapYPos = squeeze(mapData{jj}{kk}(:,2));
                     tempMapXPos = tempMapXPos-squeeze(parameters(jj,kk,2));
                     tempMapYPos = tempMapYPos-squeeze(parameters(jj,kk,3));
+                    
+
                     Design_retino = [Design_retino;tempMapXPos,tempMapYPos,ones(tempNum,1),jj*ones(tempNum,1)];
+                    Y_retino = [Y_retino;mapData{jj}{kk}(:,3)];
                 end
             end
         end
@@ -336,3 +343,15 @@ errorbar(allStd_2(:,end),allStd_2(:,3),allStd_2(:,4),linespecs{2},'LineWidth',2)
 save('MappingEffects_FinalResults.mat','Y_srp','Design_srp','Y_retino','Design_retino');
 end
 
+% xBins = linspace(-1500,1500,50);
+% x = discretize(Design_retino(:,1),xBins);figure(1);
+% for ii=1:length(unique(x))
+% data = Y_retino(x==ii);xPos = mean(Design_retino(x==ii,1));
+% figure(1);errorbar(xPos,mean(data),2*std(data)/sqrt(length(data)));hold on;
+% end
+% yBins = linspace(-1000,1000,25);
+% y = discretize(Design_retino(:,2),yBins);figure(2);
+% for ii=1:length(unique(y))
+% data = Y_retino(y==ii);yPos = mean(Design_retino(y==ii,2));
+% figure(2);errorbar(yPos,mean(data),2*std(data)/sqrt(length(data)));hold on;
+% end
