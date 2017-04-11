@@ -32,6 +32,8 @@ for ii=1:length(Animals)
    significantVEP = cell(numFiles,1);
    currentChannel = Channels{ii};
    numChans = length(currentChannel);
+   mappingVEP = cell(numFiles,numChans);
+   srpTrialVEPs = cell(numFiles,numChans);
    
    % could add back check for "goodChannels"
    if numChans ~= 0
@@ -83,11 +85,12 @@ for ii=1:length(Animals)
                    
                    allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
+                   mappingVEP{jj,kk} = allVEPs;
                   
                    [~,minLatency] = min(meanVEP);
                 
                    minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (minLatency+50):(minLatency+150);
+                   maxWin = (minLatency+40):(minLatency+140);
                  
                    
                    for ll=1:numStimuli
@@ -111,18 +114,18 @@ for ii=1:length(Animals)
                    Data{kk} = abs(tempData);
                end
 
-               numRepeats = 2e3;
+               numRepeats = 5e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+                        FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,numRepeats);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
-               x = input('Maps okay? (y/n): ','s');
-               if x == 'n'
-                   numRepeats = 1e4;
-                   [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
-                        MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
-               end
+%                x = input('Maps okay? (y/n): ','s');
+%                if x == 'n'
+%                    numRepeats = 1e4;
+%                    [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
+%                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+%                         MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+%                end
                
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
@@ -166,10 +169,12 @@ for ii=1:length(Animals)
                    
                    allVEPs = reshape(squeeze(Response(kk,:,:,:)),[reps*numStimuli,stimLen]);
                    meanVEP = mean(allVEPs,1);
+                   mappingVEP{jj,kk} = allVEPs;
+                   
                    [~,minLatency] = min(meanVEP);
 
                    minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (minLatency+50):(minLatency+150);
+                   maxWin = (minLatency+40):(minLatency+140);
 
                    
                    for ll=1:numStimuli
@@ -195,19 +200,19 @@ for ii=1:length(Animals)
 
 %                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               numRepeats = 2e3;
+               numRepeats = 5e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+                        FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,numRepeats);
                     
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
-               x = input('Maps okay? (y/n): ','s');
-               if x == 'n'
-                   numRepeats = 1e4;
-                   [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
-                        MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
-               end
+%                x = input('Maps okay? (y/n): ','s');
+%                if x == 'n'
+%                    numRepeats = 1e4;
+%                    [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
+%                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
+%                         MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+%                end
                
                dailyParameters{jj} = finalParameters;
                mapData{jj} = Data;
@@ -230,9 +235,9 @@ for ii=1:length(Animals)
                    allVEPs = squeeze(srpResponse(kk,:,:));
                    meanVEP(kk,:) = mean(allVEPs,1);
                    [~,minLatency] = min(meanVEP(kk,:));
-
-                   minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (minLatency+50):(minLatency+150);
+                   srpTrialVEPs{jj,kk} = allVEPs;
+                   minWin = (minLatency-30):(minLatency+20);
+                   maxWin = (minLatency+30):(minLatency+130);
 
                    subplot(numFiles,numChans*2,kk+numChans+(jj-1)*numChans*2);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
                    xlabel('Time from Flip/Flop (ms)');ylabel('LFP Mag (\muVolts)');
@@ -257,9 +262,9 @@ for ii=1:length(Animals)
                    allVEPs = squeeze(srpResponse(kk,:,:));
                    meanVEP(kk,:) = mean(allVEPs,1);
                    [~,minLatency] = min(meanVEP(kk,:));
-  
-                   minWin = (minLatency-30):(minLatency+30);
-                   maxWin = (minLatency+50):(minLatency+150);
+                   srpTrialVEPs{jj,kk} = allVEPs;
+                   minWin = (minLatency-30):(minLatency+20);
+                   maxWin = (minLatency+30):(minLatency+130);
   
                    
                    subplot(numFiles,numChans,kk+(jj-1)*numChans);plot(meanVEP(kk,:));axis([0 stimLen -400 200]);
@@ -274,20 +279,20 @@ for ii=1:length(Animals)
 %        savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
         clear h;
    end
-   filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
+   filename = sprintf('MappingEffectsGammaTestResults_%d.mat',Animals(ii));
    if ConditionNumber == 1
        save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'ConditionNumber','numFiles','w_pixels',...
             'h_pixels','mapData','residualDevianceTest_pVal','pix_to_degree',...
-            'fullDeviance');
+            'fullDeviance','currentChannel','mappingVEP');
    elseif ConditionNumber == 2
         save(filename,'dailyParameters','parameterCI','fisherInformation',...
             'srpSize','srpVEP','ConditionNumber','numFiles','w_pixels',...
             'h_pixels','mapData','residualDevianceTest_pVal','significantVEP',...
-            'fullDeviance','pix_to_degree');
+            'fullDeviance','pix_to_degree','currentChannel','mappingVEP','srpTrialVEPs');
    elseif ConditionNumber == 3
        save(filename,...
-            'srpSize','srpVEP','ConditionNumber','numFiles','significantVEP');
+            'srpSize','srpVEP','ConditionNumber','numFiles','significantVEP','srpTrialVEPs');
    end
    fprintf('Done with animal %d\n\n',Animals(ii));pause(1);
 end
@@ -389,8 +394,8 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
                     (distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
-        imagesc(xaxis,yaxis,finalIm','AlphaData',0.3);set(gca,'YDir','normal');w=colorbar;
-        caxis([b(4) b(4)+1]);
+        imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
+        caxis([b(4) b(4)+150]);
         ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');
         hold off;
     end
