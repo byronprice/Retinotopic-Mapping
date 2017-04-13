@@ -116,7 +116,7 @@ for ii=1:length(Animals)
 
                numRepeats = 5e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,numRepeats);
+                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
 %                x = input('Maps okay? (y/n): ','s');
@@ -202,7 +202,7 @@ for ii=1:length(Animals)
 %                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
                numRepeats = 5e3;
                [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,numRepeats);
+                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
                     
                MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
