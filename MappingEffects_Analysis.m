@@ -334,7 +334,7 @@ function [ChanData,timeStamps,tsevs,svStrobed,numChans,sampleFreq] = ExtractSign
         ChanData(:,ii) = filter(b,a,temp);
     end
 
-    timeStamps = 0:1/sampleFreq:dataLength/sampleFreq-1/sampleFreq;
+    timeStamps = 1/sampleFreq:1/sampleFreq:(dataLength/sampleFreq);
 
     if length(timeStamps) ~= dataLength
         display('Error: Review allad cell array and timing')
