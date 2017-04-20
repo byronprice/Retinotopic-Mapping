@@ -1,4 +1,4 @@
-function [] = MyReadall(fileName)
+function [] = readall(fileName)
 % this script reads all the spike timestamp and a/d info from a plx file into matlab
 % variables.
 
@@ -6,7 +6,7 @@ function [] = MyReadall(fileName)
 % this will bring up the file-open dialog
 %StartingFileName = 'c:\plexondata\NSSample.plx';
 %StartingFileName = 'c:\plexondata\au101602a.plx';
-[OpenedFileName, Version, Freq, Comment, Trodalness, NPW, PreThresh, SpikePeakV, SpikeADResBits, SlowPeakV, SlowADResBits, Duration, DateTime] = plx_information(strcat(fileName,'.plx'));
+[OpenedFileName, Version, Freq, Comment, Trodalness, NPW, PreThresh, SpikePeakV, SpikeADResBits, SlowPeakV, SlowADResBits, Duration, DateTime] = plx_information(fileName);
 
 disp(['Opened File Name: ' OpenedFileName]);
 disp(['Version: ' num2str(Version)]);
@@ -126,6 +126,6 @@ if ( nevchannels > 0 )
 end
 [nev,evnames] = plx_event_names(OpenedFileName);
 
-finalName = strcat(fileName,'.mat');
+finalName = strcat(fileName(1:end-4),'.mat');
 save(finalName)
 end
