@@ -96,7 +96,7 @@ for ii=1:numAnimals
                     allHeight_1 = [allHeight_1;height(zz),heightErr(zz),zz];
                 end
             end
-%             errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
+            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
             title(sprintf('Center of Mass Relative to Day 1'));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
@@ -165,7 +165,7 @@ for ii=1:numAnimals
                     allHeight_2 = [allHeight_2;height(zz),heightErr(zz),zz];
                 end
             end
-%             errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
+            errorbar(xDist,yDist,yErr,yErr,xErr,xErr,linespecs{ConditionNumber},'LineWidth',2);hold on;
             title(sprintf('Center of Mass Relative to Day 1'));
             xlabel('Horizontal dva');
             ylabel('Vertical dva');
@@ -279,66 +279,68 @@ title('Vertical Center of Mass (vCoM) Relative To Day 1');
 xlabel('Distance to Day 1 vCoM (dva)');
 ylabel('Count');
 % 
-% figure(h(5));numDays = 5;
-% allData = zeros(numDays,3);
-% alpha = 0.05;
-% 
-% for ii=1:numDays
-%     dayData = Y_srp(Design_srp(:,1)==ii);
-%     meanVals = zeros(1000,1);
-%     for jj=1:3000
-%         indeces = random('Discrete Uniform',length(dayData),[length(dayData),1]);
-%         meanVals(jj) = mean(dayData(indeces));
-%     end
-%     allQuantiles = quantile(meanVals,[alpha/2,0.5,1-alpha/2]);
-%     allQuantiles(2) = mean(dayData);
-%     allData(ii,:) = allQuantiles;
-% end
-% subplot(2,1,1);boundedline(1:numDays,allData(:,2),[abs(allData(:,1)-allData(:,2)),abs(allData(:,3)-allData(:,2))]);
-% title('SRP Protocol (Combined Data)');ylabel('Max-Min Statistic Magnitude (\muV)');
-% xlabel('Experimental Day');
-% 
-% cond2Data = zeros(numDays,3);
-% cond3Data = zeros(numDays,3);
-% cond2y = Y_srp(Design_srp(:,2)==1);
-% cond3y = Y_srp(Design_srp(:,2)==0);
-% cond2Design = Design_srp(Design_srp(:,2)==1,:);
-% cond3Design = Design_srp(Design_srp(:,2)==0,:);
-% for ii=1:numDays
-%     cond2temp = cond2y(cond2Design(:,1)==ii);
-%     cond3temp = cond3y(cond3Design(:,1)==ii);
-%     mean2 = zeros(1000,1);
-%     mean3 = zeros(1000,1);
-%     for jj=1:3000
-%        ind2 = random('Discrete Uniform',length(cond2temp),[length(cond2temp),1]);
-%        ind3 = random('Discrete Uniform',length(cond3temp),[length(cond3temp),1]);
-%         mean2(jj) = mean(cond2temp(ind2));
-%         mean3(jj) = mean(cond3temp(ind3));
-%     end
-%     cond2quantiles = quantile(mean2,[alpha/2,0.5,1-alpha/2]);
-%     cond3quantiles = quantile(mean3,[alpha/2,0.5,1-alpha/2]);
-%     cond2quantiles(2) = mean(cond2temp);
-%     cond3quantiles(2) = mean(cond3temp);
-%     cond2Data(ii,:) = cond2quantiles;
-%     cond3Data(ii,:) = cond3quantiles;
-% end
-% 
-% subplot(2,1,2);boundedline(1:numDays,cond2Data(:,2),[abs(cond2Data(:,1)-cond2Data(:,2)),abs(cond2Data(:,3)-cond2Data(:,2))],linespecs{2},...
-%        1:numDays,cond3Data(:,2),[abs(cond3Data(:,1)-cond3Data(:,2)),abs(cond3Data(:,3)-cond3Data(:,2))],linespecs{3});
-% title('SRP Protocol (Separated Data)');ylabel('Max-Min Statistic Magnitude (\muV)');
-% xlabel('Experimental Day');
-% legend(conditionNames{2},conditionNames{3},'location','northwest');
+figure(h(5));numDays = 5;
+allData = zeros(numDays,3);
+alpha = 0.05;
+
+for ii=1:numDays
+    dayData = Y_srp(Design_srp(:,1)==ii);
+    meanVals = zeros(1000,1);
+    for jj=1:3000
+        indeces = random('Discrete Uniform',length(dayData),[length(dayData),1]);
+        meanVals(jj) = mean(dayData(indeces));
+    end
+    allQuantiles = quantile(meanVals,[alpha/2,0.5,1-alpha/2]);
+    allQuantiles(2) = mean(dayData);
+    allData(ii,:) = allQuantiles;
+end
+subplot(2,1,1);boundedline(1:numDays,allData(:,2),[abs(allData(:,1)-allData(:,2)),abs(allData(:,3)-allData(:,2))]);
+title('SRP Protocol (Combined Data)');ylabel('Max-Min Statistic Magnitude (\muV)');
+xlabel('Experimental Day');
+
+cond2Data = zeros(numDays,3);
+cond3Data = zeros(numDays,3);
+cond2y = Y_srp(Design_srp(:,2)==1);
+cond3y = Y_srp(Design_srp(:,2)==0);
+cond2Design = Design_srp(Design_srp(:,2)==1,:);
+cond3Design = Design_srp(Design_srp(:,2)==0,:);
+for ii=1:numDays
+    cond2temp = cond2y(cond2Design(:,1)==ii);
+    cond3temp = cond3y(cond3Design(:,1)==ii);
+    mean2 = zeros(1000,1);
+    mean3 = zeros(1000,1);
+    for jj=1:3000
+       ind2 = random('Discrete Uniform',length(cond2temp),[length(cond2temp),1]);
+       ind3 = random('Discrete Uniform',length(cond3temp),[length(cond3temp),1]);
+        mean2(jj) = mean(cond2temp(ind2));
+        mean3(jj) = mean(cond3temp(ind3));
+    end
+    cond2quantiles = quantile(mean2,[alpha/2,0.5,1-alpha/2]);
+    cond3quantiles = quantile(mean3,[alpha/2,0.5,1-alpha/2]);
+    cond2quantiles(2) = mean(cond2temp);
+    cond3quantiles(2) = mean(cond3temp);
+    cond2Data(ii,:) = cond2quantiles;
+    cond3Data(ii,:) = cond3quantiles;
+end
+
+subplot(2,1,2);boundedline(1:numDays,cond2Data(:,2),[abs(cond2Data(:,1)-cond2Data(:,2)),abs(cond2Data(:,3)-cond2Data(:,2))],linespecs{2},...
+       1:numDays,cond3Data(:,2),[abs(cond3Data(:,1)-cond3Data(:,2)),abs(cond3Data(:,3)-cond3Data(:,2))],linespecs{3});
+title('SRP Protocol (Separated Data)');ylabel('Max-Min Statistic Magnitude (\muV)');
+xlabel('Experimental Day');
+legend(conditionNames{2},conditionNames{3},'location','northwest');
 
 
 figure();
 errorbar(allHeight_1(:,3),allHeight_1(:,1),abs(allHeight_1(:,2)-allHeight_1(:,1)),linespecs{1},'Linewidth',2);hold on;
-errorbar(allHeight_2(:,3),allHeight_2(:,1),abs(allHeight_2(:,2)-allHeight_2(:,2)),linespecs{2},'Linewidth',2);
+errorbar(allHeight_2(:,3),allHeight_2(:,1),abs(allHeight_2(:,2)-allHeight_2(:,1)),linespecs{2},'Linewidth',2);
 legend(conditionNames{1},conditionNames{2},'location','northwest');
+title('Height Parameter Across Days');
 % savefig(h,'MappingEffects_FinalResults.fig');
 
 figure();
 errorbar(allStd_1(:,end),allStd_1(:,1),allStd_1(:,2),linespecs{1},'Linewidth',2);hold on;
 errorbar(allStd_2(:,end),allStd_2(:,3),allStd_2(:,4),linespecs{2},'LineWidth',2);
+title('Map Size (Horizontal) Across Days');
 
 save('MappingEffects_FinalResults.mat','Y_srp','Design_srp','Y_retino','Design_retino');
 end
