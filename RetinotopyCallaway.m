@@ -142,6 +142,7 @@ for zz = 1:numDirs
         vertOhorz = 2;
     end
     for ii=1:reps
+      usb.strobeEventWord(zz);
       for jj=1:centerLen{zz}
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
@@ -149,7 +150,6 @@ for zz = 1:numDirs
             checkPhase{zz}(jj),0]);
             % Request stimulus onset
             vbl = Screen('Flip', win,vbl+ifi/2);
-            usb.strobeEventWord(eventNums{zz}(jj));
       end
       vbl = Screen('Flip', win,vbl+ifi/2);
       vbl = Screen('Flip',win,vbl-ifi/2+1);
