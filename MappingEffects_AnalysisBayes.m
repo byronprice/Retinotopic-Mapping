@@ -1,14 +1,14 @@
-function [ ] = MappingEffects_Analysis(Animals,Channels)
-%MappingEffects_Analysis.m
+function [ ] = MappingEffects_AnalysisBayes(Animals,Channels)
+%MappingEffects_AnalysisBayes.m
 %  Analyze data from mapping effects experiment, see MappingEffects.m
 %  Three experimental conditions:
 %   1) retinotopic mapping, followed by fake SRP (grey screen)
 %   2) retinotopic mapping, followed by SRP
 %   3) fake mapping (grey screen), followed by SRP
 %
-% Created: 2017/02/06
+% Created: 2017/05/17
 %  Byron Price
-% Updated: 2017/03/27
+% Updated: 2017/05/17
 % By: Byron Price
 
 cd('~/CloudStation/ByronExp/MappingEffects');
@@ -23,12 +23,10 @@ for ii=1:length(Animals)
    pix_to_degree = cell(numFiles,1);
    dailyParameters = cell(numFiles,1);
    mapData = cell(numFiles,1);
-   parameterCI = cell(numFiles,1);
-   fisherInformation = cell(numFiles,1);
+   posteriorIntervals = cell(numFiles,1);
+   posteriorSamples = cell(numFiles,1);
    srpSize = cell(numFiles,1);
    srpVEP = cell(numFiles,1);
-   residualDevianceTest_pVal = cell(numFiles,1);
-   fullDeviance = cell(numFiles,1);
    significantVEP = cell(numFiles,1);
    currentChannel = Channels{ii};
    numChans = length(currentChannel);
@@ -114,25 +112,14 @@ for ii=1:length(Animals)
                    Data{kk} = abs(tempData);
                end
 
-               numRepeats = 5e3;
-               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
-               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               [posteriorMedian,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
+               MakePlots(posteriorMedian,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
-%                x = input('Maps okay? (y/n): ','s');
-%                if x == 'n'
-%                    numRepeats = 1e4;
-%                    [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-%                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
-%                         MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
-%                end
                
-               dailyParameters{jj} = finalParameters;
+               dailyParameters{jj} = posteriorMedian;
                mapData{jj} = Data;
-               parameterCI{jj} = ninetyfiveErrors;
-               residualDevianceTest_pVal{jj} = residDevTestp;
-               fullDeviance{jj} = Deviance;
-               fisherInformation{jj} = fisherInfo;
+               posteriorIntervals{jj} = posteriorInterval;
+               posteriorSamples{jj} = posteriorSample;
            elseif ConditionNumber == 2
                centerVals = stimParams.centerVals;
                Radius = stimParams.Radius;
@@ -198,28 +185,14 @@ for ii=1:length(Animals)
                    Data{kk} = abs(tempData);
                end
 
-%                [finalParameters,fisherInfo,ninetyfiveErrors] = FitLFPRetinoModel_Gamma(Data,xaxis,yaxis,centerVals);
-%                [finalParameters,covariance] = BayesianFitLFPModel(Data,xaxis,yaxis,centerVals);
-               numRepeats = 5e3;
-               [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-                        FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
-                    
-               MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               [posteriorMedian,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
+               MakePlots(posteriorMedian,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
-%                x = input('Maps okay? (y/n): ','s');
-%                if x == 'n'
-%                    numRepeats = 1e4;
-%                    [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = ...
-%                         FitLFPRetinoModel_Loglog(Data,xaxis,yaxis,numRepeats);
-%                         MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
-%                end
                
-               dailyParameters{jj} = finalParameters;
+               dailyParameters{jj} = posteriorMedian;
                mapData{jj} = Data;
-               parameterCI{jj} = ninetyfiveErrors;
-               residualDevianceTest_pVal{jj} = residDevTestp;
-               fisherInformation{jj} = fisherInfo;
-               fullDeviance{jj} = Deviance;
+               posteriorIntervals{jj} = posteriorInterval;
+               posteriorSamples{jj} = posteriorSample;
                
                srpResponse = zeros(numChans,srp_reps,stimLen);
                meanVEP = zeros(numChans,stimLen);
@@ -279,17 +252,17 @@ for ii=1:length(Animals)
 %        savefig(h,sprintf('MappingEffectsResults_%d.fig',Animals(ii)));
         clear h;
    end
-   filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
+   filename = sprintf('MappingEffectsBayesResults_%d.mat',Animals(ii));
    if ConditionNumber == 1
-       save(filename,'dailyParameters','parameterCI','fisherInformation',...
+       save(filename,'dailyParameters','posteriorIntervals','posteriorSamples',...
             'ConditionNumber','numFiles','w_pixels',...
-            'h_pixels','mapData','residualDevianceTest_pVal','pix_to_degree',...
-            'fullDeviance','currentChannel','mappingVEP');
+            'h_pixels','mapData','pix_to_degree',...
+            'currentChannel','mappingVEP');
    elseif ConditionNumber == 2
-        save(filename,'dailyParameters','parameterCI','fisherInformation',...
+        save(filename,'dailyParameters','posteriorIntervals','posteriorSamples',...
             'srpSize','srpVEP','ConditionNumber','numFiles','w_pixels',...
-            'h_pixels','mapData','residualDevianceTest_pVal','significantVEP',...
-            'fullDeviance','pix_to_degree','currentChannel','mappingVEP','srpTrialVEPs');
+            'h_pixels','mapData','significantVEP',...
+            'pix_to_degree','currentChannel','mappingVEP','srpTrialVEPs');
    elseif ConditionNumber == 3
        save(filename,...
             'srpSize','srpVEP','ConditionNumber','numFiles','significantVEP','srpTrialVEPs');
@@ -395,7 +368,7 @@ function [] = MakePlots(finalParameters,meanResponse,xaxis,yaxis,stimLen,Radius,
             end
         end
         imagesc(xaxis,yaxis,finalIm','AlphaData',0.5);set(gca,'YDir','normal');w=colorbar;
-        caxis([b(4) b(4)+150]);
+        caxis([b(4) b(4)+1]);
         ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');
         hold off;
     end

@@ -33,6 +33,7 @@ allStd_1 = [];
 allStd_2 = [];
 allHeight_1 = [];
 allHeight_2 = [];
+allParams = [];
 for ii=1:numAnimals
     filename = sprintf('MappingEffectsResults_%d.mat',Animals(ii));
     load(filename);
@@ -59,7 +60,10 @@ for ii=1:numAnimals
                 
                     Design_retino = [Design_retino;tempMapXPos,tempMapYPos,zeros(tempNum,1),jj*ones(tempNum,1)];
                     Y_retino = [Y_retino;squeeze(mapData{jj}{kk}(:,3))];
-    
+                    temp = squeeze(parameters(jj,kk,:));
+                    tempmle = mle(mapData{jj}{kk}(:,3),'distribution','loglogistic');
+                    temp(6) = tempmle(1);temp(7) = tempmle(2);
+                    allParams = [allParams,temp];
                 end
             end
         end
@@ -128,6 +132,10 @@ for ii=1:numAnimals
 
                     Design_retino = [Design_retino;tempMapXPos,tempMapYPos,ones(tempNum,1),jj*ones(tempNum,1)];
                     Y_retino = [Y_retino;mapData{jj}{kk}(:,3)];
+                    temp = squeeze(parameters(jj,kk,:));
+                    tempmle = mle(mapData{jj}{kk}(:,3),'distribution','loglogistic');
+                    temp(6) = tempmle(1);temp(7) = tempmle(2);
+                    allParams = [allParams,temp];
                 end
             end
         end

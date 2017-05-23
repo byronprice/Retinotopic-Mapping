@@ -91,8 +91,9 @@ for ii=1:numChans
 end
 
 fprintf('Fitting model ...\n\n');
-numRepeats = 5e3;
-[finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_test(Data,xaxis,yaxis,numRepeats);
+% numRepeats = 5e3;
+% [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_test(Data,xaxis,yaxis,numRepeats);
+[posteriorMedian,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
 
 % if sum(signifMap) ~= numChans
 %     badChans = find(signifMap==0);
@@ -115,13 +116,14 @@ numRepeats = 5e3;
 % end
 
 fprintf('Making plots ...\n\n');
-[h] = MakePlots(finalParameters,AnimalName,xaxis,yaxis,signifMap); 
+[h] = MakePlots(posteriorMode,AnimalName,xaxis,yaxis); 
 
 vepResponse = Response;
 dimReduceData = Data;
 model = 'Log-logistic';
-save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData','finalParameters','fisherInfo','ninetyfiveErrors',...
-    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','signifMap','Deviance','residDevTestp','model');
+save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData',...
+    'posteriorMedian','posteriorMode','posteriorInterval','posteriorSample',...
+    'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','model');
 end
 
 function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
@@ -218,7 +220,7 @@ function [Response,centerVals] = CollectVEPSold(ChanData,timeStamps,tsevs,svStro
     centerVals = tempCenterVals;
 end
 
-function [h] = MakePlots(finalParameters,AnimalName,x,y,goodMap)
+function [h] = MakePlots(finalParameters,AnimalName,x,y)
     global numChans w_pixels h_pixels;
 
     
@@ -228,7 +230,7 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y,goodMap)
 
     for ii=1:numChans
         figure(h(ii));axis([0 w_pixels 0 h_pixels]);
-        title(sprintf('LFP Retinotopy: Chan %d, Animal %d - %d',ii,AnimalName,goodMap(ii)));
+        title(sprintf('LFP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
         xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
         hold on;
         
