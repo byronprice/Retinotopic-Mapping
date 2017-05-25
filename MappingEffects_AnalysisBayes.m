@@ -113,7 +113,7 @@ for ii=1:length(Animals)
                end
 
                [posteriorMedian,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
-               MakePlots(posteriorMedian,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               MakePlots(posteriorMode,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
                
                dailyParameters{jj} = posteriorMedian;
@@ -186,7 +186,7 @@ for ii=1:length(Animals)
                end
 
                [posteriorMedian,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
-               MakePlots(posteriorMedian,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
+               MakePlots(posteriorMode,meanResponse,xaxis,yaxis,stimLen,Radius,centerVals,numStimuli,numChans,jj,numFiles,h,ConditionNumber);
                
                
                dailyParameters{jj} = posteriorMedian;

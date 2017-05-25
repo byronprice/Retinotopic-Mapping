@@ -25,18 +25,19 @@ numChans = size(Response,1);
 numParameters = 7;
 priorParams = zeros(numParameters,2);
 
-priorParams(1,:) = [0.15,0];% gamma [24.908,0.0205];
-priorParams(2,:) = [max(xaxis)/2,500];%gamma [50.788,26.021]; % 500 is the std of normal random variable
-priorParams(3,:) = [4,453/4];%[6.339,72.07];
-priorParams(4,:) = [25.508,11.71];
-priorParams(5,:) = [19.786,12.543];
-priorParams(6,:) = [950.71,0.006];
-priorParams(7,:) = [31.496,0.0098];
+priorParams(1,:) = [0.125,0];% to left for exp pdf, for inverse gamma [25.8169,12.6828];
+priorParams(2,:) = [max(xaxis)/2,500];% to left for normal, for gamma [50.788,26.021]; 
+priorParams(3,:) = [4,453/4];% gamma with slightly higher variance than mle [6.339,72.07];
+priorParams(4,:) = [25.508,11.71]; % gamma
+priorParams(5,:) = [19.786,12.543]; % gamma
+priorParams(6,:) = [950.71,0.006]; % gamma
+priorParams(7,:) = [31.9816,0.1048];% gamma for 1/parameter,  
+%                for inverse gamma of parameter 7 [30.5995,9.1263];
 
 lBound = zeros(numParameters,1);
 uBound = [Inf,max(xaxis)+50,max(yaxis)+50,Inf,Inf,Inf,Inf]';
 
-numIter = 5e5;
+numIter = 7e5;
 burnIn = 2e5;
 skipRate = 100;
 
@@ -60,16 +61,17 @@ for zz=1:numChans
     for ii=[3,4,5,6,7]
         params(ii,1) = gamrnd(priorParams(ii,1),priorParams(ii,2));
     end
-    params(1,1) = gamrnd(24.908,0.0205);
+    params(1,1) = 1./gamrnd(26.6198,0.0764); % from inverse gamma above
     params(2,1) = normrnd(priorParams(2,1),priorParams(2,2));
     
-    [loglikelihood] = GetLikelihood(reps,params(:,1),vepMagnitude,flashPoints);
+    inputParams = params(:,1);inputParams(7) = 1/inputParams(7);
+    [loglikelihood] = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
     logPrior = 0;
     for ii=[3,4,5,6,7]
        logPrior = logPrior+log(gampdf(params(ii,1),priorParams(ii,1),priorParams(ii,2))); 
     end
-    logPrior = logPrior+normpdf(params(2,1),priorParams(2,1),priorParams(2,2));
-    logPrior = logPrior+exppdf(params(1,1),priorParams(1,1));
+    logPrior = logPrior+log(normpdf(params(2,1),priorParams(2,1),priorParams(2,2)));
+    logPrior = logPrior+log(exppdf(params(1,1),priorParams(1,1)));
     posteriorProb(1) = loglikelihood+logPrior;
     
     % FOR AUTOMATIC CREATION OF UPDATE MATRIX
@@ -84,21 +86,22 @@ for zz=1:numChans
     for ii=[3,4,5,6,7]
         updateMu(ii,1) = gamrnd(priorParams(ii,1),priorParams(ii,2));
     end
-    updateMu(1,1) = gamrnd(24.908,0.0205);
+    updateMu(1,1) = 1./gamrnd(26.6198,0.0764);
     updateMu(2,1) = normrnd(priorParams(2,1),priorParams(2,2));
-    optimalAccept = 0.234;
+    optimalAccept = 0.44;%0.234;
     
     for ii=2:burnIn
         Z = mvnrnd(mu,exp(loglambda).*sigma)';
         pStar = params(:,ii-1)+Z;
         
-        if sum((pStar-lBound)<=0) == 0 & sum((pStar-uBound)>0) == 0
-            pStarLogLikelihood = GetLikelihood(reps,pStar,vepMagnitude,flashPoints);
+        if sum(pStar<=lBound) == 0 & sum(pStar>=uBound) == 0
+            inputParams = pStar;inputParams(7) = 1/inputParams(7);
+            pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
             pStarLogPrior = 0;
             for jj=[3,4,5,6,7]
                 pStarLogPrior = pStarLogPrior+log(gampdf(pStar(jj),priorParams(jj,1),priorParams(jj,2)));
             end
-            pStarLogPrior = pStarLogPrior+exppdf(pStar(1),priorParams(1,1));
+            pStarLogPrior = pStarLogPrior+log(exppdf(pStar(1),priorParams(1,1)));
             pStarLogPrior = pStarLogPrior+log(normpdf(pStar(2),priorParams(2,1),priorParams(2,2)));
 %             
 %             if pStar(2) < priorParams(2,1) || pStar(2) > priorParams(2,2) || ...
@@ -141,11 +144,13 @@ for zz=1:numChans
         pStar = params(:,ii-1)+Z;
         
         if sum((pStar-lBound)<=0) == 0 & sum((pStar-uBound)>0) == 0
-            pStarLogLikelihood = GetLikelihood(reps,pStar,vepMagnitude,flashPoints);
+            inputParams = pStar;inputParams(7) = 1/inputParams(7);
+            pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
             pStarLogPrior = 0;
-            for jj=[1,3,4,5,6,7]
+            for jj=[3,4,5,6,7]
                 pStarLogPrior = pStarLogPrior+log(gampdf(pStar(jj),priorParams(jj,1),priorParams(jj,2)));
             end
+            pStarLogPrior = pStarLogPrior+log(exppdf(pStar(1),priorParams(1,1)));
             pStarLogPrior = pStarLogPrior+log(normpdf(pStar(2),priorParams(2,1),priorParams(2,2)));
             
 %             if pStar(2) < priorParams(2,1) || pStar(2) > priorParams(2,2) || ...
@@ -168,7 +173,7 @@ for zz=1:numChans
             posteriorProb(ii) = posteriorProb(ii-1);
         end
     end
-    
+    params(7,:) = 1./params(7,:);
     posteriorSamples(zz,:,:) = params(:,burnIn+1:skipRate:end);
     
     figure();
@@ -189,7 +194,7 @@ for zz=1:numChans
 end
 end
 
-% log-logistic likelihood
+% log-logistic likelihood for non-linear 2D Gaussian function
 function [loglikelihood] = GetLikelihood(reps,parameterVec,vepMagnitude,flashPoints)
 loglikelihood = zeros(reps,1);
 for kk=1:reps
