@@ -75,13 +75,25 @@ for ii=1:numChans
         tempData(jj,3) = max(squeeze(Response(ii,jj,maxWin)))-min(squeeze(Response(ii,jj,minWin)));
     end
     temp = abs(tempData(:,3));
+%     if size(ChanData,2)==numChans+1
+%        temp2 = sum(squeeze(Response(numChans+1,:,:)),2);
+%     end
     outlier = median(temp)+10*std(temp);
     indeces = find(temp>outlier);
     tempData(indeces,:) = [];
     
     temp = tempData(:,3);
+%     if size(ChanData,2)==numChans+1
+%        temp2(indeces) = [];
+%     end
     indeces = find(temp==0);
     tempData(indeces,:) = [];
+    
+%     if size(ChanData,2)==numChans+1
+%        temp2(indeces) = [];
+%        indeces = find(temp2>stimLen*0.5);
+%        tempData(indeces,:) = [];
+%     end
     Data{ii} = abs(tempData);
 %     figure();histogram(Data{ii}(:,3));
 %     phat = mle(Data{ii}(:,3),'distribution','loglogistic');
@@ -93,7 +105,7 @@ end
 fprintf('Fitting model ...\n\n');
 % numRepeats = 5e3;
 % [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_test(Data,xaxis,yaxis,numRepeats);
-[posteriorMedian,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
+[posteriorMean,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
 
 % if sum(signifMap) ~= numChans
 %     badChans = find(signifMap==0);
@@ -116,13 +128,13 @@ fprintf('Fitting model ...\n\n');
 % end
 
 fprintf('Making plots ...\n\n');
-[h] = MakePlots(posteriorMode,AnimalName,xaxis,yaxis); 
+[h] = MakePlots(posteriorMean,AnimalName,xaxis,yaxis); 
 
 vepResponse = Response;
 dimReduceData = Data;
 model = 'Log-logistic';
 save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData',...
-    'posteriorMedian','posteriorMode','posteriorInterval','posteriorSample',...
+    'posteriorMean','posteriorMode','posteriorInterval','posteriorSample',...
     'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','model');
 end
 
@@ -142,12 +154,36 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
     sampleFreq = adfreq;
 
     Chans = find(~cellfun(@isempty,allad));
-    numChans = length(Chans);
-
+    
+    if isempty(allad{49}) == 0
+        movement = allad{49};
+        
+        difference = length(allad{Chans(1)})-length(movement);
+        
+        if mod(difference,2) == 0
+            addOn = difference/2;
+            movement = [zeros(addOn-1,1);movement;zeros(addOn+1,1)];
+        else
+            addOn = floor(difference/2);
+            movement = [zeros(addOn,1);movement;zeros(addOn+1,1)];
+        end
+        tempMov = conv(abs(movement),ones(adfreq/2,1),'same');
+        tempMov = abs(tempMov-mean(tempMov));
+%         stdEst = 1.4826*mad(tempMov,1);
+%         movement = single(tempMov>(3*stdEst));
+        movement = tempMov;
+        allad{49} = movement;
+        clear tempMov stdEst movement;
+        numChans = length(Chans)-1;
+        dataLength = length(allad{1,Chans(1)});
+        ChanData = zeros(dataLength,numChans+1);
+    else
+        numChans = length(Chans);
+        dataLength = length(allad{1,Chans(1)});
+        ChanData = zeros(dataLength,numChans);
+    end
     % lowpass filter the data
-    dataLength = length(allad{1,Chans(1)});
-
-    ChanData = zeros(dataLength,numChans);
+    
     preAmpGain = 1;
     for ii=1:numChans
         voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
@@ -161,7 +197,11 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
         [b,a] = iirnotch(notch,bw);
         ChanData(:,ii) = filter(b,a,temp);
     end
-
+    
+    if isempty(allad{49}) == 0
+        ChanData(:,end) = allad{49};
+    end
+    
     timeStamps = 1/sampleFreq:1/sampleFreq:(dataLength/sampleFreq);
 
     if length(timeStamps) ~= dataLength
@@ -177,7 +217,12 @@ function [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
     strobeTimes = tsevs{1,strobeStart};
     % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 
-    Response = zeros(numChans,numStimuli,stimLen);
+    
+    if size(ChanData,2) == numChans+1
+        Response = zeros(numChans+1,numStimuli,stimLen);
+    else
+        Response = zeros(numChans,numStimuli,stimLen);
+    end
 
     for ii=1:numChans
         stimStrobes = strobeTimes(svStrobed == stimStrobeNum);
@@ -186,6 +231,10 @@ function [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
                 stimOnset = stimStrobes(jj);
                 [~,index] = min(abs(timeStamps-stimOnset));
                 temp = ChanData(index:index+stimLen-1,ii);
+                if size(ChanData,2) == numChans+1
+                    temp2 = ChanData(index:index+stimLen-1,3); 
+                    Response(numChans+1,jj,:) = temp2;
+                end
                 Response(ii,jj,:) = temp;
             end
         else 
@@ -236,14 +285,14 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
         
         finalIm = zeros(length(x),length(y));
         parameterVec = finalParameters(ii,:);
-        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6),parameterVec(7)];
+        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
         for jj=1:length(x)
             for kk=1:length(y)
                 distX = x(jj)-parameterVec(2);
                 distY = y(kk)-parameterVec(3);
                 
                 finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
-                    (distY.^2)./(2*b(3)*b(3))-b(5)*distX*distY/(2*b(2)*b(3)))+b(4);
+                    (distY.^2)./(2*b(3)*b(3)))+b(4);
             end
         end
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
