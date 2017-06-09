@@ -23,6 +23,9 @@ function [posteriorMean,posteriorInterval,posteriorSamples,posteriorMode] = FitL
 numChans = size(Response,1);
 
 numParameters = 8;
+numIter = 5.5e5;
+burnIn = 5e4;
+skipRate = 500;
 
 posteriorMode = zeros(numChans,numParameters);
 posteriorMean = zeros(numChans,numParameters);
@@ -41,15 +44,12 @@ for zz=1:numChans
     priorParams(6,:) = [950.71,0.006]; % gamma
     priorParams(7,:) = [31.9816,0.1048];% gamma for 1/parameter,
     %                for inverse gamma of parameter 7 [30.5995,9.1263];
-    priorParams(8,:) = [1e-3,1e3]; % gamma, for precision on first parameter
+    priorParams(8,:) = [1,1e3]; % gamma, for precision on first parameter
 
     lBound = zeros(numParameters,1);lBound(1) = -Inf;
     lBound(2) = min(xaxis)-50;lBound(3) = min(yaxis)-50;lBound(8) = -Inf;
     uBound = [Inf,max(xaxis)+50,max(yaxis)+50,Inf,Inf,Inf,Inf,Inf]';
 
-    numIter = 5.5e5;
-    burnIn = 5e4;
-    skipRate = 500;
 
     Data = Response{zz};
     reps = size(Data,1);
@@ -103,11 +103,11 @@ for zz=1:numChans
         if sum(pStar<=lBound) == 0 & sum(pStar>=uBound) == 0
             inputParams = pStar;inputParams(7) = 1/inputParams(7);
             pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
-            pStarLogPrior = sum(log(gampdf(pStar(3:7),priorParams(3:7,1),priorParams(3:7,2))));
             alpha = exp(pStar(8));
-            pStarLogPrior = pStarLogPrior+0.5*log(alpha)-0.5*alpha*pStar(1)^2;
-            pStarLogPrior = pStarLogPrior+log(normpdf(pStar(2),priorParams(2,1),priorParams(2,2)));
-            pStarLogPrior = pStarLogPrior+log(gampdf(alpha,priorParams(8,1),priorParams(8,2)));
+            pStarLogPrior = sum(log(gampdf(pStar(3:7),priorParams(3:7,1),priorParams(3:7,2))))+...
+                0.5*log(alpha)-0.5*alpha*pStar(1)^2+...
+                log(normpdf(pStar(2),priorParams(2,1),priorParams(2,2)))+...
+                 log(gampdf(alpha,priorParams(8,1),priorParams(8,2)));
 %             
 %             if pStar(2) < priorParams(2,1) || pStar(2) > priorParams(2,2) || ...
 %                     pStar(3) < priorParams(3,1) || pStar(3) > priorParams(3,2)
@@ -171,11 +171,11 @@ for zz=1:numChans
         if sum((pStar-lBound)<=0) == 0 & sum((pStar-uBound)>0) == 0
             inputParams = pStar;inputParams(7) = 1/inputParams(7);
             pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
-            pStarLogPrior = sum(log(gampdf(pStar(3:7),priorParams(3:7,1),priorParams(3:7,2))));
             alpha = exp(pStar(8));
-            pStarLogPrior = pStarLogPrior+0.5*log(alpha)-0.5*alpha*pStar(1)^2;
-            pStarLogPrior = pStarLogPrior+log(normpdf(pStar(2),priorParams(2,1),priorParams(2,2)));
-            pStarLogPrior = pStarLogPrior+log(gampdf(alpha,priorParams(8,1),priorParams(8,2)));
+            pStarLogPrior = sum(log(gampdf(pStar(3:7),priorParams(3:7,1),priorParams(3:7,2))))+...
+                0.5*log(alpha)-0.5*alpha*pStar(1)^2+...
+                log(normpdf(pStar(2),priorParams(2,1),priorParams(2,2)))+...
+                 log(gampdf(alpha,priorParams(8,1),priorParams(8,2)));
             
 %             if pStar(2) < priorParams(2,1) || pStar(2) > priorParams(2,2) || ...
 %                     pStar(3) < priorParams(3,1) || pStar(3) > priorParams(3,2)
@@ -215,7 +215,7 @@ for zz=1:numChans
     posteriorMode(zz,:) = params(:,ind)';
     posteriorMean(zz,:) = mean(squeeze(posteriorSamples(zz,:,:)),2)';
     
-    display(posteriorMean(zz,:));
+%     display(posteriorMean(zz,:));
     
     alpha = 0.05;
     posteriorInterval(zz,:,:) = quantile(squeeze(posteriorSamples(zz,:,:)),[alpha/2,1-alpha/2],2);

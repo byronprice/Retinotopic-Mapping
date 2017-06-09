@@ -107,33 +107,13 @@ fprintf('Fitting model ...\n\n');
 % [finalParameters,fisherInfo,ninetyfiveErrors,signifMap,Deviance,residDevTestp] = FitLFPRetinoModel_test(Data,xaxis,yaxis,numRepeats);
 [posteriorMean,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
 
-% if sum(signifMap) ~= numChans
-%     badChans = find(signifMap==0);
-%     newData = cell(length(badChans),1);
-%     for ii=1:length(badChans)
-%        newData{ii} = Data{badChans(ii)};
-%     end
-%     
-%     numRepeats = 5e4;
-%     [tempParams,tempFisher,tempErrors,tempSignifMap,tempDev,tempDevTest] = FitLFPRetinoModel_Gamma(newData,xaxis,yaxis,numRepeats);
-%     
-%     for ii=1:length(badChans)
-%         finalParameters(badChans(ii),:) = tempParams(ii,:);
-%         fisherInfo(badChans(ii),:,:) = tempFisher(ii,:,:);
-%         ninetyfiveErrors(badChans(ii),:) = tempErrors(ii,:);
-%         signifMap(badChans(ii)) = tempSignifMap(ii);
-%         Deviance(badChans(ii)) = tempDev(ii);
-%         residDevTest_pval(badChans(ii)) = tempDevTest(ii);
-%     end
-% end
-
 fprintf('Making plots ...\n\n');
 [h] = MakePlots(posteriorMean,AnimalName,xaxis,yaxis); 
 
 vepResponse = Response;
 dimReduceData = Data;
 model = 'Log-logistic';
-save(sprintf('RetinoMap%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData',...
+save(sprintf('RetinoMapBayes%d_%d.mat',Date,AnimalName),'vepResponse','dimReduceData',...
     'posteriorMean','posteriorMode','posteriorInterval','posteriorSample',...
     'numChans','w_pixels','h_pixels','mmPerPixel','centerVals','model');
 end
