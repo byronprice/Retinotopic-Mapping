@@ -63,9 +63,15 @@ for ii=1:numChans
 
     [~,minLatency] = min(meanVEP);
 
-    minWin = (minLatency-30):(minLatency+30); 
-    maxWin = (minLatency+40):(minLatency+150);
-   
+    if minLatency > 50 && minLatency < 150
+        minWin = (minLatency-30):(minLatency+30); 
+        maxWin = (minLatency+40):(minLatency+150);
+    else
+        minLatency = 100;
+        minWin = (minLatency-30):(minLatency+30); 
+        maxWin = (minLatency+40):(minLatency+150);
+    end
+    
     
     for jj=1:numStimuli
         tempData(jj,1:2) = centerVals(jj,:);
@@ -276,7 +282,7 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
             end
         end
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
-        caxis([b(4) b(4)+1]);
+        caxis([b(4) b(4)+150]);
         ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
         
     end
