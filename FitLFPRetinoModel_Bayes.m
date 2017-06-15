@@ -89,9 +89,8 @@ for zz=1:numChans
     params(:,1) = paramSet(:,ind);
 
     % FOR AUTOMATIC CREATION OF UPDATE MATRIX
-    updateParam = 0.2;
+    updateParam = linspace(0.1,1e-2,burnIn);
     mu = zeros(numParameters,1);sigma = eye(numParameters);
-    identity = eye(numParameters);
     for ii=1:numParameters
        if ii<=3
            sigma(ii,ii) = priorParams(ii,2)^2;
@@ -99,7 +98,6 @@ for zz=1:numChans
            sigma(ii,ii) = priorParams(ii,1)*(priorParams(ii,2)^2);
        end
     end
-    halfSigma = cholcov(sigma);
     loglambda = log(2.38^2/numParameters);
     updateMu = zeros(numParameters,1);
     
@@ -139,22 +137,24 @@ for zz=1:numChans
                 posteriorProb(ii) = posteriorProb(ii-1);
             end
             
-%             meanSubtract = params(:,ii)-updateMu;
-%             updateMu = updateMu+updateParam.*meanSubtract;
-%             halfSigma = halfSigma+updateParam.*(triu((halfSigma^-1)*(halfSigma'*halfSigma+meanSubtract*...
-%             meanSubtract')*((halfSigma^-1)')-identity)-halfSigma);
-%             sigma = halfSigma'*halfSigma;
-            loglambda = loglambda+updateParam.*(exp(min(0,logA))-optimalAccept);
             
+                meanSubtract = params(:,ii)-updateMu;
+                updateMu = updateMu+updateParam(ii).*meanSubtract;
+                %             halfSigma = halfSigma+updateParam.*(triu((halfSigma^-1)*(halfSigma'*halfSigma+meanSubtract*...
+                %             meanSubtract')*((halfSigma^-1)')-identity)-halfSigma);
+                %             sigma = halfSigma'*halfSigma;
+                sigma = sigma+updateParam(ii).*(meanSubtract*meanSubtract'-sigma);
+                loglambda = loglambda+updateParam(ii).*(exp(min(0,logA))-optimalAccept);
         else
             params(:,ii) = params(:,ii-1);
             posteriorProb(ii) = posteriorProb(ii-1);
-            loglambda = loglambda+updateParam.*(-optimalAccept);
+            loglambda = loglambda+updateParam(ii).*(-optimalAccept);
         end
 %         error = abs(1394-updateMu(2))+abs(419-updateMu(3));
 %         scatter(ii,posteriorProb(ii));%scatter(ii,error);
 %         hold on;pause(0.01);
     end
+   
     [V,D] = eig(cov(params(:,5e4:50:burnIn)'));
     W = V*sqrtm(D);
     eigenvals = diag(W'*W);
@@ -226,8 +226,8 @@ for zz=1:numChans
     posteriorSamples(zz,:,:) = params(:,burnIn+1:skipRate:end);
     
     test = autocorr(squeeze(posteriorSamples(zz,1,:)));
-    if test(2) > 0.3
-        display('auto-correlated samples');
+    if test(2) > 0.2
+        fprintf('Auto-correlated Samples\n');
     end
     
     figure();

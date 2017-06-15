@@ -114,7 +114,8 @@ fprintf('Fitting model ...\n\n');
 [posteriorMean,posteriorInterval,posteriorSample,posteriorMode] = FitLFPRetinoModel_Bayes(Data,xaxis,yaxis);
 
 fprintf('Making plots ...\n\n');
-[h] = MakePlots(posteriorMean,AnimalName,xaxis,yaxis); 
+
+[h] = MakePlots(posteriorSample,AnimalName,1:10:w_pixels,1:10:h_pixels); 
 
 vepResponse = Response;
 dimReduceData = Data;
@@ -218,7 +219,7 @@ function [Response] = CollectVEPS(ChanData,timeStamps,tsevs,svStrobed)
                 [~,index] = min(abs(timeStamps-stimOnset));
                 temp = ChanData(index:index+stimLen-1,ii);
                 if size(ChanData,2) == numChans+1
-                    temp2 = ChanData(index:index+stimLen-1,3); 
+                    temp2 = ChanData(index:index+stimLen-1,numChans+1); 
                     Response(numChans+1,jj,:) = temp2;
                 end
                 Response(ii,jj,:) = temp;
@@ -255,14 +256,14 @@ function [Response,centerVals] = CollectVEPSold(ChanData,timeStamps,tsevs,svStro
     centerVals = tempCenterVals;
 end
 
-function [h] = MakePlots(finalParameters,AnimalName,x,y)
+function [h] = MakePlots(posteriorSamples,AnimalName,x,y)
     global numChans w_pixels h_pixels;
 
     
     for ii=1:numChans
         h(ii) = figure;
     end
-
+    numSamples = size(posteriorSamples,3);
     for ii=1:numChans
         figure(h(ii));axis([0 w_pixels 0 h_pixels]);
         title(sprintf('LFP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
@@ -270,17 +271,23 @@ function [h] = MakePlots(finalParameters,AnimalName,x,y)
         hold on;
         
         finalIm = zeros(length(x),length(y));
-        parameterVec = finalParameters(ii,:);
-        b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
-        for jj=1:length(x)
-            for kk=1:length(y)
-                distX = x(jj)-parameterVec(2);
-                distY = y(kk)-parameterVec(3);
+        samples = squeeze(posteriorSamples(ii,:,:));
+        N = 1000;
+        for ll=1:N
+            index = random('Discrete Uniform',numSamples);
+            parameterVec = samples(:,index);
+            b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
+            for jj=1:length(x)
+                for kk=1:length(y)
+                    distX = x(jj)-parameterVec(2);
+                    distY = y(kk)-parameterVec(3);
                 
-                finalIm(jj,kk) = b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
-                    (distY.^2)./(2*b(3)*b(3)))+b(4);
+                    finalIm(jj,kk) = finalIm(jj,kk)+b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
+                        (distY.^2)./(2*b(3)*b(3)))+b(4);
+                end
             end
         end
+        finalIm = finalIm./N;
         imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
         caxis([b(4) b(4)+150]);
         ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
