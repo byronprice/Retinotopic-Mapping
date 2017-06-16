@@ -22,6 +22,9 @@ function [posteriorMean,posteriorInterval,posteriorSamples,posteriorMode] = FitL
 
 numChans = size(Response,1);
 
+maxNumCompThreads(2);
+gcp = parpool(numChans);
+
 numParameters = 7;
 numIter = 6e5;
 burnIn = 1e5;
@@ -32,7 +35,7 @@ posteriorMean = zeros(numChans,numParameters);
 posteriorInterval = zeros(numChans,numParameters,2);
 posteriorSamples = zeros(numChans,numParameters,(numIter-burnIn)/skipRate);
 
-for zz=1:numChans
+parfor zz=1:numChans
 %     display(sprintf('Running Data for Channel %d...',zz));
     priorParams = zeros(numParameters,2);
 
@@ -111,7 +114,7 @@ for zz=1:numChans
         for ii=1:100
             pStar = paramSet(:,jj)+mvnrnd(mu,exp(loglambda)*sigma)';
             
-            if sum(pStar<lBound) == 0 & sum(pStar>=uBound) == 0
+            if sum(pStar<lBound) == 0 && sum(pStar>=uBound) == 0
                 inputParams = pStar;inputParams(7) = 1/inputParams(7);
                 pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
                 pStarLogPrior = sum(log(gampdf(pStar(4:7),priorParams(4:7,1),priorParams(4:7,2))))+...
@@ -162,18 +165,12 @@ for zz=1:numChans
     for ii=2:burnIn
         pStar = params(:,ii-1)+mvnrnd(mu,exp(loglambda)*sigma)';
         
-        if sum(pStar<lBound) == 0 & sum(pStar>=uBound) == 0
+        if sum(pStar<lBound) == 0 && sum(pStar>=uBound) == 0
             inputParams = pStar;inputParams(7) = 1/inputParams(7);
             pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
             pStarLogPrior = sum(log(gampdf(pStar(4:7),priorParams(4:7,1),priorParams(4:7,2))))+...
                 sum(log(normpdf(pStar(2:3),priorParams(2:3,1),priorParams(2:3,2))))+...
                 log(exppdf(pStar(1),priorParams(1,2)));
-%             
-%             if pStar(2) < priorParams(2,1) || pStar(2) > priorParams(2,2) || ...
-%                     pStar(3) < priorParams(3,1) || pStar(3) > priorParams(3,2)
-%                 pStarLogPrior = pStarLogPrior-1e20;  % for uniform prior
-%                         % on x and y centroid position
-%             end
             
             logA = (pStarLogLikelihood+pStarLogPrior)-posteriorProb(ii-1);
             
@@ -246,7 +243,7 @@ for zz=1:numChans
 %         pStar = params(:,ii-1)+W(:,index)*normrnd(0,stdev);
         pStar = params(:,ii-1)+mvnrnd(mu,lambda*sigma)';
         
-        if sum(pStar<lBound) == 0 & sum(pStar>=uBound) == 0
+        if sum(pStar<lBound) == 0 && sum(pStar>=uBound) == 0
             inputParams = pStar;inputParams(7) = 1/inputParams(7);
             pStarLogLikelihood = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
             pStarLogPrior = sum(log(gampdf(pStar(4:7),priorParams(4:7,1),priorParams(4:7,2))))+...
@@ -274,21 +271,20 @@ for zz=1:numChans
         end
     end
     params(7,:) = 1./params(7,:);
-%     params(8,:) = 1./exp(params(8,:));
     posteriorSamples(zz,:,:) = params(:,burnIn+1:skipRate:end);
     
-    test = autocorr(squeeze(posteriorSamples(zz,1,:)));
-    if test(2) > 0.2
-        fprintf('Auto-correlated Samples\n');
-    end
+%     test = autocorr(squeeze(posteriorSamples(zz,1,:)));
+%     if test(2) > 0.2
+%         fprintf('Auto-correlated Samples\n');
+%     end
     
-    figure();
-    numRows = ceil(numParameters/2);
-    for ii=1:numParameters
-       data = squeeze(posteriorSamples(zz,ii,:));
-       subplot(numRows,2,ii);histogram(data);
-    end
-    
+%     figure();
+%     numRows = ceil(numParameters/2);
+%     for ii=1:numParameters
+%        data = squeeze(posteriorSamples(zz,ii,:));
+%        subplot(numRows,2,ii);histogram(data);
+%     end
+%     
     [~,ind] = max(posteriorProb);
     posteriorMode(zz,:) = params(:,ind)';
     posteriorMean(zz,:) = mean(squeeze(posteriorSamples(zz,:,:)),2)';
@@ -298,6 +294,7 @@ for zz=1:numChans
     alpha = 0.05;
     posteriorInterval(zz,:,:) = quantile(squeeze(posteriorSamples(zz,:,:)),[alpha/2,1-alpha/2],2);
 end
+delete(gcp);
 end
 
 % log-logistic likelihood for non-linear 2D Gaussian function
