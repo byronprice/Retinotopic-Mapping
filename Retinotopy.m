@@ -91,12 +91,12 @@ DistFun = @(stimCenter,centerVals) (ceil(sqrt((stimCenter(1)-centerVals(:,1)).^2
 
 border = round(Radius);
 centerVals = zeros(numStimuli,2);
-centerVals(1,1) = border+unidrnd(w_pixels-5*border);
+centerVals(1,1) = 5*border+unidrnd(w_pixels-10*border);
 centerVals(1,2) = border+unidrnd(h_pixels-2*border);
 
 count = 2;
 while count <= numStimuli
-    xPos = border+unidrnd(w_pixels-5*border);
+    xPos = 5*border+unidrnd(w_pixels-10*border);
     yPos = border+unidrnd(h_pixels-2*border);
     dist = DistFun(centerVals(count-1,:),[xPos,yPos]);
     if dist > 4*Radius
@@ -115,6 +115,10 @@ fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
 Grey = 0.5;
 Black = 0;
 White = 1;
+
+phase = binornd(1,0.5,[numStimuli,1]);
+phase = 2.*phase-1;
+phase = phase.*(pi/3);
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
@@ -136,7 +140,7 @@ for yy = 1:blocks
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[Grey Grey Grey Grey],...
             [], [],[White,Black,...
-            Radius,centerVals(count,1),centerVals(count,2),newSpatFreq,orient(count),0]);
+            Radius,centerVals(count,1),centerVals(count,2),newSpatFreq,orient(count),phase(count)]);
         % Request stimulus onset
         vbl = Screen('Flip', win);usb.strobeEventWord(stimStrobeNum);
         vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
