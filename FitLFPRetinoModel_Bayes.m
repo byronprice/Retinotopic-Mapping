@@ -22,8 +22,8 @@ function [posteriorMean,posteriorInterval,posteriorSamples,posteriorMode] = FitL
 
 numChans = size(Response,1);
 
-maxNumCompThreads(2);
-gcp = parpool(numChans);
+maxNumCompThreads(4);
+gcp = parpool(min(numChans,4));
 
 numParameters = 7;
 numIter = 6e5;
@@ -36,7 +36,7 @@ posteriorInterval = zeros(numChans,numParameters,2);
 posteriorSamples = zeros(numChans,numParameters,(numIter-burnIn)/skipRate);
 
 parfor zz=1:numChans
-%     display(sprintf('Running Data for Channel %d...',zz));
+    fprintf('Running Data for Channel %d...',zz);
     priorParams = zeros(numParameters,2);
 
     priorParams(1,:) = [0,50];% [0.125,0] for exp pdf, [9.099,25.089] for gamma with log
