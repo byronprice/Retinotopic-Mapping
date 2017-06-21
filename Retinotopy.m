@@ -1,6 +1,6 @@
 function [] = Retinotopy(AnimalName,startHold)
 %Retinotopy.m
-%  Display a series of flashing sine-wave gratings to determine retinotopy of
+%  Display a series of flashing gabors to determine retinotopy of
 %   LFP recording electrode.
 %  Each circle will occupy an ~ 5-degree radius of visual space
 % INPUT: Obligatory-
@@ -26,7 +26,7 @@ currentdirectory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 cd(currentdirectory);
 
 if nargin < 2
-    startHold = 10; % 30 second pauses between blocks
+    startHold = 30; % 30 second pauses between blocks
 end
 
 numStimuli = numStimuli-mod(numStimuli,blocks);
