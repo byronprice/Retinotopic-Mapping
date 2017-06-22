@@ -79,10 +79,10 @@ mmPerPixel = conv_factor;
 conv_factor = 1/conv_factor;
 
 % perform unit conversions
-Radius = (tan(degreeRadius*pi/180)*(DistToScreen*10))*conv_factor; % get number of pixels
+Radius = (tan((degreeRadius/2)*pi/180)*(DistToScreen*10*2))*conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
      
-temp = (tan((1/spatFreq)*pi/180)*(DistToScreen*10))*conv_factor;
+temp = (tan(((1/spatFreq)/2)*pi/180)*(DistToScreen*10*2))*conv_factor;
 newSpatFreq = 1/temp;
 
 % calculate stimulus locations from a uniform distribution, but prevent
