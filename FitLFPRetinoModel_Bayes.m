@@ -22,7 +22,6 @@ function [posteriorMean,posteriorInterval,posteriorSamples,posteriorMode] = FitL
 
 numChans = size(Response,1);
 
-maxNumCompThreads(4);
 gcp = parpool(min(numChans,4));
 
 numParameters = 7;
