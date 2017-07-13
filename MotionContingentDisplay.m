@@ -55,10 +55,6 @@ if threshold < 1e-7 || threshold > 1e-3
 end
 fprintf('Threshold: %3.2e\n',threshold);
 
-% this is the actual experiment
-%  perform simple data analysis on the VEPs to determine whether or not a
-%  significant VEP has occurred, relay the information to the stim computer
-
 
 
 display('Beginning experiment ...');
@@ -76,7 +72,7 @@ while check == 0
     fwrite(tcpipServer,temp,'double');
     
     check = sum(tEvs(:,3) == endEXP);
-    pause(1);
+    pause(0.01);
 end
 
 display('Experiment over.');
