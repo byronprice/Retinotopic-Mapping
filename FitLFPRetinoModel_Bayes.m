@@ -22,7 +22,7 @@ function [posteriorMean,posteriorInterval,posteriorSamples,posteriorMode] = FitL
 
 numChans = size(Response,1);
 
-gcp = parpool(min(numChans,4));
+% gcp = parpool(min(numChans,4));
 
 numParameters = 7;
 numIter = 6e5;
@@ -34,8 +34,8 @@ posteriorMean = zeros(numChans,numParameters);
 posteriorInterval = zeros(numChans,numParameters,2);
 posteriorSamples = zeros(numChans,numParameters,(numIter-burnIn)/skipRate);
 
-parfor zz=1:numChans
-    fprintf('Running Data for Channel %d...',zz);
+for zz=1:numChans
+    fprintf('Running Data for Channel %d...\n',zz);
     priorParams = zeros(numParameters,2);
 
     priorParams(1,:) = [0,50];% [0.125,0] for exp pdf, [9.099,25.089] for gamma with log
@@ -79,11 +79,23 @@ parfor zz=1:numChans
         paramSet(:,jj) = min(max(paramSet(:,jj),lBound),uBound);
         
         inputParams = paramSet(:,jj);inputParams(7) = 1/inputParams(7);
+
         [loglikelihood] = GetLikelihood(reps,inputParams,vepMagnitude,flashPoints);
-        
+
+%         mu = log(inputParams(1)*exp(-((flashPoints(:,1)-inputParams(2)).^2)./(2*inputParams(4).^2)-...
+%             ((flashPoints(:,2)-inputParams(3)).^2)./(2*inputParams(5).^2))+inputParams(6));
+%         loglikelihood = sum(-log(inputParams(7))-log(vepMagnitude)+(log(vepMagnitude)-mu)/inputParams(7)-...
+%             2*log(1+exp((log(vepMagnitude)-mu)/inputParams(7))));
+
         logPrior = sum(log(gampdf(paramSet(4:7,jj),priorParams(4:7,1),priorParams(4:7,2))))+...
                sum(log(normpdf(paramSet(2:3,jj),priorParams(2:3,1),priorParams(2:3,2))))+...
                log(exppdf(paramSet(1,jj),priorParams(1,2)));
+%         logPrior = sum((priorParams(4:7,1)-1)-paramSet(4:7,jj)./priorParams(4:7,2))+...
+%             sum(-0.5*log(priorParams(2:3,2).*priorParams(2:3,2))-...
+%             0.5.*(paramSet(2:3,jj).*paramSet(2:3,jj))./(priorParams(2:3,2).*priorParams(2:3,2)))+...
+%             -paramSet(1,jj)./priorParams(1,2);
+
+        
         maxPost(jj) = loglikelihood+logPrior;
         
         
@@ -293,7 +305,7 @@ parfor zz=1:numChans
     alpha = 0.05;
     posteriorInterval(zz,:,:) = quantile(squeeze(posteriorSamples(zz,:,:)),[alpha/2,1-alpha/2],2);
 end
-delete(gcp);
+% delete(gcp);
 end
 
 % log-logistic likelihood for non-linear 2D Gaussian function

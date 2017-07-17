@@ -5,13 +5,13 @@ if getenv('ENVIRONMENT')
    myCluster.JobStorageLocation = getenv('TMPDIR'); 
 end
 
-parpool(myCluster,4);
+parpool(myCluster,3);
 
-Animals = [34271,34272,43650,43652,43653,62500,62501,62502];
-Dates = [20170607,20170607];
+Animals = [84932,85362];
+Dates = [20170717];
 
-parfor ii=1:legnth(Animals)
-    MapRetinotopy(Animals(ii),Dates(ii));
+parfor ii=1:length(Animals)
+    MapRetinotopy(Animals(ii),Dates);
 end
 
 delete(gcp);
