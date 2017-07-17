@@ -16,7 +16,7 @@ function [] = Retinotopy(AnimalName,startHold)
 %           folder under '/MATLAB/Byron/'
 % Created: 2016/05/24 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/02/25
+% Updated: 2017/07/17
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -151,7 +151,7 @@ for yy = 1:blocks
         if tcpipClient.BytesAvailable > 0
             data = fread(tcpipClient,tcpipClient.BytesAvailable/8,'double');
             if sum(data) > 0
-                WaitSecs(2);
+                WaitSecs(5);
             else
                 % Draw the procedural texture as any other texture via 'DrawTexture'
                 Screen('DrawTexture', win,gratingTex, [],[],...
