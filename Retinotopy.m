@@ -151,7 +151,7 @@ for yy = 1:blocks
         if tcpipClient.BytesAvailable > 0
             data = fread(tcpipClient,tcpipClient.BytesAvailable/8,'double');
             if sum(data) > 0
-                WaitSecs(1);
+                WaitSecs(2);
             else
                 % Draw the procedural texture as any other texture via 'DrawTexture'
                 Screen('DrawTexture', win,gratingTex, [],[],...
