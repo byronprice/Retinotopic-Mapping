@@ -60,10 +60,10 @@ end
 for ii=1:numChans
     tempData = zeros(numStimuli,3);
     meanVEP = mean(squeeze(Response(ii,:,:)),1);
-
+    
     [~,minLatency] = min(meanVEP);
 
-    if minLatency > 50 && minLatency < 150
+    if minLatency > 50 && minLatency < 200
         minWin = (minLatency-30):(minLatency+30); 
         maxWin = (minLatency+40):(minLatency+150);
     else
