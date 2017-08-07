@@ -12,7 +12,8 @@ fileName = sprintf('RetinoMapBayes%d_%d.mat',Date,AnimalName);
 load(fileName)
 
 numChans = size(posteriorSample,1);
-x = 1:10:w_pixels;y = 1:10:h_pixels;
+x = 1:5:w_pixels;y = 1:5:h_pixels;
+[X,Y] = meshgrid(x,y);
 
 for ii=1:numChans
     h(ii) = figure;
@@ -24,25 +25,19 @@ for ii=1:numChans
     xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
     hold on;
     
-    finalIm = zeros(length(x),length(y));
+    finalIm = zeros(length(y),length(x));
     samples = squeeze(posteriorSample(ii,:,:));
     N = 1000;
     for ll=1:N
         index = random('Discrete Uniform',numSamples);
         parameterVec = samples(:,index);
         b = [parameterVec(1),parameterVec(4),parameterVec(5),parameterVec(6)];
-        for jj=1:length(x)
-            for kk=1:length(y)
-                distX = x(jj)-parameterVec(2);
-                distY = y(kk)-parameterVec(3);
-                
-                finalIm(jj,kk) = finalIm(jj,kk)+b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
-                    (distY.^2)./(2*b(3)*b(3)))+b(4);
-            end
-        end
+        distX = X-parameterVec(2);distY = Y-parameterVec(3);
+        finalIm = finalIm+b(1)*exp(-(distX.^2)./(2*b(2)*b(2))-...
+                     (distY.^2)./(2*b(3)*b(3)))+b(4);
     end
     finalIm = finalIm./N;
-    imagesc(x,y,finalIm');set(gca,'YDir','normal');w=colorbar;
+    imagesc(x,y,finalIm);set(gca,'YDir','normal');w=colorbar;
     caxis([b(4) b(4)+150]);
     ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
     
