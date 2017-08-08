@@ -9,25 +9,27 @@
 %
 % Created: 2016/08/02, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/18
+% Updated: 2017/08/08
 %  By: Byron Price 
 
 cd('~/CloudStation/ByronExp/Retino');
 
-yest = datetime('yesterday','Format','yyyy-MM-dd');
-yest = char(yest); yest = strrep(yest,'-','');
-yest = str2double(yest);
+fileStart = sprintf('RetinoData*.plx');
 
-fileStart = sprintf('RetinoData*%d*.plx',yest);
+files = dir(fileStart);
+numFiles = size(files,1);
 
-fileList = dir(fileStart);
-numFiles = size(fileList,1);
-
-datelen = 8;
-idlen = 5;
 for ii=1:numFiles
-    index = regexp(fileList(ii).name,'_');
-    Date = str2double(fileList(ii).name(index-datelen:index-1));
-    AnimalName = str2double(fileList(ii).name(index+1:index+idlen));
-    [~,~,~] = MapRetinotopy(AnimalName,Date);
+    index = regexp(files(ii).name,'_');
+    Date = str2double(files(ii).name(index-8:index-1));
+    AnimalName = str2double(files(ii).name(index+1:end-4));
+    
+    fileCheck = sprintf('RetinoMapBayes*_%d',AnimalName);
+    checkFiles = dir(fileCheck);
+    
+    if isempty(checkFiles)==1
+        MapRetinotopy(AnimalName,Date);
+    end
 end
+
+fprintf('Ran cron job\n');
