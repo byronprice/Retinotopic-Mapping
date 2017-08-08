@@ -79,8 +79,10 @@ newSpatFreq = 1/temp;
 if Day==1
     [centerPositions,targetChan] = GetRetinoMap(AnimalName);
 else
+   cd('~/CloudStation/ByronExp/RestrictSRP');
    fileName = sprintf('RestrictSRPStimDay1_%d.mat',AnimalName);
    load(fileName,'centerPositions','targetChan');
+   cd(currentdirectory);
 end
 
 
@@ -129,7 +131,7 @@ if Day<4
             ii=ii+1;
             
         end
-        vbl = Screen('Flip',win);
+        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
         usb.strobeEventWord(0);
         vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
     end
@@ -189,7 +191,7 @@ elseif Day == 4
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
-                Radius,centerPositions(targetChan,1),centerPosition(targetChan,2),newSpatFreq,orientations(count),phase(count)]);
+                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),newSpatFreq,orientations(count),phase(count)]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count));
@@ -197,7 +199,7 @@ elseif Day == 4
             ii=ii+1;
             
         end
-        vbl = Screen('Flip',win);
+        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
         usb.strobeEventWord(0);
         vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
     end
