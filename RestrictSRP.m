@@ -20,10 +20,6 @@ load('RestrictSRPVars.mat');
 currentdirectory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 cd(currentdirectory);
 
-if nargin < 2
-    startHold = 30; % 30 second pauses between blocks
-end
-
 numStimuli = 200;
 blocks = 5;
 reps = numStimuli/blocks;
@@ -87,8 +83,8 @@ else
    load(fileName,'centerPositions','targetChan');
 end
 
-if Day<4
 
+if Day<4
     estimatedTime = (stimTime*reps*blocks+blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
@@ -112,7 +108,7 @@ if Day<4
     Priority(9);
     
     usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
-    WaitSecs(startHold);
+    WaitSecs(holdTime);
     
     % Animation loop
     count = 1;
@@ -125,7 +121,7 @@ if Day<4
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
-                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),newSpatFreq,orient,phase(count)]);
+                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),newSpatFreq,orientation,phase(count)]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count));
@@ -133,6 +129,7 @@ if Day<4
             ii=ii+1;
             
         end
+        vbl = Screen('Flip',win);
         usb.strobeEventWord(0);
         vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
     end
@@ -144,7 +141,7 @@ if Day<4
     DayType = 'train';
     fileName = sprintf('RestrictSRPStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'centerPositions','targetChan','Radius','degreeRadius','spatFreq',...
-        'mmPerPixel','DistToScreen','orient','w_pixels','h_pixels','stimTime','holdTime',...
+        'mmPerPixel','DistToScreen','orientation','w_pixels','h_pixels','stimTime','holdTime',...
         'numStimuli','phase','stimNum','Date','DayType')
     % Close window
     Screen('CloseAll');
@@ -170,8 +167,8 @@ elseif Day == 4
     stimNum(numStimuli+1:2:end) = 3;
     stimNum(numStimuli+2:2:end) = 4;
     
-    orients = orient.*ones(2*numStimuli);
-    orients(numStimuli+1:end) = orient+pi;
+    orientations = orientation.*ones(2*numStimuli);
+    orientations(numStimuli+1:end) = orientation+pi;
     
     Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     
@@ -179,7 +176,7 @@ elseif Day == 4
     Priority(9);
     
     usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
-    WaitSecs(startHold);
+    WaitSecs(holdTime);
     
     % Animation loop
     count = 1;
@@ -192,7 +189,7 @@ elseif Day == 4
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
-                Radius,centerPositions(targetChan,1),centerPosition(targetChan,2),newSpatFreq,orients(count),phase(count)]);
+                Radius,centerPositions(targetChan,1),centerPosition(targetChan,2),newSpatFreq,orientations(count),phase(count)]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count));
@@ -200,6 +197,7 @@ elseif Day == 4
             ii=ii+1;
             
         end
+        vbl = Screen('Flip',win);
         usb.strobeEventWord(0);
         vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
     end
@@ -212,7 +210,7 @@ elseif Day == 4
     DayType = 'test';
     fileName = sprintf('RestrictSRPStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'centerPositions','targetChan','Radius','degreeRadius','spatFreq',...
-        'mmPerPixel','DistToScreen','orients','w_pixels','h_pixels','stimTime','holdTime',...
+        'mmPerPixel','DistToScreen','orientations','w_pixels','h_pixels','stimTime','holdTime',...
         'numStimuli','phase','stimNum','Date','DayType')
     % Close window
     Screen('CloseAll');
