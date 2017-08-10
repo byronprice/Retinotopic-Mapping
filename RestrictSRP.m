@@ -147,8 +147,6 @@ if Day<4
     Screen('CloseAll');
 
 elseif Day == 4
-    estimatedTime = (4*stimTime*reps*blocks+4*blocks*holdTime)/60;
-    fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
     % Define first and second ring color as RGBA vector with normalized color
     % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -159,6 +157,11 @@ elseif Day == 4
     White = 1;
     
     numConditions = 4;
+    
+    estimatedTime = (numConditions*stimTime*reps*blocks+numConditions*blocks*holdTime)/60;
+    fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
+    
+    
     phase = pi.*ones(numConditions*numStimuli,1);
     phase(1:2:end) = 0;
     
