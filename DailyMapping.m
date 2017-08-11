@@ -24,7 +24,7 @@ for ii=1:numFiles
     Date = str2double(files(ii).name(index-8:index-1));
     AnimalName = str2double(files(ii).name(index+1:end-4));
     
-    fileCheck = sprintf('RetinoMapBayes*_%d',AnimalName);
+    fileCheck = sprintf('RetinoMapBayes*_%d*',AnimalName);
     checkFiles = dir(fileCheck);
     
     if isempty(checkFiles)==1
