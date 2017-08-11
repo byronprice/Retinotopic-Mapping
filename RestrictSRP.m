@@ -20,8 +20,6 @@ load('RestrictSRPVars.mat');
 currentdirectory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 cd(currentdirectory);
 
-numStimuli = 200;
-blocks = 5;
 reps = numStimuli/blocks;
 
 Date = datetime('today','Format','yyyy-MM-dd');
@@ -149,8 +147,6 @@ if Day<4
     Screen('CloseAll');
 
 elseif Day == 4
-    estimatedTime = (2*stimTime*reps*blocks+2*blocks*holdTime)/60;
-    fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
     % Define first and second ring color as RGBA vector with normalized color
     % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -160,17 +156,38 @@ elseif Day == 4
     Black = 0;
     White = 1;
     
-    phase = pi.*ones(2*numStimuli,1);
+    numConditions = 4;
+    
+    estimatedTime = (numConditions*stimTime*reps*blocks+numConditions*blocks*holdTime)/60;
+    fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
+    
+    
+    phase = pi.*ones(numConditions*numStimuli,1);
     phase(1:2:end) = 0;
     
-    stimNum = zeros(2*numStimuli,1);
-    stimNum(1:2:numStimuli) = 1;
-    stimNum(2:2:numStimuli) = 2;
-    stimNum(numStimuli+1:2:end) = 3;
-    stimNum(numStimuli+2:2:end) = 4;
+    stimNum = zeros(numConditions*numStimuli,1);
+    stimVals = [1,2;3,4;5,6;7,8];
+    order = randperm(numConditions);
+    channel = zeros(numConditions,1);
     
-    orientations = orientation.*ones(2*numStimuli);
-    orientations(numStimuli+1:end) = orientation+pi;
+    orientations = orientation.*ones(4*numStimuli);
+    for ii=1:numConditions
+        stimNum(1+(ii-1)*numStimuli:2:numStimuli+(ii-1)*numStimuli) = stimVals(order(ii),1);
+        stimNum(2+(ii-1)*numStimuli:2:numStimuli+(ii-1)*numStimuli) = stimVals(order(ii),2);
+        
+        if order(ii) == 1
+            channel(ii) = targetChan;
+        elseif order(ii) == 2
+            channel(ii) = targetChan;
+            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi;
+        elseif order(ii) == 3
+            channel(ii) = -targetChan+3;
+        elseif order(ii) == 4
+            channel(ii) = -targetChan+3;
+            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi;
+        end
+    end
+    
     
     Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     
@@ -183,27 +200,28 @@ elseif Day == 4
     % Animation loop
     count = 1;
     vbl = Screen('Flip',win);
-    for yy = 1:2*blocks
-        ii=1;
-        while ii<=reps
-            
-            % Draw the procedural texture as any other texture via 'DrawTexture'
-            Screen('DrawTexture', win,gratingTex, [],[],...
-                [],[],[],[Grey Grey Grey Grey],...
-                [], [],[White,Black,...
-                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),newSpatFreq,orientations(count),phase(count)]);
-            % Request stimulus onset
+    for zz=1:numConditions
+        for yy = 1:blocks
+            ii=1;
+            while ii<=reps
+                
+                % Draw the procedural texture as any other texture via 'DrawTexture'
+                Screen('DrawTexture', win,gratingTex, [],[],...
+                    [],[],[],[Grey Grey Grey Grey],...
+                    [], [],[White,Black,...
+                    Radius,centerPositions(channel(zz),1),centerPositions(channel(zz),2),newSpatFreq,orientations(count),phase(count)]);
+                % Request stimulus onset
+                vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
+                usb.strobeEventWord(stimNum(count));
+                count = count+1;
+                ii=ii+1;
+                
+            end
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-            usb.strobeEventWord(stimNum(count));
-            count = count+1;
-            ii=ii+1;
-            
+            usb.strobeEventWord(0);
+            vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
         end
-        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-        usb.strobeEventWord(0);
-        vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
     end
-    
     WaitSecs(1);
     usb.stopRecording;
     Priority(0);
@@ -213,7 +231,7 @@ elseif Day == 4
     fileName = sprintf('RestrictSRPStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'centerPositions','targetChan','Radius','degreeRadius','spatFreq',...
         'mmPerPixel','DistToScreen','orientations','w_pixels','h_pixels','stimTime','holdTime',...
-        'numStimuli','phase','stimNum','Date','DayType')
+        'numStimuli','phase','stimNum','Date','DayType','order')
     % Close window
     Screen('CloseAll');
     
