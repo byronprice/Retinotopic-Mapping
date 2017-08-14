@@ -1,17 +1,22 @@
-function [] = RestrictSRP(AnimalName,Day)
-%RestrictSRP.m
-%  Run SRP within a restricted region surrounding the LFP retinotopic response
-%    region.
+function [] = RestrictTPL(AnimalName,Day)
+%RestrictTPL.m
+%  Run temporal perceptual learning experiment within a restricted region 
+%   surrounding the LFP retinotopic response region for a given electrode 
+%   penetration ... by temporal perceptual learning, I just mean that the
+%   mouse will see a flashed white dot (on screen for ~33 ms) followed by a
+%   grey-screen interval and a second flashed white dot ... the flashed
+%   white dots thus mark a temporal interval, which the mouse can hopefully
+%   learn
 % INPUT: Obligatory-
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
 %        Day - experimental day
 %
-% OUTPUT: a file with stimulus parameters named RestrictSRPStimDate_AnimalName
-%           e.g. RestrictSRPStim20160708_12345.mat to be saved on the
+% OUTPUT: a file with stimulus parameters named RestrictTPLStimDate_AnimalName
+%           e.g. RestrictTPLStim20160708_12345.mat to be saved on the
 %           CloudStation
-% Created: 2017/08/08 at 24 Cummington, Boston
+% Created: 2017/08/14 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/08/08
+% Updated: 2017/08/14
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/RestrictSRP');
@@ -77,15 +82,15 @@ newSpatFreq = 1/temp;
 if Day==1
     [centerPositions,targetChan] = GetRetinoMap(AnimalName);
 else
-   cd('~/CloudStation/ByronExp/RestrictSRP');
-   fileName = sprintf('RestrictSRPStimDay1_%d.mat',AnimalName);
+   cd('~/CloudStation/ByronExp/RestrictTPL');
+   fileName = sprintf('RestrictTPLStimDay1_%d.mat',AnimalName);
    load(fileName,'centerPositions','targetChan');
    cd(currentdirectory);
 end
 
 
 if Day<4
-    estimatedTime = (stimTime*reps*blocks+blocks*holdTime)/60;
+    estimatedTime = ((trainInterval+2*dotTime+ISI)*reps*blocks+blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
     % Define first and second ring color as RGBA vector with normalized color
@@ -96,11 +101,10 @@ if Day<4
     Black = 0;
     White = 1;
     
-    phase = pi.*ones(numStimuli,1);
-    phase(1:2:end) = 0;
+    phase = pi/3;
     
-    stimNum = 2.*ones(numStimuli,1);
-    stimNum(1:2:end) = 1;
+    stimNum = ones(numStimuli,2);stimNum(:,2) = 2;
+    interStimPause = random('Uniform',ISI-0.5,ISI+0.5,[numStimuli,1]);
     
     Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     
@@ -115,21 +119,36 @@ if Day<4
     vbl = Screen('Flip',win);
     for yy = 1:blocks
         ii=1;
+        vbl = Screen('Flip',win,vbl-ifi/2);
         while ii<=reps
             
             % Draw the procedural texture as any other texture via 'DrawTexture'
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
-                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),newSpatFreq,orientation,phase(count)]);
+                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),...
+                newSpatFreq,orientation,phase]);
             % Request stimulus onset
-            vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-            usb.strobeEventWord(stimNum(count));
+            vbl = Screen('Flip',win,vbl-ifi/2);
+            vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+            usb.strobeEventWord(stimNum(count,1));
+            
+            Screen('DrawTexture', win,gratingTex, [],[],...
+                [],[],[],[Grey Grey Grey Grey],...
+                [], [],[White,Black,...
+                Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),...
+                newSpatFreq,orientation,phase]);
+            % Request stimulus onset
+            vbl = Screen('Flip',win,vbl-ifi/2+trainInterval);
+            usb.strobeEventWord(stimNum(count,2));
+            vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+            
+            vbl = Screen('Flip',win,vbl-ifi/2+interStimPause(count));
+            
             count = count+1;
             ii=ii+1;
             
         end
-        vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
         usb.strobeEventWord(0);
         vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
     end
@@ -137,12 +156,12 @@ if Day<4
     usb.stopRecording;
     Priority(0);
     
-    cd('~/CloudStation/ByronExp/RestrictSRP');
+    cd('~/CloudStation/ByronExp/RestrictTPL');
     DayType = 'train';
-    fileName = sprintf('RestrictSRPStimDay%d_%d.mat',Day,AnimalName);
+    fileName = sprintf('RestrictTPLStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'centerPositions','targetChan','Radius','degreeRadius','spatFreq',...
-        'mmPerPixel','DistToScreen','orientation','w_pixels','h_pixels','stimTime','holdTime',...
-        'numStimuli','phase','stimNum','Date','DayType')
+        'mmPerPixel','DistToScreen','orientation','w_pixels','h_pixels','dotTime','holdTime',...
+        'numStimuli','phase','stimNum','Date','DayType','trainInterval','ISI','interStimPause')
     % Close window
     Screen('CloseAll');
 
@@ -158,33 +177,31 @@ elseif Day == 4
     
     numConditions = 4;
     
-    estimatedTime = (numConditions*stimTime*reps*blocks+numConditions*blocks*holdTime)/60;
+    estimatedTime = (numConditions*(2*dotTime+ISI+(trainInterval+testInterval)/2)*reps*blocks+numConditions*blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
+    phase = pi/3;
     
-    phase = pi.*ones(numConditions*numStimuli,1);
-    phase(1:2:end) = 0;
-    
-    stimNum = zeros(numConditions*numStimuli,1);
+    stimNum = zeros(numConditions*numStimuli,2);
     stimVals = [1,2;3,4;5,6;7,8];
     order = randperm(numConditions);
     channel = zeros(numConditions,1);
-    
-    orientations = orientation.*ones(4*numStimuli,1);
+    intervalTime = trainInterval.*ones(numConditions*numStimuli,1);
+    interStimPause = random('Uniform',ISI-0.5,ISI+0.5,[numConditions*numStimuli,1]);
+
     for ii=1:numConditions
-        stimNum(1+(ii-1)*numStimuli:2:numStimuli+(ii-1)*numStimuli) = stimVals(order(ii),1);
-        stimNum(2+(ii-1)*numStimuli:2:numStimuli+(ii-1)*numStimuli) = stimVals(order(ii),2);
+        stimNum(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli,:) = stimVals(order(ii),:);
         
         if order(ii) == 1
             channel(ii) = targetChan;
         elseif order(ii) == 2
             channel(ii) = targetChan;
-            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi;
+            intervalTime(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = testInterval;
         elseif order(ii) == 3
             channel(ii) = -targetChan+3;
         elseif order(ii) == 4
             channel(ii) = -targetChan+3;
-            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi;
+            intervalTime(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = testInterval;
         end
     end
     
@@ -202,7 +219,7 @@ elseif Day == 4
     vbl = Screen('Flip',win);
     for zz=1:numConditions
         for yy = 1:blocks
-            ii=1;
+            vbl = Screen('Flip',win,vbl-ifi/2);
             while ii<=reps
                 
                 % Draw the procedural texture as any other texture via 'DrawTexture'
@@ -210,15 +227,28 @@ elseif Day == 4
                     [],[],[],[Grey Grey Grey Grey],...
                     [], [],[White,Black,...
                     Radius,centerPositions(channel(zz),1),centerPositions(channel(zz),2),...
-                    newSpatFreq,orientations(count),phase(count)]);
+                    newSpatFreq,orientation,phase]);
                 % Request stimulus onset
-                vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
-                usb.strobeEventWord(stimNum(count));
+                vbl = Screen('Flip',win,vbl-ifi/2);
+                vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+                usb.strobeEventWord(stimNum(count,1));
+                
+                Screen('DrawTexture', win,gratingTex, [],[],...
+                    [],[],[],[Grey Grey Grey Grey],...
+                    [], [],[White,Black,...
+                    Radius,centerPositions(channel(zz),1),centerPositions(channel(zz),2),...
+                    newSpatFreq,orientation,phase]);
+                % Request stimulus onset
+                vbl = Screen('Flip',win,vbl-ifi/2+intervalTime(count));
+                usb.strobeEventWord(stimNum(count,2));
+                vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+                
+                vbl = Screen('Flip',win,vbl-ifi/2+interStimPause(count));
+                
                 count = count+1;
                 ii=ii+1;
                 
             end
-            vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(0);
             vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
         end
@@ -227,12 +257,13 @@ elseif Day == 4
     usb.stopRecording;
     Priority(0);
     
-    cd('~/CloudStation/ByronExp/RestrictSRP');
+    cd('~/CloudStation/ByronExp/RestrictTPL');
     DayType = 'test';
-    fileName = sprintf('RestrictSRPStimDay%d_%d.mat',Day,AnimalName);
+    fileName = sprintf('RestrictTPLStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'centerPositions','targetChan','Radius','degreeRadius','spatFreq',...
-        'mmPerPixel','DistToScreen','orientations','w_pixels','h_pixels','stimTime','holdTime',...
-        'numStimuli','phase','stimNum','Date','DayType','order','channel','numConditions')
+        'mmPerPixel','DistToScreen','orientation','w_pixels','h_pixels','holdTime',...
+        'numStimuli','phase','stimNum','Date','DayType','order','intervalTime',...
+        'interStimPause','testInterval','trainInterval','ISI')
     % Close window
     Screen('CloseAll');
     
@@ -312,5 +343,5 @@ end
 
 [~,targetChan] = max(bestChan);
 
-cd ~/CloudStation/ByronExp/RestrictSRP/
+cd ~/CloudStation/ByronExp/RestrictTPL/
 end
