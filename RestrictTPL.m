@@ -19,8 +19,8 @@ function [] = RestrictTPL(AnimalName,Day)
 % Updated: 2017/08/14
 %  By: Byron Price
 
-cd('~/CloudStation/ByronExp/RestrictSRP');
-load('RestrictSRPVars.mat');
+cd('~/CloudStation/ByronExp/RestrictTPL');
+load('RestrictTPLVars.mat');
 
 currentdirectory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 cd(currentdirectory);
