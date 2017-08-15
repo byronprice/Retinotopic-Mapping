@@ -202,7 +202,7 @@ elseif Day == 4
     stimTimes = stimTime*ones(numConditions*numStimuli,1);
     
     for ii=1:numConditions
-        stimNum(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli,:) = stimVals(order(ii),:);
+        stimNum(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli,:) = repmat(stimVals(order(ii),:),[numStimuli,1]);
         
         if order(ii) == 1
             channel(ii) = targetChan;
@@ -231,7 +231,8 @@ elseif Day == 4
     vbl = Screen('Flip',win);
     for zz=1:numConditions
         for yy = 1:blocks
-            vbl = Screen('Flip',win,vbl-ifi/2);
+            ii=1;
+            vbl = Screen('Flip',win,vbl+ifi/2);
             while ii<=reps
                 
                 % Draw the procedural texture as any other texture via 'DrawTexture'

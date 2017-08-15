@@ -114,6 +114,7 @@ if Day<4
     count = 1;
     vbl = Screen('Flip',win);
     for yy = 1:blocks
+        vbl = Screen('Flip',win,vbl+ifi/2);
         ii=1;
         while ii<=reps
             
@@ -179,12 +180,12 @@ elseif Day == 4
             channel(ii) = targetChan;
         elseif order(ii) == 2
             channel(ii) = targetChan;
-            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi;
+            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi/2;
         elseif order(ii) == 3
             channel(ii) = -targetChan+3;
         elseif order(ii) == 4
             channel(ii) = -targetChan+3;
-            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi;
+            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi/2;
         end
     end
     
@@ -201,6 +202,7 @@ elseif Day == 4
     count = 1;
     vbl = Screen('Flip',win);
     for zz=1:numConditions
+        vbl = Screen('Flip',win,vbl+ifi/2);
         for yy = 1:blocks
             ii=1;
             while ii<=reps

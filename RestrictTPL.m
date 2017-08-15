@@ -103,7 +103,8 @@ if Day<4
     
     phase = pi/3;
     
-    stimNum = ones(numStimuli,2);stimNum(:,2) = 2;
+    stimNum = ones(numStimuli,4);stimNum(:,2) = 2;stimNum(:,3) = 3;
+    stimNum(:,4) = 4;
     interStimPause = random('Uniform',ISI-0.5,ISI+0.5,[numStimuli,1]);
     
     Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
@@ -119,7 +120,7 @@ if Day<4
     vbl = Screen('Flip',win);
     for yy = 1:blocks
         ii=1;
-        vbl = Screen('Flip',win,vbl-ifi/2);
+        vbl = Screen('Flip',win,vbl+ifi/2);
         while ii<=reps
             
             % Draw the procedural texture as any other texture via 'DrawTexture'
@@ -130,8 +131,9 @@ if Day<4
                 newSpatFreq,orientation,phase]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2);
-            vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
             usb.strobeEventWord(stimNum(count,1));
+            vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+            usb.strobeEventWord(stimNum(count,2));
             
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
@@ -140,8 +142,9 @@ if Day<4
                 newSpatFreq,orientation,phase]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+trainInterval);
-            usb.strobeEventWord(stimNum(count,2));
+            usb.strobeEventWord(stimNum(count,3));
             vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+            usb.strobeEventWord(stimNum(count,4));
             
             vbl = Screen('Flip',win,vbl-ifi/2+interStimPause(count));
             
@@ -182,15 +185,15 @@ elseif Day == 4
     
     phase = pi/3;
     
-    stimNum = zeros(numConditions*numStimuli,2);
-    stimVals = [1,2;3,4;5,6;7,8];
+    stimNum = zeros(numConditions*numStimuli,4);
+    stimVals = [1,2,3,4;5,6,7,8;9,10,11,12;13,14,15,16];
     order = randperm(numConditions);
     channel = zeros(numConditions,1);
     intervalTime = trainInterval.*ones(numConditions*numStimuli,1);
     interStimPause = random('Uniform',ISI-0.5,ISI+0.5,[numConditions*numStimuli,1]);
 
     for ii=1:numConditions
-        stimNum(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli,:) = stimVals(order(ii),:);
+        stimNum(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli,:) = repmat(stimVals(order(ii),:),[numStimuli,1]);
         
         if order(ii) == 1
             channel(ii) = targetChan;
@@ -219,7 +222,8 @@ elseif Day == 4
     vbl = Screen('Flip',win);
     for zz=1:numConditions
         for yy = 1:blocks
-            vbl = Screen('Flip',win,vbl-ifi/2);
+            ii=1;
+            vbl = Screen('Flip',win,vbl+ifi/2);
             while ii<=reps
                 
                 % Draw the procedural texture as any other texture via 'DrawTexture'
@@ -230,8 +234,9 @@ elseif Day == 4
                     newSpatFreq,orientation,phase]);
                 % Request stimulus onset
                 vbl = Screen('Flip',win,vbl-ifi/2);
-                vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
                 usb.strobeEventWord(stimNum(count,1));
+                vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+                usb.strobeEventWord(stimNum(count,2));
                 
                 Screen('DrawTexture', win,gratingTex, [],[],...
                     [],[],[],[Grey Grey Grey Grey],...
@@ -240,8 +245,9 @@ elseif Day == 4
                     newSpatFreq,orientation,phase]);
                 % Request stimulus onset
                 vbl = Screen('Flip',win,vbl-ifi/2+intervalTime(count));
-                usb.strobeEventWord(stimNum(count,2));
+                usb.strobeEventWord(stimNum(count,3));
                 vbl = Screen('Flip',win,vbl-ifi/2+dotTime);
+                usb.strobeEventWord(stimNum(count,4));
                 
                 vbl = Screen('Flip',win,vbl-ifi/2+interStimPause(count));
                 
