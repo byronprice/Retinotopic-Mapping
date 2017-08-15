@@ -15,5 +15,6 @@ classdef RetinoStimObj
         mmPerPixel
         DistToScreen
         orient
+        phase
     end
 end
