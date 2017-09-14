@@ -189,6 +189,7 @@ stimParams.spatFreq = spatFreq;
 stimParams.mmPerPixel = mmPerPixel;
 stimParams.DistToScreen = DistToScreen;
 stimParams.orient = orient;
+stimParams.phase = phase;
 
 cd('~/CloudStation/ByronExp/Retino');
 
