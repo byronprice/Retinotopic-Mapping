@@ -117,7 +117,7 @@ if Day<4
     vbl = Screen('Flip',win);
     for yy = 1:blocks
         ii=1;
-        vbl = Screen('Flip',win,vbl-ifi/2);
+        vbl = Screen('Flip',win,vbl+ifi/2);
         while ii<=reps
             
             % Draw the procedural texture as any other texture via 'DrawTexture'
@@ -127,7 +127,7 @@ if Day<4
                 Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),...
                 newSpatFreq,orientations(count,1),phase(count)]);
             % Request stimulus onset
-            vbl = Screen('Flip',win,vbl-ifi/2);
+            vbl = Screen('Flip',win,vbl+ifi/2);
             % immediately strobe after stimulus onset
             usb.strobeEventWord(stimNum(count,1));
             
@@ -242,7 +242,7 @@ elseif Day == 4
                     Radius,centerPositions(channel(zz),1),centerPositions(channel(zz),2),...
                     newSpatFreq,orientations(count,1),phase(count)]);
                 % Request stimulus onset
-                vbl = Screen('Flip',win,vbl-ifi/2);
+                vbl = Screen('Flip',win,vbl+ifi/2);
                 % immediately strobe after stimulus onset
                 usb.strobeEventWord(stimNum(count,1));
                 

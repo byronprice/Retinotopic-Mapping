@@ -30,14 +30,14 @@ if nargin < 2
 end
 
 % for motion-contingent display / interaction with recording computer
-startEXP = 254;
-endEXP = 255;
-
-tcpipClient = tcpip('128.197.59.169',30000,'NetworkRole','client');
-bufferSize = 50000; % bytes, (we won't need this much)
-set(tcpipClient,'InputBufferSize',bufferSize);
-set(tcpipClient,'Timeout',5);
-fopen(tcpipClient);
+% startEXP = 254;
+% endEXP = 255;
+% 
+% tcpipClient = tcpip('128.197.59.169',30000,'NetworkRole','client');
+% bufferSize = 50000; % bytes, (we won't need this much)
+% set(tcpipClient,'InputBufferSize',bufferSize);
+% set(tcpipClient,'Timeout',5);
+% fopen(tcpipClient);
 
 numStimuli = numStimuli-mod(numStimuli,blocks);
 
@@ -140,7 +140,7 @@ Priority(9);
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(startHold);
-usb.strobeEventWord(startEXP);WaitSecs(1);
+% usb.strobeEventWord(startEXP);WaitSecs(1);
 
 % Animation loop
 count = 1;
@@ -148,11 +148,11 @@ vbl = Screen('Flip',win);
 for yy = 1:blocks
     ii=1;
     while ii<=reps
-        if tcpipClient.BytesAvailable > 0
-            data = fread(tcpipClient,tcpipClient.BytesAvailable/8,'double');
-            if sum(data) > 0
-                WaitSecs(5);
-            else
+%         if tcpipClient.BytesAvailable > 0
+%             data = fread(tcpipClient,tcpipClient.BytesAvailable/8,'double');
+%             if sum(data) > 0
+%                 WaitSecs(5);
+%             else
                 % Draw the procedural texture as any other texture via 'DrawTexture'
                 Screen('DrawTexture', win,gratingTex, [],[],...
                     [],[],[],[Grey Grey Grey Grey],...
@@ -164,13 +164,13 @@ for yy = 1:blocks
                 vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(count));
                 count = count+1;
                 ii=ii+1;
-            end
-        end
+%             end
+%         end
     end
     usb.strobeEventWord(0);
     vbl = Screen('Flip',win,vbl-ifi/2+holdTime);
 end
-WaitSecs(1);usb.strobeEventWord(endEXP);
+% WaitSecs(1);usb.strobeEventWord(endEXP);
 usb.stopRecording;
 Priority(0);
 
