@@ -73,6 +73,7 @@ mmPerPixel = conv_factor;
 conv_factor = 1/conv_factor;
 
 % perform unit conversions
+
 Radius = (tan((degreeRadius/2)*pi/180)*(DistToScreen*10*2))*conv_factor; % get number of pixels
      % that degreeRadius degrees of visual space will occupy
      
@@ -101,7 +102,7 @@ if Day<4
     Black = 0;
     White = 1;
     
-    phase = pi/3;
+    phase = 0;
     
     stimNum = ones(numStimuli,4);stimNum(:,2) = 2;stimNum(:,3) = 3;
     stimNum(:,4) = 4;
@@ -183,7 +184,7 @@ elseif Day == 4
     estimatedTime = (numConditions*(2*dotTime+ISI+(trainInterval+testInterval)/2)*reps*blocks+numConditions*blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
-    phase = pi/3;
+    phase = 0;
     
     stimNum = zeros(numConditions*numStimuli,4);
     stimVals = [1,2,3,4;5,6,7,8;9,10,11,12;13,14,15,16];
