@@ -16,7 +16,7 @@ function [] = RestrictTPL(AnimalName,Day)
 %           CloudStation
 % Created: 2017/08/14 at 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/08/14
+% Updated: 2017/09/25
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/RestrictTPL');
@@ -102,7 +102,8 @@ if Day<4
     Black = 0;
     White = 1;
     
-    phase = 0;
+    phase = pi/3.*ones(numStimuli,2);
+    phase(:,2) = -pi/3;
     
     stimNum = ones(numStimuli,4);stimNum(:,2) = 2;stimNum(:,3) = 3;
     stimNum(:,4) = 4;
@@ -129,7 +130,7 @@ if Day<4
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
                 Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),...
-                newSpatFreq,orientation,phase]);
+                newSpatFreq,orientation,phase(count,1)]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl+ifi/2);
             usb.strobeEventWord(stimNum(count,1));
@@ -140,7 +141,7 @@ if Day<4
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
                 Radius,centerPositions(targetChan,1),centerPositions(targetChan,2),...
-                newSpatFreq,orientation,phase]);
+                newSpatFreq,orientation,phase(count,2)]);
             % Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+trainInterval);
             usb.strobeEventWord(stimNum(count,3));
@@ -184,7 +185,8 @@ elseif Day == 4
     estimatedTime = (numConditions*(2*dotTime+ISI+(trainInterval+testInterval)/2)*reps*blocks+numConditions*blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
-    phase = 0;
+    phase = pi/3.*ones(numConditions*numStimuli,2);
+    phase(:,2) = -pi/3;
     
     stimNum = zeros(numConditions*numStimuli,4);
     stimVals = [1,2,3,4;5,6,7,8;9,10,11,12;13,14,15,16];
@@ -232,7 +234,7 @@ elseif Day == 4
                     [],[],[],[Grey Grey Grey Grey],...
                     [], [],[White,Black,...
                     Radius,centerPositions(channel(zz),1),centerPositions(channel(zz),2),...
-                    newSpatFreq,orientation,phase]);
+                    newSpatFreq,orientation,phase(count,1)]);
                 % Request stimulus onset
                 vbl = Screen('Flip',win,vbl+ifi/2);
                 usb.strobeEventWord(stimNum(count,1));
@@ -243,7 +245,7 @@ elseif Day == 4
                     [],[],[],[Grey Grey Grey Grey],...
                     [], [],[White,Black,...
                     Radius,centerPositions(channel(zz),1),centerPositions(channel(zz),2),...
-                    newSpatFreq,orientation,phase]);
+                    newSpatFreq,orientation,phase(count,2)]);
                 % Request stimulus onset
                 vbl = Screen('Flip',win,vbl-ifi/2+intervalTime(count));
                 usb.strobeEventWord(stimNum(count,3));
