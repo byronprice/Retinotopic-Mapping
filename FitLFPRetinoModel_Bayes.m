@@ -9,7 +9,7 @@ function [posteriorMean,posteriorInterval,posteriorSamples,posteriorMode] = FitL
 
 %Created: 2017/05/17, 24 Cummington Mall, Boston
 % Byron Price
-%Updated: 2017/06/14
+%Updated: 2017/09/28
 % By: Byron Price
 
 %  model has 7 parameters, defined by vector p
