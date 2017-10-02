@@ -110,7 +110,7 @@ if Day<4
     usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
     WaitSecs(holdTime);
     
-    % Animation loop
+    Animation loop
     count = 1;
     vbl = Screen('Flip',win);
     for yy = 1:blocks
@@ -118,15 +118,15 @@ if Day<4
         vbl = Screen('Flip',win,vbl+ifi/2);
         while ii<=reps
             
-            % Draw the procedural texture as any other texture via 'DrawTexture'
+            Draw the procedural texture as any other texture via 'DrawTexture'
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,1),phase(count)]);
-            % Request stimulus onset
+            Request stimulus onset
             vbl = Screen('Flip',win,vbl+ifi/2);
-            % immediately strobe after stimulus onset
+            immediately strobe after stimulus onset
             usb.strobeEventWord(stimNum(count,1));
             
             Screen('DrawTexture', win,gratingTex, [],[],...
@@ -134,7 +134,7 @@ if Day<4
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,2),phase(count)]);
-            % Request stimulus onset
+            Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count,2));
             
@@ -143,7 +143,7 @@ if Day<4
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,3),phase(count)]);
-            % Request stimulus onset
+            Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count,3));
             
@@ -152,7 +152,7 @@ if Day<4
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,4),phase(count)]);
-            % Request stimulus onset
+            Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count,4));
             
@@ -175,7 +175,8 @@ if Day<4
     fileName = sprintf('SEQStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'spatFreq','mmPerPixel','DistToScreen','orientations',...
         'w_pixels','h_pixels','stimTime','holdTime','numElements',...
-        'numStimuli','phase','stimNum','Date','DayType','ISI','interStimPause')
+        'numStimuli','phase','stimNum','Date','DayType','ISI',...
+        'interStimPause','Condition')
     % Close window
     Screen('CloseAll');
 
@@ -189,8 +190,6 @@ elseif Day == 4
     Black = 0;
     White = 1;
     
-    numConditions = 4;
-    
     estimatedTime = (numConditions*(numElements*(stimTime+testStimTime)/2+ISI)*reps*blocks+numConditions*blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
@@ -202,8 +201,8 @@ elseif Day == 4
     
     phase = pi.*ones(numConditions*numStimuli,1);
     
-    stimNum = zeros(numConditions*numStimuli,3);
-    stimVals = [1,2,3;4,5,6;7,8,9;10,11,12];
+    stimNum = zeros(numConditions*numStimuli,numElements);
+    stimVals = [1,2,3,4;5,6,7,8;9,10,11,12;13,14,15,16];
     order = randperm(numConditions);
     
     stimTimes = stimTime*ones(numConditions*numStimuli,1);
@@ -297,13 +296,13 @@ elseif Day == 4
     usb.stopRecording;
     Priority(0);
     
-    cd('~/CloudStation/ByronExp/RestrictSRP');
+    cd('~/CloudStation/ByronExp/SEQ');
     DayType = 'test';
-    fileName = sprintf('RestrictSRPStimDay%d_%d.mat',Day,AnimalName);
+    fileName = sprintf('SEQStimDay%d_%d.mat',Day,AnimalName);
     save(fileName,'spatFreq','mmPerPixel','DistToScreen','orientations',...
         'w_pixels','h_pixels','stimTimes','holdTime','numStimuli',...
         'phase','stimNum','Date','DayType','order','numConditions',...
-        'interStimPause');
+        'interStimPause','Condition');
     % Close window
     Screen('CloseAll');
     
