@@ -110,7 +110,7 @@ if Day<4
     usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
     WaitSecs(holdTime);
     
-    Animation loop
+    %Animation loop
     count = 1;
     vbl = Screen('Flip',win);
     for yy = 1:blocks
@@ -118,15 +118,15 @@ if Day<4
         vbl = Screen('Flip',win,vbl+ifi/2);
         while ii<=reps
             
-            Draw the procedural texture as any other texture via 'DrawTexture'
+           % Draw the procedural texture as any other texture via 'DrawTexture'
             Screen('DrawTexture', win,gratingTex, [],[],...
                 [],[],[],[Grey Grey Grey Grey],...
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,1),phase(count)]);
-            Request stimulus onset
+            %Request stimulus onset
             vbl = Screen('Flip',win,vbl+ifi/2);
-            immediately strobe after stimulus onset
+            %immediately strobe after stimulus onset
             usb.strobeEventWord(stimNum(count,1));
             
             Screen('DrawTexture', win,gratingTex, [],[],...
@@ -134,7 +134,7 @@ if Day<4
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,2),phase(count)]);
-            Request stimulus onset
+            %Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count,2));
             
@@ -143,7 +143,7 @@ if Day<4
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,3),phase(count)]);
-            Request stimulus onset
+            %Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count,3));
             
@@ -152,7 +152,7 @@ if Day<4
                 [], [],[White,Black,...
                 Radius,centerPosition(1),centerPosition(2),...
                 newSpatFreq,orientations(count,4),phase(count)]);
-            Request stimulus onset
+            %Request stimulus onset
             vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
             usb.strobeEventWord(stimNum(count,4));
             
