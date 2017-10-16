@@ -132,7 +132,7 @@ phase = phase.*(pi/3);
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-orient = rand([numStimuli,1]).*(2*pi);
+orientation = rand([numStimuli,1]).*(2*pi);
 waitTimes = waitTime-0.05+exprnd(0.1,[numStimuli,1]);
 
 % Perform initial flip to gray background and sync us to the retrace:
@@ -157,7 +157,7 @@ for yy = 1:blocks
                 Screen('DrawTexture', win,gratingTex, [],[],...
                     [],[],[],[Grey Grey Grey Grey],...
                     [], [],[White,Black,...
-                    Radius,centerVals(count,1),centerVals(count,2),newSpatFreq,orient(count),phase(count)]);
+                    Radius,centerVals(count,1),centerVals(count,2),newSpatFreq,orientation(count),phase(count)]);
                 % Request stimulus onset
                 vbl = Screen('Flip', win);usb.strobeEventWord(stimStrobeNum);
                 vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
@@ -188,7 +188,7 @@ stimParams.h_pixels = h_pixels;
 stimParams.spatFreq = spatFreq;
 stimParams.mmPerPixel = mmPerPixel;
 stimParams.DistToScreen = DistToScreen;
-stimParams.orient = orient;
+stimParams.orient = orientation;
 stimParams.phase = phase;
 
 cd('~/CloudStation/ByronExp/Retino');
