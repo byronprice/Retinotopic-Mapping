@@ -115,7 +115,7 @@ fprintf('Fitting model ...\n\n');
 
 fprintf('Making plots ...\n\n');
 
-[h] = MakePlots(posteriorSample,AnimalName,1:10:w_pixels,1:10:h_pixels); 
+%[h] = MakePlots(posteriorSample,AnimalName,1:10:w_pixels,1:10:h_pixels); 
 
 vepResponse = Response;
 dimReduceData = Data;
