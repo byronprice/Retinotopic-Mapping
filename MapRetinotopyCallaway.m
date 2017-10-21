@@ -31,20 +31,22 @@ EphysFileName = strcat(EphysFileName,'.mat');
 load(EphysFileName)
 load(StimulusFileName)
 
-% driftSpeed = stimParams.driftSpeed;
-% driftTime = stimParams.driftTime;
+driftSpeed = stimParams.driftSpeed; % units of pixels per second
 % stimFreq = stimParams.stimFreq;
 % Width = stimParams.Width;
 w_pixels = stimParams.w_pixels;
 h_pixels = stimParams.h_pixels;
 reps = stimParams.reps;
-% checkRefresh = stimParams.checkRefresh;
+checkRefresh = stimParams.checkRefresh;
 holdTime = stimParams.holdTime;
+driftTime = stimParams.driftTime;
 centerPos = stimParams.centerPos; 
 Flashes = stimParams.Flashes;
 numDirs = stimParams.numDirs;
 DirNames = stimParams.DirNames;
 % DistToScreen = stimParams.DistToScreen;
+
+stimulationFrequency = 1/checkRefresh;
 
 sampleFreq = adfreq;
 
@@ -58,10 +60,15 @@ ChanData = zeros(dataLength,numChans);
 preAmpGain = 1;
 for ii=1:numChans
     voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-    n = 30;
+    n = 10;
     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
     blo = fir1(n,lowpass,'low',hamming(n+1));
-    ChanData(:,ii) = filter(blo,1,voltage);
+    temp = filter(blo,1,voltage);
+    
+    notch = 60/(sampleFreq/2);
+    bw = notch/n;
+    [b,a] = iirnotch(notch,bw);
+    ChanData(:,ii) = filter(b,a,temp);
 end
 
 
@@ -72,183 +79,42 @@ if length(timeStamps) ~= dataLength
     return;
 end
 strobeTimes = tsevs{1,strobeStart};
-stimStart = round(0*sampleFreq);
-stimLen = round(0.2*sampleFreq);
-minWin = round(0.04*sampleFreq):1:round(.1*sampleFreq);
-maxWin = round(0.1*sampleFreq):1:round(.2*sampleFreq);
-
-statFun =@(data,win) abs(min(mean(data(:,win),1)));
+stimLen = round(driftTime*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = cell(numChans,numDirs);
-meanResponse = cell(numChans,numDirs);
-numFlashes = zeros(numDirs,1);
-smoothKernel = 4;
 
 for ii=1:numChans
     for jj=1:numDirs
-        strobeNum = str2double(sprintf('%d%d',jj,1));
-        numFlashes(jj) = sum(svStrobed == strobeNum)/reps;
-        Response{ii,jj} = zeros(numFlashes(jj),reps,stimLen);
-        meanResponse{ii,jj} = zeros(numFlashes(jj),stimLen);
-    end
-end
-
-for ii=1:numChans
-    for jj=1:numDirs
-        strobeNum = str2double(sprintf('%d%d',jj,1));
-        dirStrobes = strobeTimes(svStrobed==strobeNum);
-        count = 1;
-        for kk=1:numFlashes(jj)
-            for ll=1:reps
-                stimOnset = dirStrobes(count);
-                [~,index] = min(abs(timeStamps-stimOnset));
-                temp = ChanData(index+stimStart:index+stimStart+stimLen-1,ii);
-                Response{ii,jj}(kk,ll,:) = temp;
-                count = count+1;
-            end
-            temp2 = mean(squeeze(Response{ii,jj}(kk,:,:)),1);
-            meanResponse{ii,jj}(kk,:) = smooth(temp2,smoothKernel);
-        end
-    end
-end
-
-% BOOTSTRAP FOR 95% CONFIDENCE INTERVALS OF STATISTIC IN ABSENCE OF VISUAL STIMULI
-%  AND STANDARD ERRORS
-%  intermixed trial with 30 seconds of grey screen
-N = 1000; % number of bootstrap samples
-noStimLen = holdTime*sampleFreq-(stimLen+stimStart)*2;
-
-baseStats(1:numChans) = struct;
-for ii=1:numChans
-    Tboot = zeros(N,1);
-    for jj=1:N
-        pauseOnset = strobeTimes(svStrobed == 0);
-        val = random('Discrete Uniform',length(pauseOnset),1);
-        [~,index] = min(abs(timeStamps-pauseOnset(val)));
-        indeces = random('Discrete Uniform',noStimLen,[reps,1]);
-        temp = zeros(reps,stimLen);
+        strobeNum = jj;
+        currentStrobeTimes = strobeTimes(svStrobed==strobeNum);
+        Response{ii,jj} = zeros(reps,stimLen);
         for kk=1:reps
-            temp(kk,:) = ChanData(index+indeces(kk)+stimStart:index+indeces(kk)+stimStart+stimLen-1,ii);
-        end
-        Tboot(jj) = statFun(temp,minWin);
-    end
-    %figure();histogram(Tboot);
-    baseStats(ii).lbound = quantile(Tboot,1/100);
-    baseStats(ii).ubound = quantile(Tboot,1-1/100);
-    baseStats(ii).mean = mean(Tboot);
-    baseStats(ii).sem = std(Tboot);
-end
-
-dataStats(1:numChans) = struct;
-for ii=1:numChans
-    dataStats(ii).mean = cell(numDirs,1);
-    dataStats(ii).sem = cell(numDirs,1);
-    for jj=1:numDirs
-        dataStats(ii).mean{jj} = zeros(numFlashes(jj),1);
-        dataStats(ii).sem{jj} = zeros(numFlashes(jj),1);
-        for kk=1:numFlashes(jj)
-            temp = squeeze(meanResponse{ii,jj}(kk,:));
-            dataStats(ii).mean{jj}(kk) = abs(min(temp(minWin)));
+           onsetTime = round(currentStrobeTimes(kk)*sampleFreq);
+           offsetTime = onsetTime+stimLen-1;
+           Response{ii,jj}(kk,:) = ChanData(onsetTime:offsetTime,ii);
         end
     end
 end
 
-% BOOTSTRAP FOR STANDARD ERROR OF STATISTIC IN PRESENCE OF VISUAL STIMULI
-N = 1000;
+% create sliding window spectrogram for power at the stimulation frequency as function
+%  of position on the screen
+fftSpectrogram = cell(numChans,numDirs);
+
+windowLen = floor(0.5*sampleFreq);
+nOverlap = floor(windowLen/5);
+nfft = max(256,2^nextpow2(windowLen));
 for ii=1:numChans
     for jj=1:numDirs
-        dataStats(ii).sem{jj} = zeros(numFlashes(jj),1);
-        for kk=1:numFlashes(jj)
-            Tboot = zeros(N,1);
-            for ll=1:N
-                indeces = random('Discrete Uniform',reps,[reps,1]);
-                group = squeeze(Response{ii,jj}(kk,indeces,:));
-                Tboot(ll) = statFun(group,minWin);
-            end
-            dataStats(ii).sem{jj}(kk) = std(Tboot);
+        powerAtStimFreq = zeros(reps,5,
+        for kk=1:reps
+            data = Response{ii,jj}(kk,:)';
+            [s,f,t] = spectrogram(data,windowLen,nOverlap,nfft,sampleFreq);
+            [~,ind] = min(abs(f-stimulationFrequency));
+            tempfft = s(ind-2:ind+2,:);
+            power = sqrt(tempfft.*conj(tempfft));
         end
     end
 end
-
-% WALD TEST - VEP magnitude significantly greater in presence of a stimulus
-%  than in the absence of a stimulus
-significantStimuli = cell(numChans,numDirs);
-alpha = 0.001;
-c = norminv(1-alpha,0,1);
-for ii=1:numChans
-    for jj=1:numDirs
-        significantStimuli{ii,jj} = zeros(numFlashes(jj),1);
-        for kk=1:numFlashes(jj)
-            W = (dataStats(ii).mean{jj}(kk)-baseStats(ii).mean)/...
-                sqrt(dataStats(ii).sem{jj}(kk)^2+baseStats(ii).sem^2);
-            if W > c
-                significantStimuli{ii,jj}(kk) = dataStats(ii).mean{jj}(kk); % or equals W itself
-            end
-        end
-    end    
-end
-
-figure;
-count = 1;
-for ii=1:numChans
-    for jj=1:2
-        x = centerPos{jj}(logical(Flashes{jj}));y = centerPos{jj+2}(logical(Flashes{jj+2}));
-        stimVals = log(significantStimuli{ii,jj}*significantStimuli{ii,jj+2}');
-        if jj==1
-            subplot(numChans,2,count);imagesc(x,y,stimVals);set(gca,'YDir','normal');h=colorbar;
-            title(sprintf('Right/Up Sweep Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
-            xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
-            colormap('jet');
-        end
-        if jj==2
-            subplot(numChans,2,count);imagesc(x,y,stimVals);set(gca,'YDir','normal');h=colorbar;
-            title(sprintf('Left/Down Sweep Retinotopy for Channel %d , Animal %d',ii,AnimalName));ylabel(h,'VEP Magnitude (\muV)');
-            xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
-            colormap('jet');
-        end
-        count = count+1;
-    end
-end
-
-xx=1:w_pixels;
-yy=1:h_pixels;
-
-figure();
-count = 1;
-for ii=1:numChans
-    for jj=1:numDirs
-        FlashedPos = centerPos{jj}(logical(Flashes{jj}));
-        subplot(numDirs,numChans,count);axis([0 w_pixels 0 h_pixels]);
-            title(strcat(sprintf('VEP Retinotopy, Channel %d, Animal %d, Direction-',ii,AnimalName),DirNames{jj}));
-            xlabel('Horizontal Screen Position (pixels)');ylabel('Vertical Screen Position (pixels)');
-            hold on;
-        for kk=1:numFlashes(jj)
-            if jj==1 || jj==2
-                xconv = stimLen/max(diff(FlashedPos));
-                yconv = 1000/(h_pixels/2);
-                plot(((1:stimLen)./xconv+FlashedPos(kk)-0.5*max(diff(FlashedPos))),...
-                    (squeeze(meanResponse{ii,jj}(kk,:))'./yconv+h_pixels/2),'k','LineWidth',2);
-            else
-                xconv = stimLen/(w_pixels/2);
-                yconv = 1000/max(diff(FlashedPos));
-                plot(((1:stimLen)./xconv+w_pixels/2),...
-                    (squeeze(meanResponse{ii,jj}(kk,:))'./yconv+FlashedPos(kk)),'k','LineWidth',2);
-            end
-        end
-        hold off
-        count = count+1;
-    end
-end
-
-% if yesNo == 1
-%     savefig(strcat('RetinoMap',num2str(Date),'_',num2str(AnimalName),'.fig'));
-% end
-% figure();
-% hold on;
-% xlim([0 w_pixels])
-% ylim([0 h_pixels])
-% for ii=1:numChans
-%     plot(CenterPoints(1,ii),CenterPoints(2,ii),'*')
-% end
+pause(1);
 end

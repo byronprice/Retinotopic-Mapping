@@ -101,12 +101,12 @@ DistFun = @(stimCenter,centerVals) (ceil(sqrt((stimCenter(1)-centerVals(:,1)).^2
 
 border = round(Radius);
 centerVals = zeros(numStimuli,2);
-centerVals(1,1) = 5*border+unidrnd(w_pixels-10*border);
+centerVals(1,1) = 2*border+unidrnd(w_pixels-4*border);
 centerVals(1,2) = border+unidrnd(h_pixels-2*border);
 
 count = 2;
 while count <= numStimuli
-    xPos = 5*border+unidrnd(w_pixels-10*border);
+    xPos = 2*border+unidrnd(w_pixels-4*border);
     yPos = border+unidrnd(h_pixels-2*border);
     dist = DistFun(centerVals(count-1,:),[xPos,yPos]);
     if dist > 4*Radius
