@@ -9,7 +9,7 @@
 %
 % Created: 2016/08/02, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/08/08
+% Updated: 2017/09/17
 %  By: Byron Price 
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -19,17 +19,27 @@ fileStart = sprintf('RetinoData*.plx');
 files = dir(fileStart);
 numFiles = size(files,1);
 
-for ii=1:numFiles
+myCluster = parcluster('local');
+
+if getenv('ENVIRONMENT')
+   myCluster.JobStorageLocation = getenv('TMPDIR'); 
+end
+
+parpool(myCluster,4);
+
+parfor ii=1:numFiles
     index = regexp(files(ii).name,'_');
     Date = str2double(files(ii).name(index-8:index-1));
     AnimalName = str2double(files(ii).name(index+1:end-4));
     
-    fileCheck = sprintf('RetinoMapBayes*_%d*',AnimalName);
+    fileCheck = sprintf('RetinoMapBayes%d_%d*',Date,AnimalName);
     checkFiles = dir(fileCheck);
     
     if isempty(checkFiles)==1
         MapRetinotopy(AnimalName,Date);
     end
 end
+
+delete(gcp);
 
 fprintf('Ran cron job\n');
