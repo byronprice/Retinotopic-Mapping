@@ -11,12 +11,11 @@ function [] = MapRetinotopyCallaway(AnimalName,Date)
 %            12345
 %       Date - date of the experiment input as a number yearMonthDay, 
 %            e.g. 20160525
-%       Chans - channel numbers, input as [6,8], defaults to 6 and 8
 %OUTPUT: plots
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2016/08/22
+% Updated: 2017/10/22
 %  By: Byron Price
 
 % read in the .plx file
@@ -94,26 +93,54 @@ for ii=1:numChans
            offsetTime = onsetTime+stimLen-1;
            Response{ii,jj}(kk,:) = ChanData(onsetTime:offsetTime,ii);
         end
+        figure();
+        count = 1;
+        for ll=1:reps
+            for mm=1:20
+                x = Response{ii,jj}(ll,1+(mm-1)*500:500+(mm-1)*500);
+                y = fft(x);
+                y = sqrt(y.*conj(y));
+                f = linspace(0,sampleFreq/2,length(y)/2);
+                y = y(1:length(y)/2);
+                [~,ind] = min(abs(f-stimulationFrequency));
+%                 [~,newInd] = max(y(ind-2:ind+2));
+                subplot(reps,20,count);plot(f(ind-5:ind+5),y(ind-5:ind+5));axis([f(ind-5) f(ind+5) 0 5e4]);
+                count = count+1;
+            end
+        end
     end
 end
+
+% discrete or continuous wavelet transform, hilbert transform
+%  hilbert(x), dwt, or cwt
+% windowLen = floor(checkRefresh*sampleFreq);
+% x = 0:windowLen;y = sin(2*pi*x/windowLen);
+% z = Response{1,1}(1,:);
+% w = conv(z,y);
+% plot(w.*w);
 
 % create sliding window spectrogram for power at the stimulation frequency as function
 %  of position on the screen
 fftSpectrogram = cell(numChans,numDirs);
 
-windowLen = floor(0.5*sampleFreq);
+windowLen = floor(5*checkRefresh*sampleFreq);
 nOverlap = floor(windowLen/5);
 nfft = max(256,2^nextpow2(windowLen));
 for ii=1:numChans
     for jj=1:numDirs
-        powerAtStimFreq = zeros(reps,5,
+        result = [];
         for kk=1:reps
             data = Response{ii,jj}(kk,:)';
             [s,f,t] = spectrogram(data,windowLen,nOverlap,nfft,sampleFreq);
             [~,ind] = min(abs(f-stimulationFrequency));
-            tempfft = s(ind-2:ind+2,:);
+            tempfft = s(ind-1:ind+1,:);
             power = sqrt(tempfft.*conj(tempfft));
+            result = [result;power];
         end
+        fftSpectrogram{ii,jj} = result;
+        confInt = 2*std(result,[],1)/sqrt(reps);
+        figure();boundedline(t',mean(result,1)',confInt');
+        title(sprintf('Chan: %d, Direction: %s',ii,DirNames{jj}));
     end
 end
 pause(1);
