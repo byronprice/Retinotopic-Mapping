@@ -22,12 +22,13 @@ function [] = MapRetinotopyCallaway(AnimalName,Date)
 EphysFileName = strcat('RetinoCallData',num2str(Date),'_',num2str(AnimalName));
 
 if exist(strcat(EphysFileName,'.mat'),'file') ~= 2
-    MyReadall(EphysFileName);
+    readall(strcat(EphysFileName,'.plx'));
 end
 
 StimulusFileName = strcat('RetinoCallStim',num2str(Date),'_',num2str(AnimalName),'.mat');
 EphysFileName = strcat(EphysFileName,'.mat');
-load(EphysFileName)
+load(EphysFileName,'allad','adfreq','tsevs','svStrobed','SlowPeakV',...
+    'SlowADResBits','adgains','adfreqs','allts')
 load(StimulusFileName)
 
 driftSpeed = stimParams.driftSpeed; % units of pixels per second
@@ -59,15 +60,16 @@ ChanData = zeros(dataLength,numChans);
 preAmpGain = 1;
 for ii=1:numChans
     voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-    n = 10;
-    lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
-    blo = fir1(n,lowpass,'low',hamming(n+1));
-    temp = filter(blo,1,voltage);
-    
-    notch = 60/(sampleFreq/2);
-    bw = notch/n;
-    [b,a] = iirnotch(notch,bw);
-    ChanData(:,ii) = filter(b,a,temp);
+    ChanData(:,ii) = voltage;
+%     n = 20;
+%     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
+%     blo = fir1(n,lowpass,'low',hamming(n+1));
+%     temp = filter(blo,1,voltage);
+%     
+%     notch = 60/(sampleFreq/2);
+%     bw = notch/n;
+%     [b,a] = iirnotch(notch,bw);
+%     ChanData(:,ii) = filter(b,a,temp);
 end
 
 
@@ -129,10 +131,10 @@ for ii=1:numChans
 end
 
 time = linspace(0,driftTime,stimLen);
-horzPosition = linspace(0,w_pixels,stimLen); %w_pixels
-vertPosition = linspace(0,h_pixels,stimLen); %h_pixels
+horzPosition = linspace(0,1,stimLen); %w_pixels
+vertPosition = linspace(0,1,stimLen); %h_pixels
 
-waveletSize = 8;
+waveletSize = 10;
 x = linspace(-waveletSize/2*checkRefresh,waveletSize/2*checkRefresh,round(waveletSize*checkRefresh*sampleFreq));
 kernel = exp(-2*pi*x*1i*stimulationFrequency);
 transformBaseline = zeros(numChans,1);
@@ -148,35 +150,108 @@ for ii=1:numChans
     transformBaseline(ii) = mean(temp(:));
 end
 
+DirNames = cell(2,1);DirNames{1} = 'Horizontal Sweep';DirNames{2} = 'Vertical Sweep';
 transformResponse = cell(numChans,2);
+Results = struct('b',{cell(numChans,2)},'se',{cell(numChans,2)},...
+    'F',{cell(numChans,2)},'ScreenPos',{cell(numChans,2)},'Center',{cell(numChans,2)},...
+    'FWHM',{cell(numChans,2)});
 for ii=1:numChans
     for jj=1:2
         transformResponse{ii,jj} = zeros(2*reps,stimLen);
+        position = zeros(2*reps,stimLen);
         for kk=1:2*reps
             data = Response{ii,jj}(kk,:);
             data = conv(data,kernel,'same');
             data = sqrt(data.*conj(data));
             transformResponse{ii,jj}(kk,:) = data-transformBaseline(ii);
+            
+            if jj==1
+                position(kk,:) = horzPosition;
+            elseif jj==2
+                position(kk,:) = vertPosition;
+            end
         end
         y = transformResponse{ii,jj};y=y(:);
-        if jj==1
-            position = horzPosition;
-            position = repmat(position,[2*reps,1]);
-            
-        elseif jj==2
-            position = vertPosition;
-            position = repmat(position,[2*reps,1]);
-        end
-        design = [position(:),position(:).*position(:)];
-        [b,dev,stats] = glmfit(design,y,'normal','link','log');
 
-        [yhat,dylo,dyhi] = glmval(b,[position(1,:)',position(1,:)'.*position(1,:)'],'log',stats);
-        figure();plot(position(:),y,'.');hold on;
-        yhat = real(yhat);dylo = real(dylo);dyhi = real(dyhi);
-        boundedline(position(1,:)',yhat,[dylo,dyhi],'c');
-        title(sprintf('Chan: %d, Dir: %d',ii,jj));
+        effectiveN = length(y);
+        
+        design = [ones(length(y),1),position(:),position(:).*position(:)];
+        [b,~,stats] = glmfit(design,y,'normal','link','log','constant','off');
+
+        %[b,FI] = GetMLest(design,y,b);
+        
+        %asymptotVar = pinv((1/effectiveN).*FI);
+        %standardError = sqrt(diag(asymptotVar));
+        
+        b = real(b);
+        standardError = real(stats.se);
+        
+        Results.b{ii,jj} = b;
+        Results.se{ii,jj} = standardError;
+        
+        mainDev = GetDeviance(design,y,b);
+        
+        % F-test
+        restrictDesign = ones(length(y),1);
+        [~,restrictDev,~] = glmfit(restrictDesign,y,'normal','constant','off');
+        
+        F = ((restrictDev-mainDev)/(length(b)-1))/(mainDev/(effectiveN-length(b)-1));
+        Ftest_p = fcdf(F,length(b)-1,effectiveN-length(b),'upper');
+        
+        Results.F{ii,jj} = [F,Ftest_p,length(b)-1,effectiveN-length(b)];
+        
+        if jj==1
+            Results.ScreenPos{ii,jj} = position(1,:)'.*w_pixels;
+            Results.Center{ii,jj} = -b(2)/(2*b(3))*w_pixels;
+            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*w_pixels;
+        elseif jj==2
+            Results.ScreenPos{ii,jj} = position(1,:)'.*h_pixels; 
+            Results.Center{ii,jj} = -b(2)/(2*b(3))*h_pixels;
+            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*h_pixels;
+        end
+        
+        forDisplayDesign = [ones(size(position,2),1),position(1,:)',position(1,:)'.*position(1,:)'];
+        bLow = b-2*standardError;bHigh = b+2*standardError;
+        yhat = exp(forDisplayDesign*b);dylo = yhat-exp(forDisplayDesign*bLow);
+        dyhi = exp(forDisplayDesign*bHigh)-yhat;
+        
+        temp = position';y = reshape(y,[2*reps,stimLen])';y = y(:);
+        temp = temp(:);
+        midPoint = round(length(y)/2);
+        figure();plot(temp(1:midPoint),y(1:midPoint),'.b');
+        hold on;
+        plot(temp(midPoint+1:end),y(midPoint+1:end),'.b');hold on;
+        boundedline(position(1,:)',yhat,[dylo,dyhi],'c','alpha','transparency',0.5);
+        title(sprintf('Chan: %d - %s',ii,DirNames{jj}));
     end
 end
+
+for ii=1:numChans
+   xPos = Results.ScreenPos{ii,1};
+   yPos = Results.ScreenPos{ii,2};
+   bHorz = Results.b{ii,1};
+   bVert = Results.b{ii,2};
+   
+   horzDesign = [ones(length(xPos),1),xPos./w_pixels,(xPos./w_pixels).^2];
+   vertDesign = [ones(length(xPos),1),yPos./h_pixels,(yPos./h_pixels).^2];
+   
+   muHorz = exp(horzDesign*bHorz);
+   muVert =exp(vertDesign*bVert);
+   
+   muHorz = repmat(muHorz',[stimLen,1]);
+   muVert = repmat(muVert,[1,stimLen]);
+   
+   finalIm = muHorz.*muVert;
+   figure();imagesc(linspace(0,w_pixels,stimLen),linspace(0,h_pixels,stimLen),finalIm);
+   set(gca,'YDir','normal');h = colorbar;h.Label.String = 'AU';
+   title(sprintf('LFP Retinotopy: Chan: %d - %d',ii,AnimalName));
+   xlabel('Horizontal Screen Position (pixels)');
+   ylabel('Vertical Screen Position (pixels)');
+end
+
+fileName = sprintf('RetinoCallResults%d_%d.mat',Date,AnimalName);
+save(fileName,'transformResponse','Results','DirNames','w_pixels','h_pixels',...
+    'stimulationFrequency','waveletSize','kernel','Response','stimLen');
 
 % timebandwidth = 60; % approximate standard deviation in time is 
 %                 % 0.5*sqrt(timebandwidth/2)
@@ -204,9 +279,86 @@ end
 % plot(w.*w);
 end
 
-function [b,dev,se] = GetMLest(design,y,b)
+function [b,FI] = GetMLest(design,y,b)
+b = real(b);
 
+maxIter = 3e3;
+tolerance = 1e-6;
 
+stepSize = 1e-2;
+numParams = length(b);
 
+currentParams = b;
+currentLikelihood = GetNormalLikelihood(design,y,currentParams);
+
+iter = 1;
+difference = 1;
+lineSteps = [stepSize,1e-6,1e-5,1e-4,1e-3,1e-1,0.5e-1,1,10];lineN = length(lineSteps);
+lineLikelies = zeros(lineN,1);
+while iter < maxIter && difference > tolerance
+    difference = 0;
+    for jj=1:numParams
+       newB = currentParams;newB(jj) = currentParams(jj)+lineSteps(1);
+       newLikelihood = GetNormalLikelihood(design,y,newB);
+       
+       gradient = (newLikelihood-currentLikelihood)./lineSteps(1);
+       lineLikelies(1) = newLikelihood;
+       for kk=2:lineN
+          newB = currentParams;newB(jj) = currentParams(jj)+sign(gradient)*lineSteps(kk);
+          lineLikelies(kk) = GetNormalLikelihood(design,y,newB);
+       end
+       
+       [maxLikely,ind] = max(lineLikelies);
+       if maxLikely > currentLikelihood
+           difference = difference+maxLikely-currentLikelihood;
+           currentLikelihood = maxLikely;
+           currentParams(jj) = currentParams(jj)+sign(gradient)*lineSteps(ind);
+       else
+           difference = difference+1;
+       end
+       iter = iter+1;
+    end
+end
+b = currentParams;
+FI = GetFisherInfo(design,y,b);
+end
+
+function [loglikelihood] = GetNormalLikelihood(design,y,b)
+n = length(y);
+
+% log link in this case
+sumsquares = sum((exp(design*b)-y).^2);
+residualVar = (1/n)*sumsquares;
+loglikelihood = -(n/2)*log(2*pi)-(n/2)*log(residualVar)-(1/(2*residualVar))*sumsquares;
+
+end
+
+function [deviance] = GetDeviance(design,y,b)
+
+deviance = sum((exp(design*b)-y).^2);
+
+end
+
+function [FI] = GetFisherInfo(design,y,b)
+stepSize = 1e-3;
+numParams = length(b);
+
+set = [1,1;1,-1;-1,1;-1,-1];
+signs = [1,-1,-1,1];
+FI = zeros(numParams,numParams);
+for ii=1:numParams
+    for jj=1:numParams
+        temp = 0;
+        for kk=1:4
+           shifts = set(kk,:);
+           newB = b;newB(ii) = b(ii)+shifts(1)*stepSize;
+           newB(jj) = b(jj)+shifts(2)*stepSize;
+           
+           temp = temp+signs(kk)*GetNormalLikelihood(design,y,newB);
+        end
+        
+        FI(ii,jj) = (1/(4*stepSize*stepSize))*(temp);
+    end
+end
 
 end

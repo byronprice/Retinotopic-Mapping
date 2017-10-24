@@ -182,7 +182,7 @@ stimParams.DirNames = DirNames;
 
 cd('~/CloudStation/ByronExp/Retino/')
 fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
-save(fileName,'stimParams')
+save(fileName,'stimParams','conv_factor')
 
 % Close window
 Screen('CloseAll');

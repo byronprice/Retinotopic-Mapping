@@ -39,7 +39,7 @@ for ii=1:numChans
     finalIm = finalIm./N;
     imagesc(x,y,finalIm);set(gca,'YDir','normal');w=colorbar;
     caxis([b(4) b(4)+150]);
-    ylabel(w,'Log Mean VEP Magnitude (\muV)');colormap('jet');hold off;
+    ylabel(w,'Mean VEP Magnitude (\muV)');colormap('jet');hold off;
     
 end
 
