@@ -128,7 +128,7 @@ for ii=1:numDirs
 end
 
 estimatedTime = ((mean(driftTime)+1)*reps+holdTime)*numDirs/60;
-fprintf('\nEstimated time: %3.2f minutes',estimatedTime);
+fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
