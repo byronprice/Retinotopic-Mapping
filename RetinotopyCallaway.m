@@ -21,7 +21,7 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/02/25
+% Updated: 2017/10/25
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -75,7 +75,9 @@ Width = round(((tan(barDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); % g
                  
 checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
 
-driftSpeed = [w_pixels,h_pixels]./driftTime;
+driftTime = [w_pixels,h_pixels]./driftSpeed;
+
+%driftSpeed = [w_pixels,h_pixels]./driftTime;
 %driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
                   % drift speed in pixels / second
 driftSpeed = driftSpeed.*ifi; % pixels / screen refresh
@@ -97,10 +99,10 @@ Color = [0,1];
 numDirs = 4;
 DirNames = {'Right','Left','Up','Down'};
 centerPos = cell(numDirs,1);
-centerPos{1} = 1:driftSpeed(1):w_pixels;
-centerPos{2} = w_pixels:-driftSpeed(1):1;
-centerPos{3} = 1:driftSpeed(2):h_pixels;
-centerPos{4} = h_pixels:-driftSpeed(2):1;
+centerPos{1} = 1:driftSpeed:w_pixels;
+centerPos{2} = w_pixels:-driftSpeed:1;
+centerPos{3} = 1:driftSpeed:h_pixels;
+centerPos{4} = h_pixels:-driftSpeed:1;
 
 Flashes = cell(numDirs,1);
 checkPhase = cell(numDirs,1);
@@ -125,8 +127,8 @@ for ii=1:numDirs
     end
 end
 
-estimatedTime = ((driftTime+1)*reps+holdTime)*numDirs/60;
-display(sprintf('\nEstimated time: %3.2f minutes',estimatedTime));
+estimatedTime = ((mean(driftTime)+1)*reps+holdTime)*numDirs/60;
+fprintf('\nEstimated time: %3.2f minutes',estimatedTime);
 
 Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
@@ -161,8 +163,8 @@ for zz = 1:numDirs
 end
 WaitSecs(5);
 usb.stopRecording;
-driftSpeed = driftSpeed/ifi; % back to pixels/second for saving purposes
-stimFreq = 1/driftTime;
+driftSpeed = driftSpeed./ifi; % back to pixels/second for saving purposes
+stimFreq = 1./driftTime;
 
 stimParams = RetinoCallStimObj;
 stimParams.driftSpeed = driftSpeed;
@@ -179,10 +181,10 @@ stimParams.Flashes = Flashes;
 stimParams.numDirs = numDirs;
 stimParams.DistToScreen = DistToScreen;
 stimParams.DirNames = DirNames;
-
+stimParams.mmPerPixel = conv_factor;
 cd('~/CloudStation/ByronExp/Retino/')
 fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
-save(fileName,'stimParams','conv_factor')
+save(fileName,'stimParams')
 
 % Close window
 Screen('CloseAll');

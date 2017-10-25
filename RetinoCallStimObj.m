@@ -14,5 +14,6 @@ classdef RetinoCallStimObj
         numDirs
         DistToScreen
         DirNames
+        mmPerPixel
     end
 end

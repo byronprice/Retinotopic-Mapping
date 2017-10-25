@@ -86,21 +86,21 @@ stimLen = round(driftTime*sampleFreq);
 Response = cell(numChans,3);
 
 for ii=1:numChans
-    Response{ii,1} = zeros(2*reps,stimLen);
-    Response{ii,2} = zeros(2*reps,stimLen);
+    Response{ii,1} = zeros(2*reps,stimLen(1));
+    Response{ii,2} = zeros(2*reps,stimLen(2));
     
     greyStrobes = strobeTimes(svStrobed==0);
     numGrey = length(greyStrobes);
-    Response{ii,3} = zeros(2*numGrey,stimLen);
+    Response{ii,3} = zeros(2*numGrey,stimLen(1));
     
     count = 1;
     for jj=1:numGrey
        onsetTime = round(greyStrobes(jj)*sampleFreq); 
-       offsetTime = onsetTime+stimLen-1;
+       offsetTime = onsetTime+stimLen(1)-1;
        Response{ii,3}(count,:) = ChanData(onsetTime:offsetTime,ii);
        count = count+1;
        onsetTime = offsetTime+1;
-       offsetTime = onsetTime+stimLen-1;
+       offsetTime = onsetTime+stimLen(1)-1;
        Response{ii,3}(count,:) = ChanData(onsetTime:offsetTime,ii);
        count = count+1;
     end
@@ -112,7 +112,13 @@ for ii=1:numChans
         currentStrobeTimes = strobeTimes(svStrobed==strobeNum);
         for kk=1:reps
            onsetTime = round(currentStrobeTimes(kk)*sampleFreq);
-           offsetTime = onsetTime+stimLen-1;
+           
+           if strcmp(DirNames{jj},'Left') == 1 || strcmp(DirNames{jj},'Right') == 1
+               offsetTime = onsetTime+stimLen(1)-1;
+           elseif strcmp(DirNames{jj},'Down') == 1 || strcmp(DirNames{jj},'Up') == 1
+               offsetTime = onsetTime+stimLen(2)-1;
+           end
+           
            if strcmp(DirNames{jj},'Left') == 1 || strcmp(DirNames{jj},'Down') == 1
               tempLFP = flipud(ChanData(onsetTime:offsetTime,ii));
            else
@@ -130,17 +136,17 @@ for ii=1:numChans
     end
 end
 
-time = linspace(0,driftTime,stimLen);
-horzPosition = linspace(0,1,stimLen); %w_pixels
-vertPosition = linspace(0,1,stimLen); %h_pixels
+%time = linspace(0,driftTime,stimLen);
+horzPosition = linspace(0,1,stimLen(1)); %w_pixels
+vertPosition = linspace(0,1,stimLen(2)); %h_pixels
 
-waveletSize = 10;
+waveletSize = 20;
 x = linspace(-waveletSize/2*checkRefresh,waveletSize/2*checkRefresh,round(waveletSize*checkRefresh*sampleFreq));
 kernel = exp(-2*pi*x*1i*stimulationFrequency);
 transformBaseline = zeros(numChans,1);
 for ii=1:numChans
     numGrey = size(Response{ii,3},1);
-    temp = zeros(numGrey,stimLen);
+    temp = zeros(numGrey,stimLen(1));
     for jj=1:numGrey
         data = Response{ii,3}(jj,:);
         data = conv(data,kernel,'same');
@@ -155,20 +161,24 @@ transformResponse = cell(numChans,2);
 Results = struct('b',{cell(numChans,2)},'se',{cell(numChans,2)},...
     'F',{cell(numChans,2)},'ScreenPos',{cell(numChans,2)},'Center',{cell(numChans,2)},...
     'FWHM',{cell(numChans,2)});
+
+downsampleFactor = 10;
+dsStimLen = ceil(stimLen/downsampleFactor);
 for ii=1:numChans
     for jj=1:2
-        transformResponse{ii,jj} = zeros(2*reps,stimLen);
-        position = zeros(2*reps,stimLen);
+        transformResponse{ii,jj} = zeros(2*reps,dsStimLen(jj));
+        position = zeros(2*reps,dsStimLen(jj));
         for kk=1:2*reps
             data = Response{ii,jj}(kk,:);
             data = conv(data,kernel,'same');
             data = sqrt(data.*conj(data));
-            transformResponse{ii,jj}(kk,:) = data-transformBaseline(ii);
+            %figure();parcorr(data(1:downsampleFactor:end))
+            transformResponse{ii,jj}(kk,:) = data(1:downsampleFactor:end)-transformBaseline(ii);
             
             if jj==1
-                position(kk,:) = horzPosition;
+                position(kk,:) = horzPosition(1:downsampleFactor:end);
             elseif jj==2
-                position(kk,:) = vertPosition;
+                position(kk,:) = vertPosition(1:downsampleFactor:end);
             end
         end
         y = transformResponse{ii,jj};y=y(:);
@@ -211,17 +221,16 @@ for ii=1:numChans
         end
         
         forDisplayDesign = [ones(size(position,2),1),position(1,:)',position(1,:)'.*position(1,:)'];
-        bLow = b-2*standardError;bHigh = b+2*standardError;
-        yhat = exp(forDisplayDesign*b);dylo = yhat-exp(forDisplayDesign*bLow);
-        dyhi = exp(forDisplayDesign*bHigh)-yhat;
+
+        yhat = exp(forDisplayDesign*b);
         
-        temp = position';y = reshape(y,[2*reps,stimLen])';y = y(:);
+        temp = position';y = reshape(y,[2*reps,dsStimLen(jj)])';y = y(:);
         temp = temp(:);
         midPoint = round(length(y)/2);
         figure();plot(temp(1:midPoint),y(1:midPoint),'.b');
         hold on;
         plot(temp(midPoint+1:end),y(midPoint+1:end),'.b');hold on;
-        boundedline(position(1,:)',yhat,[dylo,dyhi],'c','alpha','transparency',0.5);
+        plot(position(1,:)',yhat,'c','LineWidth',5)
         title(sprintf('Chan: %d - %s',ii,DirNames{jj}));
     end
 end
@@ -238,13 +247,13 @@ for ii=1:numChans
    muHorz = exp(horzDesign*bHorz);
    muVert =exp(vertDesign*bVert);
    
-   muHorz = repmat(muHorz',[stimLen,1]);
-   muVert = repmat(muVert,[1,stimLen]);
+   muHorz = repmat(muHorz',[dsStimLen(1),1]);
+   muVert = repmat(muVert,[1,dsStimLen(2)]);
    
    finalIm = muHorz.*muVert;
-   figure();imagesc(linspace(0,w_pixels,stimLen),linspace(0,h_pixels,stimLen),finalIm);
-   set(gca,'YDir','normal');h = colorbar;h.Label.String = 'AU';
-   title(sprintf('LFP Retinotopy: Chan: %d - %d',ii,AnimalName));
+   figure();imagesc(linspace(0,w_pixels,dsStimLen(1)),linspace(0,h_pixels,dsStimLen(2)),finalIm);
+   set(gca,'YDir','normal');colormap('jet');
+   title(sprintf('LFP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
    xlabel('Horizontal Screen Position (pixels)');
    ylabel('Vertical Screen Position (pixels)');
 end
