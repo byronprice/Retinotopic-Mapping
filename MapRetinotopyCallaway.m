@@ -82,7 +82,7 @@ if length(timeStamps) ~= dataLength
 end
 strobeTimes = tsevs{1,strobeStart};
 stimLen = round(driftTime*sampleFreq);
-ifi = floor(ifi*sampleFreq):
+ifi = floor(ifi*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = cell(numChans,3);
@@ -144,7 +144,10 @@ vertPosition = linspace(0,1,stimLen(2)); %h_pixels
 
 waveletSize = 20;
 x = linspace(-waveletSize/2*checkRefresh,waveletSize/2*checkRefresh,round(waveletSize*checkRefresh*sampleFreq));
-kernel = exp(-2*pi*x*1i*stimulationFrequency);
+
+stdGauss = (waveletSize/2)*checkRefresh/4;
+gaussKernel = exp(-(x.*x)./(2*stdGauss*stdGauss));
+kernel = exp(-2*pi*x*1i*stimulationFrequency).*gaussKernel;
 transformBaseline = zeros(numChans,1);
 for ii=1:numChans
     numGrey = size(Response{ii,3},1);
@@ -164,7 +167,7 @@ Results = struct('b',{cell(numChans,2)},'se',{cell(numChans,2)},...
     'F',{cell(numChans,2)},'ScreenPos',{cell(numChans,2)},'Center',{cell(numChans,2)},...
     'FWHM',{cell(numChans,2)});
 
-downsampleFactor = 10;
+downsampleFactor = 5;
 dsStimLen = ceil(stimLen/downsampleFactor);
 for ii=1:numChans
     for jj=1:2
@@ -262,7 +265,8 @@ end
 
 fileName = sprintf('RetinoCallResults%d_%d.mat',Date,AnimalName);
 save(fileName,'transformResponse','Results','DirNames','w_pixels','h_pixels',...
-    'stimulationFrequency','waveletSize','kernel','Response','stimLen');
+    'stimulationFrequency','waveletSize','kernel','Response','stimLen',...
+    'dsStimLen','downsampleFactor');
 
 % timebandwidth = 60; % approximate standard deviation in time is 
 %                 % 0.5*sqrt(timebandwidth/2)
