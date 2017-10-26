@@ -45,6 +45,7 @@ Flashes = stimParams.Flashes;
 numDirs = stimParams.numDirs;
 DirNames = stimParams.DirNames;
 ifi = stimParams.ifi;
+mmPerPixel = stimParams.mmPerPixel;
 % DistToScreen = stimParams.DistToScreen;
 
 stimulationFrequency = 1/checkRefresh;
@@ -61,6 +62,7 @@ ChanData = zeros(dataLength,numChans);
 preAmpGain = 1;
 for ii=1:numChans
     voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
+    
     ChanData(:,ii) = voltage;
 %     n = 20;
 %     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
@@ -143,7 +145,11 @@ horzPosition = linspace(0,1,stimLen(1)); %w_pixels
 vertPosition = linspace(0,1,stimLen(2)); %h_pixels
 
 waveletSize = 20;
-x = linspace(-waveletSize/2*checkRefresh,waveletSize/2*checkRefresh,round(waveletSize*checkRefresh*sampleFreq));
+kernelLen = round(waveletSize*checkRefresh*sampleFreq);
+if mod(kernelLen,2) == 0
+    kernelLen = kernelLen+1;
+end
+x = linspace(-waveletSize/2*checkRefresh,waveletSize/2*checkRefresh,kernelLen);
 
 stdGauss = (waveletSize/2)*checkRefresh/4;
 gaussKernel = exp(-(x.*x)./(2*stdGauss*stdGauss));
@@ -216,13 +222,13 @@ for ii=1:numChans
         Results.F{ii,jj} = [F,Ftest_p,length(b)-1,effectiveN-length(b)];
         
         if jj==1
-            Results.ScreenPos{ii,jj} = position(1,:)'.*w_pixels;
-            Results.Center{ii,jj} = -b(2)/(2*b(3))*w_pixels;
-            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*w_pixels;
+            Results.ScreenPos{ii,jj} = position(1,:)'.*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
+            Results.Center{ii,jj} = (-b(2)/(2*b(3)))*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
+            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
         elseif jj==2
-            Results.ScreenPos{ii,jj} = position(1,:)'.*h_pixels; 
-            Results.Center{ii,jj} = -b(2)/(2*b(3))*h_pixels;
-            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*h_pixels;
+            Results.ScreenPos{ii,jj} = position(1,:)'.*(max(centerPos{3})-min(centerPos{3}))+min(centerPos{3});
+            Results.Center{ii,jj} = (-b(2)/(2*b(3)))*(max(centerPos{3})-min(centerPos{3}))+min(centerPos{3});
+            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*(max(centerPos{3})-min(centerPos{3}))+min(centerPos{3});
         end
         
         forDisplayDesign = [ones(size(position,2),1),position(1,:)',position(1,:)'.*position(1,:)'];
@@ -266,7 +272,7 @@ end
 fileName = sprintf('RetinoCallResults%d_%d.mat',Date,AnimalName);
 save(fileName,'transformResponse','Results','DirNames','w_pixels','h_pixels',...
     'stimulationFrequency','waveletSize','kernel','Response','stimLen',...
-    'dsStimLen','downsampleFactor');
+    'dsStimLen','downsampleFactor','centerPos','mmPerPixel','ifi');
 
 % timebandwidth = 60; % approximate standard deviation in time is 
 %                 % 0.5*sqrt(timebandwidth/2)
