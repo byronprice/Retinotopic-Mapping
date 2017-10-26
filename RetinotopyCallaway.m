@@ -144,7 +144,7 @@ for zz = 1:numDirs
         vertOhorz = 2;
     end
     for ii=1:reps
-      usb.strobeEventWord(zz);
+      vbl = Screen('Flip',win,vbl+ifi/2);usb.strobeEventWord(zz);
       for jj=1:centerLen{zz}
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
