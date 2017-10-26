@@ -75,11 +75,11 @@ Width = round(((tan(barDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); % g
                  
 checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
 
-driftTime = [w_pixels,h_pixels]./driftSpeed;
+driftTime = [w_pixels,h_pixels]./driftSpeed; % approximate drift time
 
-%driftSpeed = [w_pixels,h_pixels]./driftTime;
+%driftSpeed = [w_pixels,h_pixels]./driftTime; % drift speed in pixels / second
 %driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
-                  % drift speed in pixels / second
+                  
 driftSpeed = driftSpeed.*ifi; % pixels / screen refresh
 
 checkRefresh1 = round((checkRefresh*2)/ifi);
@@ -100,9 +100,9 @@ numDirs = 4;
 DirNames = {'Right','Left','Up','Down'};
 centerPos = cell(numDirs,1);
 centerPos{1} = 1:driftSpeed:w_pixels;
-centerPos{2} = w_pixels:-driftSpeed:1;
+centerPos{2} = fliplr(centerPos{1});
 centerPos{3} = 1:driftSpeed:h_pixels;
-centerPos{4} = h_pixels:-driftSpeed:1;
+centerPos{4} = fliplr(centerPos{3});
 
 Flashes = cell(numDirs,1);
 checkPhase = cell(numDirs,1);
@@ -163,6 +163,9 @@ for zz = 1:numDirs
 end
 WaitSecs(5);
 usb.stopRecording;
+
+driftTime = [length(centerPos{1})*ifi,length(centerPos{3})*ifi];
+
 driftSpeed = driftSpeed./ifi; % back to pixels/second for saving purposes
 stimFreq = 1./driftTime;
 
@@ -182,6 +185,7 @@ stimParams.numDirs = numDirs;
 stimParams.DistToScreen = DistToScreen;
 stimParams.DirNames = DirNames;
 stimParams.mmPerPixel = conv_factor;
+stimParams.ifi = ifi;
 cd('~/CloudStation/ByronExp/Retino/')
 fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
 save(fileName,'stimParams')
