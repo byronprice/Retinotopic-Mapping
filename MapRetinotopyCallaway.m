@@ -44,6 +44,7 @@ centerPos = stimParams.centerPos;
 Flashes = stimParams.Flashes;
 numDirs = stimParams.numDirs;
 DirNames = stimParams.DirNames;
+ifi = stimParams.ifi;
 % DistToScreen = stimParams.DistToScreen;
 
 stimulationFrequency = 1/checkRefresh;
@@ -81,6 +82,7 @@ if length(timeStamps) ~= dataLength
 end
 strobeTimes = tsevs{1,strobeStart};
 stimLen = round(driftTime*sampleFreq);
+ifi = floor(ifi*sampleFreq):
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
 Response = cell(numChans,3);
@@ -95,7 +97,7 @@ for ii=1:numChans
     
     count = 1;
     for jj=1:numGrey
-       onsetTime = round(greyStrobes(jj)*sampleFreq); 
+       onsetTime = round(greyStrobes(jj)*sampleFreq)+ifi; 
        offsetTime = onsetTime+stimLen(1)-1;
        Response{ii,3}(count,:) = ChanData(onsetTime:offsetTime,ii);
        count = count+1;
@@ -111,7 +113,7 @@ for ii=1:numChans
         strobeNum = jj;
         currentStrobeTimes = strobeTimes(svStrobed==strobeNum);
         for kk=1:reps
-           onsetTime = round(currentStrobeTimes(kk)*sampleFreq);
+           onsetTime = round(currentStrobeTimes(kk)*sampleFreq)+ifi;
            
            if strcmp(DirNames{jj},'Left') == 1 || strcmp(DirNames{jj},'Right') == 1
                offsetTime = onsetTime+stimLen(1)-1;
