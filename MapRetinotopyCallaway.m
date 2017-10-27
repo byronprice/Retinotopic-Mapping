@@ -46,7 +46,7 @@ numDirs = stimParams.numDirs;
 DirNames = stimParams.DirNames;
 ifi = stimParams.ifi;
 mmPerPixel = stimParams.mmPerPixel;
-% DistToScreen = stimParams.DistToScreen;
+DistToScreen = stimParams.DistToScreen;
 
 stimulationFrequency = 1/checkRefresh;
 
@@ -245,24 +245,25 @@ for ii=1:numChans
         title(sprintf('Chan: %d - %s',ii,DirNames{jj}));
     end
 end
-
+figure();
 for ii=1:numChans
    xPos = Results.ScreenPos{ii,1};
    yPos = Results.ScreenPos{ii,2};
    bHorz = Results.b{ii,1};
    bVert = Results.b{ii,2};
    
-   horzDesign = [ones(length(xPos),1),xPos./w_pixels,(xPos./w_pixels).^2];
-   vertDesign = [ones(length(xPos),1),yPos./h_pixels,(yPos./h_pixels).^2];
+   horzDesign = [ones(length(xPos),1),(xPos-xPos(1))./(xPos(end)-xPos(1)),((xPos-xPos(1))./(xPos(end)-xPos(1))).^2];
+   vertDesign = [ones(length(yPos),1),(yPos-yPos(1))./(yPos(end)-yPos(1)),((yPos-yPos(1))./(yPos(end)-yPos(1))).^2];
    
    muHorz = exp(horzDesign*bHorz);
    muVert =exp(vertDesign*bVert);
    
-   muHorz = repmat(muHorz',[dsStimLen(1),1]);
-   muVert = repmat(muVert,[1,dsStimLen(2)]);
+   muHorz = repmat(muHorz',[dsStimLen(2),1]);
+   muVert = repmat(muVert,[1,dsStimLen(1)]);
    
    finalIm = muHorz.*muVert;
-   figure();imagesc(linspace(0,w_pixels,dsStimLen(1)),linspace(0,h_pixels,dsStimLen(2)),finalIm);
+   subplot(numChans,1,ii);
+   imagesc(linspace(xPos(1),xPos(end),dsStimLen(1)),linspace(yPos(1),yPos(end),dsStimLen(2)),finalIm);
    set(gca,'YDir','normal');colormap('jet');
    title(sprintf('LFP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
    xlabel('Horizontal Screen Position (pixels)');
@@ -272,7 +273,7 @@ end
 fileName = sprintf('RetinoCallResults%d_%d.mat',Date,AnimalName);
 save(fileName,'transformResponse','Results','DirNames','w_pixels','h_pixels',...
     'stimulationFrequency','waveletSize','kernel','Response','stimLen',...
-    'dsStimLen','downsampleFactor','centerPos','mmPerPixel','ifi');
+    'dsStimLen','downsampleFactor','centerPos','mmPerPixel','ifi','DistToScreen');
 
 % timebandwidth = 60; % approximate standard deviation in time is 
 %                 % 0.5*sqrt(timebandwidth/2)
