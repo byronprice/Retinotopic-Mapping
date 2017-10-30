@@ -14,7 +14,7 @@ load(fileName)
 DistToScreen = 250;
 
 numChans = size(posteriorSample,1);
-x = 1:5:w_pixels;y = 1:5:h_pixels;
+x = 1:1:w_pixels;y = 1:1:h_pixels;
 [X,Y] = meshgrid(x,y);
 
 centerX = w_pixels/2;centerY = h_pixels/4;
