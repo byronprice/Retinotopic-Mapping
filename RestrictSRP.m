@@ -76,6 +76,7 @@ newSpatFreq = 1/temp;
 
 if Day==1
     [centerPositions,targetChan] = GetRetinoMap(AnimalName);
+    targetChan = 1;
 else
    cd('~/CloudStation/ByronExp/RestrictSRP');
    fileName = sprintf('RestrictSRPStimDay1_%d.mat',AnimalName);
@@ -84,7 +85,7 @@ else
 end
 
 
-if Day<4
+if Day<5
     estimatedTime = (stimTime*reps*blocks+blocks*holdTime)/60;
     fprintf('\nEstimated time: %3.2f minutes\n',estimatedTime);
     
@@ -147,7 +148,7 @@ if Day<4
     % Close window
     Screen('CloseAll');
 
-elseif Day == 4
+elseif Day == 5
     
     % Define first and second ring color as RGBA vector with normalized color
     % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -180,12 +181,12 @@ elseif Day == 4
             channel(ii) = targetChan;
         elseif order(ii) == 2
             channel(ii) = targetChan;
-            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi/2;
+            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+3*pi/4;
         elseif order(ii) == 3
             channel(ii) = -targetChan+3;
         elseif order(ii) == 4
             channel(ii) = -targetChan+3;
-            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi/2;
+            orientations(1+(ii-1)*numStimuli:numStimuli+(ii-1)*numStimuli) = orientation+pi/4;
         end
     end
     
