@@ -154,12 +154,13 @@ for yy = 1:blocks
 %                 WaitSecs(5);
 %             else
                 % Draw the procedural texture as any other texture via 'DrawTexture'
-                Screen('DrawTexture', win,gratingTex, [],[],...
+                Screen('DrawTexture',win,gratingTex, [],[],...
                     [],[],[],[Grey Grey Grey Grey],...
                     [], [],[White,Black,...
                     Radius,centerVals(count,1),centerVals(count,2),newSpatFreq,orientation(count),phase(count)]);
                 % Request stimulus onset
-                vbl = Screen('Flip', win);usb.strobeEventWord(stimStrobeNum);
+                vbl = Screen('Flip', win);
+                usb.strobeEventWord(stimStrobeNum);
                 vbl = Screen('Flip',win,vbl-ifi/2+stimTime);
                 vbl = Screen('Flip',win,vbl-ifi/2+waitTimes(count));
                 count = count+1;

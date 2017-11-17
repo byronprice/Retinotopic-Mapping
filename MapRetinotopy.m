@@ -169,20 +169,17 @@ function [ChanData,timeStamps,tsevs,svStrobed] = ExtractSignal(EphysFileName)
         dataLength = length(allad{1,Chans(1)});
         ChanData = zeros(dataLength,numChans);
     end
-    % lowpass filter the data
+    % notch filter the data
     
     preAmpGain = 1;
     for ii=1:numChans
         voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
-        n = 100;
-        lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
-        blo = fir1(n,lowpass,'low',hamming(n+1));
-        temp = filter(blo,1,voltage);
         
+        n = 2;
         notch = 60/(sampleFreq/2);
         bw = notch/n;
         [b,a] = iirnotch(notch,bw);
-        ChanData(:,ii) = filter(b,a,temp);
+        ChanData(:,ii) = filtfilt(b,a,voltage);
     end
     
     if isempty(allad{49}) == 0

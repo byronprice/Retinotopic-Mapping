@@ -55,7 +55,7 @@ sampleFreq = adfreq;
 Chans = find(~cellfun(@isempty,allad));numChans = length(Chans);
 strobeStart = 33;
 
-% lowpass filter the data
+% notch filter the data
 dataLength = length(allad{1,Chans(1)});
 
 ChanData = zeros(dataLength,numChans);
@@ -63,16 +63,16 @@ preAmpGain = 1;
 for ii=1:numChans
     voltage = 1000.*((allad{1,Chans(ii)}).*SlowPeakV)./(0.5*(2^SlowADResBits)*adgains(Chans(ii))*preAmpGain);
     
-    ChanData(:,ii) = voltage;
-%     n = 20;
+%     ChanData(:,ii) = voltage;
+    n = 2;
 %     lowpass = 100/(sampleFreq/2); % fraction of Nyquist frequency
 %     blo = fir1(n,lowpass,'low',hamming(n+1));
 %     temp = filter(blo,1,voltage);
 %     
-%     notch = 60/(sampleFreq/2);
-%     bw = notch/n;
-%     [b,a] = iirnotch(notch,bw);
-%     ChanData(:,ii) = filter(b,a,temp);
+    notch = 60/(sampleFreq/2);
+    bw = notch/n;
+    [b,a] = iirnotch(notch,bw);
+    ChanData(:,ii) = filtfilt(b,a,voltage);
 end
 
 
