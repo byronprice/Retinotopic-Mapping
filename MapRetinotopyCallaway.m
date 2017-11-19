@@ -144,7 +144,7 @@ end
 horzPosition = linspace(0,1,stimLen(1)); %w_pixels
 vertPosition = linspace(0,1,stimLen(2)); %h_pixels
 
-waveletSize = 20;
+waveletSize = 20; % time is about 1 second ... better to do less i think
 kernelLen = round(waveletSize*checkRefresh*sampleFreq);
 if mod(kernelLen,2) == 0
     kernelLen = kernelLen+1;
@@ -154,17 +154,33 @@ x = linspace(-waveletSize/2*checkRefresh,waveletSize/2*checkRefresh,kernelLen);
 stdGauss = (waveletSize/2)*checkRefresh/4;
 gaussKernel = exp(-(x.*x)./(2*stdGauss*stdGauss));
 kernel = exp(-2*pi*x*1i*stimulationFrequency).*gaussKernel;
+
+noiseFreqs = [stimulationFrequency-3,stimulationFrequency-2.5,stimulationFrequency-2,...
+    stimulationFrequency+2,stimulationFrequency+2.5,stimulationFrequency+3];
+noiseKernels = zeros(length(noiseFreqs),length(kernel));
+for ii=1:length(noiseFreqs)
+    noiseKernels(ii,:) = exp(-2*pi*x*1i*noiseFreqs(ii)).*gaussKernel;
+end
+
 transformBaseline = zeros(numChans,1);
 for ii=1:numChans
-    numGrey = size(Response{ii,3},1);
-    temp = zeros(numGrey,stimLen(1));
-    for jj=1:numGrey
-        data = Response{ii,3}(jj,:);
-        data = conv(data,kernel,'same');
-        data = sqrt(data.*conj(data));
-        temp(jj,:) = data;
-    end
-    transformBaseline(ii) = mean(temp(:));
+%     numGrey = size(Response{ii,3},1);
+%     temp = zeros(numGrey,stimLen(1));
+%     for jj=1:numGrey
+%         data = Response{ii,3}(jj,:);
+%         convData = conv(data,kernel,'same');
+%         convData = sqrt(convData.*conj(convData));
+%         
+%         noiseConvData = zeros(size(convData));
+%         for kk=1:length(noiseFreqs)
+%             temp = conv(data,noiseKernels(kk,:),'same');
+%             temp = sqrt(temp.*conj(temp));
+%             noiseConvData = noiseConvData+temp./length(noiseFreqs);
+%         end
+%         
+%         temp(jj,:) = convData./noiseConvData;
+%     end
+    transformBaseline(ii) = 1;
 end
 
 DirNames = cell(2,1);DirNames{1} = 'Horizontal Sweep';DirNames{2} = 'Vertical Sweep';
@@ -181,10 +197,18 @@ for ii=1:numChans
         position = zeros(2*reps,dsStimLen(jj));
         for kk=1:2*reps
             data = Response{ii,jj}(kk,:);
-            data = conv(data,kernel,'same');
-            data = sqrt(data.*conj(data));
-            %figure();parcorr(data(1:downsampleFactor:end))
-            transformResponse{ii,jj}(kk,:) = data(1:downsampleFactor:end)-transformBaseline(ii);
+            convData = conv(data,kernel,'same');
+            convData = sqrt(convData.*conj(convData));
+            
+            noiseConvData = zeros(size(convData));
+            for ll=1:length(noiseFreqs)
+                temp = conv(data,noiseKernels(ll,:),'same');
+                temp = sqrt(temp.*conj(temp));
+                noiseConvData = noiseConvData+temp./length(noiseFreqs);
+            end
+            
+            transformResponse{ii,jj}(kk,:) = convData(1:downsampleFactor:end)./...
+                noiseConvData(1:downsampleFactor:end)-transformBaseline(ii);
             
             if jj==1
                 position(kk,:) = horzPosition(1:downsampleFactor:end);
