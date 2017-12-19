@@ -70,10 +70,10 @@ ifi = Screen('GetFlipInterval', win);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 
 % perform unit conversions
-Width = round(((tan(barDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); % get number of pixels
+Width = round(((tan((barDegree/2)*(2*pi)/360))*(2*DistToScreen*10))./conv_factor); % get number of pixels
                  % that barDegree degrees of visual space will occupy
                  
-checkSize = round(((tan(checkDegree*(2*pi)/360))*(DistToScreen*10))./conv_factor); 
+checkSize = round(((tan((checkDegree/2)*(2*pi)/360))*(2*DistToScreen*10))./conv_factor); 
 
 driftTime = [w_pixels,h_pixels]./driftSpeed; % approximate drift time
 
