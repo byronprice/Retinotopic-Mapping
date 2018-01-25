@@ -144,7 +144,7 @@ end
 horzPosition = linspace(0,1,stimLen(1)); %w_pixels
 vertPosition = linspace(0,1,stimLen(2)); %h_pixels
 
-waveletSize = 20; % time is about 1 second ... better to do less i think
+waveletSize = 100; % time is about 1 second ... better to do less i think
 kernelLen = round(waveletSize*checkRefresh*sampleFreq);
 if mod(kernelLen,2) == 0
     kernelLen = kernelLen+1;
@@ -155,8 +155,8 @@ stdGauss = (waveletSize/2)*checkRefresh/4;
 gaussKernel = exp(-(x.*x)./(2*stdGauss*stdGauss));
 kernel = exp(-2*pi*x*1i*stimulationFrequency).*gaussKernel;
 
-noiseFreqs = [stimulationFrequency-3,stimulationFrequency-2.5,stimulationFrequency-2,...
-    stimulationFrequency+2,stimulationFrequency+2.5,stimulationFrequency+3];
+noiseFreqs = [stimulationFrequency-2.5,stimulationFrequency-2,stimulationFrequency-1.5,...
+    stimulationFrequency+1.5,stimulationFrequency+2,stimulationFrequency+2.5];
 noiseKernels = zeros(length(noiseFreqs),length(kernel));
 for ii=1:length(noiseFreqs)
     noiseKernels(ii,:) = exp(-2*pi*x*1i*noiseFreqs(ii)).*gaussKernel;
@@ -198,6 +198,7 @@ for ii=1:numChans
         for kk=1:2*reps
             data = Response{ii,jj}(kk,:);
             convData = conv(data,kernel,'same');
+%             convData = convData(1:length(data));
             convData = sqrt(convData.*conj(convData));
             
             noiseConvData = zeros(size(convData));
@@ -218,7 +219,7 @@ for ii=1:numChans
         end
         y = transformResponse{ii,jj};y=y(:);
 
-        effectiveN = length(y);
+        effectiveN = (length(data)/(kernelLen/2))*2*reps;
         
         design = [ones(length(y),1),position(:),position(:).*position(:)];
         [b,~,stats] = glmfit(design,y,'normal','link','log','constant','off');
@@ -243,7 +244,7 @@ for ii=1:numChans
         F = ((restrictDev-mainDev)/(length(b)-1))/(mainDev/(effectiveN-length(b)-1));
         Ftest_p = fcdf(F,length(b)-1,effectiveN-length(b),'upper');
         
-        Results.F{ii,jj} = [F,Ftest_p,length(b)-1,effectiveN-length(b)];
+        Results.F{ii,jj} = [F,Ftest_p,length(b)-2,effectiveN-length(b)];
         
         if jj==1
             Results.ScreenPos{ii,jj} = position(1,:)'.*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
@@ -269,6 +270,7 @@ for ii=1:numChans
         title(sprintf('Chan: %d - %s',ii,DirNames{jj}));
     end
 end
+
 figure();
 for ii=1:numChans
    xPos = Results.ScreenPos{ii,1};
