@@ -11,6 +11,9 @@ varying float vertOhorz;
 varying float Width;
 varying float checkSize;
 varying float checkPhase;
+varying float screenDist;
+varying float CenterX;
+varying float CenterY;
 
 void main()
 {
@@ -18,6 +21,13 @@ void main()
     vec2 pos = gl_TexCoord[0].xy;
     float currentPos; 
     float color1;
+
+    /* Convert distance, apply shift offset: */
+    float x = pos[0]-CenterX;
+    float y = pos[1]-CenterY;
+
+    float theta = twopi/4-acos(y/sqrt(screenDist*screenDist+x*x+y*y));
+    float phi = atan(x/screenDist);
 
     if (checkPhase == 0.0) {
         color1 = White;
@@ -27,14 +37,14 @@ void main()
     }
             
     if (vertOhorz < 1.5) {
-        currentPos = pos[0]-Center;
+        currentPos = theta-Center;
         }
     else {
-        currentPos = pos[1]-Center;
+        currentPos = phi-Center;
         }
     
     float kernel = exp(-(currentPos*currentPos)/(Width*Width/2.0));
-    float color = abs(color1-mod(floor(pos[0]/checkSize)+floor(pos[1]/checkSize),2.0));
+    float color = abs(color1-mod(floor(theta/checkSize)+floor(phi/checkSize),2.0));
     gl_FragColor = vec4(color,color,color,kernel);
 
 

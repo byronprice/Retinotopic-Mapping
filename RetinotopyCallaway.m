@@ -69,18 +69,26 @@ ifi = Screen('GetFlipInterval', win);
 [w_mm,h_mm] = Screen('DisplaySize',screenid);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 
+centerVals = [w_pixels/2,90/conv_factor];
+
+screenDist = DistToScreen*10/conv_factor;
+
 % perform unit conversions
-Width = round(((tan((barDegree/2)*(2*pi)/360))*(2*DistToScreen*10))./conv_factor); % get number of pixels
-                 % that barDegree degrees of visual space will occupy
-                 
-checkSize = round(((tan((checkDegree/2)*(2*pi)/360))*(2*DistToScreen*10))./conv_factor); 
+Width = barDegree*pi/180;                
+checkSize = checkDegree*pi/180;
 
-driftTime = [w_pixels,h_pixels]./driftSpeed; % approximate drift time
+x = 1:w_pixels;y = 1:h_pixels;
+x = x-centerVals(1);y = y-centerVals(2);
+[X,Y] = meshgrid(x,y);
 
-%driftSpeed = [w_pixels,h_pixels]./driftTime; % drift speed in pixels / second
-%driftSpeed = ((tan(driftSpeed*(2*pi)/360))*(DistToScreen*10))./conv_factor;
+theta = pi/2-acos(Y./sqrt(screenDist*screenDist+X.*X+Y.*Y));
+phi = atan(X./screenDist);
+
+driftSpeed = driftSpeed*pi/180; % drift speed in radians / sec
+
+driftTime = [max(theta(:))-min(theta(:)),max(phi(:))-min(phi(:))]./driftSpeed; % approximate drift time
                   
-driftSpeed = driftSpeed.*ifi; % pixels / screen refresh
+driftSpeed = driftSpeed.*ifi; % radians / screen refresh
 
 checkRefresh1 = round((checkRefresh*2)/ifi);
 
@@ -99,9 +107,9 @@ Color = [0,1];
 numDirs = 4;
 DirNames = {'Right','Left','Up','Down'};
 centerPos = cell(numDirs,1);
-centerPos{1} = 1:driftSpeed:w_pixels;
+centerPos{1} = min(theta(:)):driftSpeed:max(theta(:));
 centerPos{2} = fliplr(centerPos{1});
-centerPos{3} = 1:driftSpeed:h_pixels;
+centerPos{3} = min(phi(:)):driftSpeed:max(phi(:));
 centerPos{4} = fliplr(centerPos{3});
 
 Flashes = cell(numDirs,1);
@@ -134,7 +142,7 @@ Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(holdTime);
-
+reps = 1;
 % Animation loop
 vbl = Screen('Flip', win);
 for zz = 1:numDirs
@@ -149,7 +157,7 @@ for zz = 1:numDirs
         Screen('DrawTexture', win,gratingTex, [],[],...
             [],[],[],[0.5 0.5 0.5 0.5],...
             [], [],[Color(1),Color(2),Width,centerPos{zz}(jj),vertOhorz,checkSize, ...
-            checkPhase{zz}(jj),0]);
+            checkPhase{zz}(jj),screenDist,centerVals(1),centerVals(2),0,0]);
             % Request stimulus onset
             vbl = Screen('Flip', win,vbl+ifi/2);
       end

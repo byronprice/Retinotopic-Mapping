@@ -14,6 +14,9 @@ varying float Center;
 varying float vertOhorz;
 varying float checkSize;
 varying float checkPhase;
+varying float CenterX;
+varying float CenterY;
+varying float screenDist;
 
 void main()
 {
@@ -33,4 +36,7 @@ void main()
     vertOhorz = auxParameters1[0];
     checkSize = auxParameters1[1];
     checkPhase = auxParameters1[2];
+    screenDist = auxParameters1[3];
+    CenterX = auxParameters2[0];
+    CenterY = auxParameters2[1];
 }

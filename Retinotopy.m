@@ -66,7 +66,7 @@ background = 127;
 [win,~] = Screen('OpenWindow', screenid,background);
 
 gammaTable = makeGrayscaleGammaTable(gama,0,255);
-Screen('LoadNormalizedGammaTable',win,gammaTable);
+Screen('LoadNormalizedGammaTable',win,gammaTable); 
 
 % Switch color specification to use the 0.0 - 1.0 range
 Screen('ColorRange', win, 1);
