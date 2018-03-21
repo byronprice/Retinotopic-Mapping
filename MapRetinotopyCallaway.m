@@ -15,7 +15,7 @@ function [] = MapRetinotopyCallaway(AnimalName,Date)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/10/22
+% Updated: 2018/03/21
 %  By: Byron Price
 
 % read in the .plx file
@@ -31,7 +31,7 @@ load(EphysFileName,'allad','adfreq','tsevs','svStrobed','SlowPeakV',...
     'SlowADResBits','adgains','adfreqs','allts')
 load(StimulusFileName)
 
-driftSpeed = stimParams.driftSpeed; % units of pixels per second
+driftSpeed = stimParams.driftSpeed; % units of degrees per second
 % stimFreq = stimParams.stimFreq;
 % Width = stimParams.Width;
 w_pixels = stimParams.w_pixels;
@@ -47,6 +47,8 @@ DirNames = stimParams.DirNames;
 ifi = stimParams.ifi;
 mmPerPixel = stimParams.mmPerPixel;
 DistToScreen = stimParams.DistToScreen;
+theta = stimParams.theta;
+phi = stimParams.phi;
 
 stimulationFrequency = 1/checkRefresh;
 
@@ -141,10 +143,10 @@ for ii=1:numChans
 end
 
 %time = linspace(0,driftTime,stimLen);
-horzPosition = linspace(0,1,stimLen(1)); %w_pixels
-vertPosition = linspace(0,1,stimLen(2)); %h_pixels
+horzPosition = linspace(min(phi),max(phi),stimLen(1)); % azimuth
+vertPosition = linspace(min(theta),max(theta),stimLen(2)); % altitude
 
-waveletSize = 100; % time is about 1 second ... better to do less i think
+waveletSize = 100; % 
 kernelLen = round(waveletSize*checkRefresh*sampleFreq);
 if mod(kernelLen,2) == 0
     kernelLen = kernelLen+1;
@@ -282,18 +284,18 @@ for ii=1:numChans
    vertDesign = [ones(length(yPos),1),(yPos-yPos(1))./(yPos(end)-yPos(1)),((yPos-yPos(1))./(yPos(end)-yPos(1))).^2];
    
    muHorz = exp(horzDesign*bHorz);
-   muVert =exp(vertDesign*bVert);
+   muVert = exp(vertDesign*bVert);
    
    muHorz = repmat(muHorz',[dsStimLen(2),1]);
    muVert = repmat(muVert,[1,dsStimLen(1)]);
    
    finalIm = muHorz.*muVert;
    subplot(numChans,1,ii);
-   imagesc(linspace(xPos(1),xPos(end),dsStimLen(1)),linspace(yPos(1),yPos(end),dsStimLen(2)),finalIm);
+   imagesc(linspace(xPos(1),xPos(end),dsStimLen(1)).*180/pi,linspace(yPos(1),yPos(end),dsStimLen(2)).*180/pi,finalIm);
    set(gca,'YDir','normal');colormap('jet');
    title(sprintf('LFP Retinotopy: Chan %d, Animal %d',ii,AnimalName));
-   xlabel('Horizontal Screen Position (pixels)');
-   ylabel('Vertical Screen Position (pixels)');
+   xlabel('Azimuth (degrees)');
+   ylabel('Altitude (degrees)');
 end
 
 fileName = sprintf('RetinoCallResults%d_%d.mat',Date,AnimalName);

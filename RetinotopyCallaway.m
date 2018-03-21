@@ -3,9 +3,9 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 %  Display drifting horizontal and vertical bars with counter-phase
 %   checkerboard patterns to map retinotopy of LFP recording electrodes or
 %   single units
-%  The bar will occupy ~10 degrees of visual space, with an overlain checkerboard
-%   pattern at 15-degree-per-side squares flashed every 200 ms, drifting so
-%   that it traverses the screen in 10 seconds
+%  The bar will occupy ~5 degrees of visual space, with an overlain checkerboard
+%   pattern at 10-degree-per-side squares flashed every 50 ms, drifting so
+%   that it traverses the screen in 20 seconds
 %
 % INPUT: AnimalName - animal's unique identifier as a number/double, e.g. 45602
 %     OPTIONAL INPUTS:
@@ -21,7 +21,7 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2017/10/25
+% Updated: 2018/03/21
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
@@ -174,7 +174,7 @@ usb.stopRecording;
 
 driftTime = [length(centerPos{1})*ifi,length(centerPos{3})*ifi];
 
-driftSpeed = driftSpeed./ifi; % back to pixels/second for saving purposes
+driftSpeed = (driftSpeed./ifi)./(pi/180); % back to degrees/second for saving purposes
 stimFreq = 1./driftTime;
 
 stimParams = RetinoCallStimObj;
@@ -194,6 +194,8 @@ stimParams.DistToScreen = DistToScreen;
 stimParams.DirNames = DirNames;
 stimParams.mmPerPixel = conv_factor;
 stimParams.ifi = ifi;
+stimParams.theta = unique(theta);
+stimParams.phi = unique(phi);
 cd('~/CloudStation/ByronExp/Retino/')
 fileName = sprintf('RetinoCallStim%d_%d.mat',Date,AnimalName);
 save(fileName,'stimParams')

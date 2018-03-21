@@ -16,5 +16,7 @@ classdef RetinoCallStimObj
         DirNames
         mmPerPixel
         ifi
+        theta
+        phi
     end
 end
