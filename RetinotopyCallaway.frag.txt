@@ -37,10 +37,10 @@ void main()
     }
             
     if (vertOhorz < 1.5) {
-        currentPos = theta-Center;
+        currentPos = phi-Center;
         }
     else {
-        currentPos = phi-Center;
+        currentPos = theta-Center;
         }
     
     float kernel = exp(-(currentPos*currentPos)/(Width*Width/2.0));

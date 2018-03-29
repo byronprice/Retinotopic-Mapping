@@ -86,6 +86,8 @@ if length(timeStamps) ~= dataLength
 end
 strobeTimes = tsevs{1,strobeStart};
 stimLen = round(driftTime*sampleFreq);
+% temp = stimLen;
+% stimLen(1) = temp(2);stimLen(2) = temp(1);
 ifi = floor(ifi*sampleFreq);
 
 % COLLECT DATA IN THE PRESENCE OF VISUAL STIMULI
@@ -248,15 +250,9 @@ for ii=1:numChans
         
         Results.F{ii,jj} = [F,Ftest_p,length(b)-2,effectiveN-length(b)];
         
-        if jj==1
-            Results.ScreenPos{ii,jj} = position(1,:)'.*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
-            Results.Center{ii,jj} = (-b(2)/(2*b(3)))*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
-            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*(max(centerPos{1})-min(centerPos{1}))+min(centerPos{1});
-        elseif jj==2
-            Results.ScreenPos{ii,jj} = position(1,:)'.*(max(centerPos{3})-min(centerPos{3}))+min(centerPos{3});
-            Results.Center{ii,jj} = (-b(2)/(2*b(3)))*(max(centerPos{3})-min(centerPos{3}))+min(centerPos{3});
-            Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3))*(max(centerPos{3})-min(centerPos{3}))+min(centerPos{3});
-        end
+        Results.ScreenPos{ii,jj} = position(1,:)';
+        Results.Center{ii,jj} = (-b(2)/(2*b(3)));
+        Results.FWHM{ii,jj} = 2*sqrt(-log(2)/b(3));
         
         forDisplayDesign = [ones(size(position,2),1),position(1,:)',position(1,:)'.*position(1,:)'];
 
@@ -280,8 +276,8 @@ for ii=1:numChans
    bHorz = Results.b{ii,1};
    bVert = Results.b{ii,2};
    
-   horzDesign = [ones(length(xPos),1),(xPos-xPos(1))./(xPos(end)-xPos(1)),((xPos-xPos(1))./(xPos(end)-xPos(1))).^2];
-   vertDesign = [ones(length(yPos),1),(yPos-yPos(1))./(yPos(end)-yPos(1)),((yPos-yPos(1))./(yPos(end)-yPos(1))).^2];
+   horzDesign = [ones(length(xPos),1),xPos,xPos.^2];
+   vertDesign = [ones(length(yPos),1),yPos,yPos.^2];
    
    muHorz = exp(horzDesign*bHorz);
    muVert = exp(vertDesign*bVert);

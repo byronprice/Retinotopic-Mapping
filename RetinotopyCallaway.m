@@ -107,9 +107,9 @@ Color = [0,1];
 numDirs = 4;
 DirNames = {'Right','Left','Up','Down'};
 centerPos = cell(numDirs,1);
-centerPos{1} = min(theta(:)):driftSpeed:max(theta(:));
+centerPos{1} = min(phi(:)):driftSpeed:max(phi(:));
 centerPos{2} = fliplr(centerPos{1});
-centerPos{3} = min(phi(:)):driftSpeed:max(phi(:));
+centerPos{3} = min(theta(:)):driftSpeed:max(theta(:));
 centerPos{4} = fliplr(centerPos{3});
 
 Flashes = cell(numDirs,1);
@@ -142,7 +142,7 @@ Screen('BlendFunction',win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(0);
 WaitSecs(holdTime);
-reps = 1;
+
 % Animation loop
 vbl = Screen('Flip', win);
 for zz = 1:numDirs
