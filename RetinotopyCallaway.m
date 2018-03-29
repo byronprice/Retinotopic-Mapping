@@ -43,7 +43,7 @@ global GL;
 AssertOpenGL;
 
 usb = usb1208FSPlusClass;
-WaitSecs(10);
+WaitSecs(5);
 
 % Choose screen with maximum id - the secondary display:
 screenid = max(Screen('Screens'));
