@@ -5,15 +5,11 @@ function [] = EyePosition(AnimalName)
 %  Each circle will occupy an ~ 2.5-degree radius of visual space
 % INPUT: Obligatory-
 %        AnimalName - animal's unique identifier as a number, e.g. 45602
-%
-%        Optional- 
-%        holdTime - time between blocks of stimuli
 %  
-%        see file RetinotopyVars.mat for other changeable presets
 %
 % OUTPUT: a file with stimulus parameters named EyePosStimDate_AnimalName
 %           e.g. EyePosStim20160708_12345.mat to be saved in the Retino
-%           folder under '/MATLAB/Byron/'
+%           folder on the CloudStation
 % Created: 2018/08/22 at 24 Cummington, Boston
 %  Byron Price
 % Updated: 2018/08/22
