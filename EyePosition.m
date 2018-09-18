@@ -18,7 +18,7 @@ function [] = EyePosition(AnimalName)
 currentdirectory = '~/Documents/MATLAB/Byron/Retinotopic-Mapping';
 cd(currentdirectory);
 
-blocks = 10;
+blocks = 20;
 directions = 8;
 numStimuli = 4;
 holdTime = 30;
@@ -102,7 +102,7 @@ for ii=1:directions
 end
 
 % estimatedTime = ((waitTime+0.05+stimTime)*reps*blocks+blocks*holdTime)/60;
-fprintf('\nEstimated time: %3.2f minutes\n',7.2);
+fprintf('\nEstimated time: %3.2f minutes\n',13.3);
 
 % Define first and second ring color as RGBA vector with normalized color
 % component range between 0.0 and 1.0, based on Contrast between 0 and 1
@@ -125,7 +125,7 @@ waitTimes = waitTime+(rand([blocks,directions])*0.5-0.25);
 Priority(9);
 
 usb.startRecording;WaitSecs(1);usb.strobeEventWord(1);
-WaitSecs(holdTime);
+WaitSecs(holdTime*2);
 % usb.strobeEventWord(startEXP);WaitSecs(1);
 
 % Animation loop

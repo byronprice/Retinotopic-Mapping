@@ -14,7 +14,7 @@ function [] = EyePosAnalysis(AnimalName,Date)
 % Updated: 2018/08/22
 %  By: Byron Price
 
-eyeTrackFile = sprintf('EyeTracker_%d-%.mat',Date,AnimalName);
+eyeTrackFile = sprintf('EyePosition_%d-%-MLP.mat',Date,AnimalName);
 load(eyeTrackFile,'pupilDiameter','pupilRotation','blink','Fs');
 eyeFs = Fs;
 
