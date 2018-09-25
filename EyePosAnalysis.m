@@ -14,13 +14,13 @@ function [] = EyePosAnalysis(AnimalName,Date)
 % Updated: 2018/08/22
 %  By: Byron Price
 
-eyeTrackFile = sprintf('EyePosition_%d-%-MLP.mat',Date,AnimalName);
+eyeTrackFile = sprintf('EyePos_%d-%d-MLP.mat',Date,AnimalName);
 load(eyeTrackFile,'pupilDiameter','pupilRotation','blink','Fs');
 eyeFs = Fs;
 
 ephysDate = sprintf('%d',Date);
 ephysDate = [ephysDate(1:4),'-',ephysDate(5:6),'-',ephysDate(7:8)];
-ephysFile = dir(sprintf('CompiledData*%s*_%d.mat',ephysDate,AnimalName));
+ephysFile = dir(sprintf('CompiledData_EyePos*%s*_%d.mat',ephysDate,AnimalName));
 
 load(ephysFile(1).name,'auxData','events','eventTimes','lowpassData',...
     'lowpassTimes','lpFs');
@@ -51,8 +51,8 @@ for ii=1:directions
         count = count+1;
         [~,ind] = min(abs(times(kk)-lowpassTimes));
         [~,frameInd] = min(abs(ind-vidInds));
-        diamResult(ii,count,:) = pupilDiameter(frameInd-1:frameInd+eyeFs*avgTime);
-        posResult(ii,count,:,:) = pupilRotation(frameInd-1:frameInd+eyeFs*avgTime,:);
+        diamResult(ii,count,:) = pupilDiameter(frameInd-1:frameInd+eyeFs*avgTime-2);
+        posResult(ii,count,:,:) = pupilRotation(frameInd-1:frameInd+eyeFs*avgTime-2,:);
         
         colorscale = linspace(0,avgTime,eyeFs*avgTime);
         scatter(squeeze(posResult(ii,count,:,1)),squeeze(posResult(ii,count,:,2)),...

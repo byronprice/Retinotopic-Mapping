@@ -159,8 +159,8 @@ stdGauss = (waveletSize/2)*checkRefresh/4;
 gaussKernel = exp(-(x.*x)./(2*stdGauss*stdGauss));
 kernel = exp(-2*pi*x*1i*stimulationFrequency).*gaussKernel;
 
-noiseFreqs = [stimulationFrequency-2.5,stimulationFrequency-2,stimulationFrequency-1.5,...
-    stimulationFrequency+1.5,stimulationFrequency+2,stimulationFrequency+2.5];
+noiseFreqs = [stimulationFrequency-5,stimulationFrequency-2.5,stimulationFrequency-2,stimulationFrequency-1.5,...
+    stimulationFrequency+1.5,stimulationFrequency+2,stimulationFrequency+2.5,stimulationFrequency+5];
 noiseKernels = zeros(length(noiseFreqs),length(kernel));
 for ii=1:length(noiseFreqs)
     noiseKernels(ii,:) = exp(-2*pi*x*1i*noiseFreqs(ii)).*gaussKernel;
