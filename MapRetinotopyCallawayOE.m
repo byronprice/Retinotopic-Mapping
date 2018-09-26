@@ -22,8 +22,8 @@ function [] = MapRetinotopyCallawayOE(AnimalName,Date)
 StimulusFileName = strcat('RetinoCallStim',num2str(Date),'_',num2str(AnimalName),'.mat');
 eyeTrackFileName = strcat('RetinoCall_',num2str(Date),'-',num2str(AnimalName),'-MLP.mat');
 
-Date = num2str(Date);Date = [Date(1:4),'-',Date(5:6),'-',Date(7:8)];
-EphysFileName = strcat('CompiledData_RetinoCall_',Date,'*',num2str(AnimalName),'*');
+newDate = num2str(Date);newDate = [newDate(1:4),'-',newDate(5:6),'-',newDate(7:8)];
+EphysFileName = strcat('CompiledData_RetinoCall_',newDate,'*',num2str(AnimalName),'*');
 file = dir(EphysFileName);
 
 EphysFileName = file(1).name;
@@ -123,7 +123,7 @@ end
 horzPosition = linspace(min(phi),max(phi),stimLen(1)); % azimuth
 vertPosition = linspace(min(theta),max(theta),stimLen(2)); % altitude
 
-waveletSize = 100; % 
+waveletSize = 50; % 
 kernelLen = round(waveletSize*checkRefresh*sampleFreq);
 if mod(kernelLen,2) == 0
     kernelLen = kernelLen+1;
@@ -152,7 +152,29 @@ Results = struct('b',{cell(numChans,2)},'se',{cell(numChans,2)},...
     'ScreenPos',{cell(numChans,2)},'Center',{cell(numChans,2)},...
     'FWHM',{cell(numChans,2)},'Dev',{cell(numChans,2)},'Data',{cell(numChans,2)});
 
-radianPerPixel = (0:0.1:30).*pi./180;
+for ii=1:numChans
+    for jj=1:2
+        transformResponse{ii,jj} = zeros(2*reps,stimLenDS(jj));
+        for kk=1:2*reps
+            data = Response{ii,jj}(kk,:);
+            convData = conv(data,kernel,'same');
+            %             convData = convData(1:length(data));
+            convData = sqrt(convData.*conj(convData));
+            
+            noiseConvData = zeros(size(convData));
+            for ll=1:length(noiseFreqs)
+                temp = conv(data,noiseKernels(ll,:),'same');
+                temp = sqrt(temp.*conj(temp));
+                noiseConvData = noiseConvData+temp./length(noiseFreqs);
+            end
+            
+            transformResponse{ii,jj}(kk,:) = convData(1:downsampleFactor:end)./...
+                noiseConvData(1:downsampleFactor:end)-transformBaseline(ii);
+        end
+    end
+end
+
+radianPerPixel = (0.25:0.05:10).*pi./180;
 
 deviances = zeros(length(radianPerPixel),1);
 
@@ -161,23 +183,8 @@ for zz=1:length(radianPerPixel)
         Y = [];
         POS = [];
         for jj=1:2
-            transformResponse{ii,jj} = zeros(2*reps,stimLenDS(jj));
             position = zeros(2*reps,stimLenDS(jj));
             for kk=1:2*reps
-                data = Response{ii,jj}(kk,:);
-                convData = conv(data,kernel,'same');
-                %             convData = convData(1:length(data));
-                convData = sqrt(convData.*conj(convData));
-                
-                noiseConvData = zeros(size(convData));
-                for ll=1:length(noiseFreqs)
-                    temp = conv(data,noiseKernels(ll,:),'same');
-                    temp = sqrt(temp.*conj(temp));
-                    noiseConvData = noiseConvData+temp./length(noiseFreqs);
-                end
-                
-                transformResponse{ii,jj}(kk,:) = convData(1:downsampleFactor:end)./...
-                    noiseConvData(1:downsampleFactor:end)-transformBaseline(ii);
                 
                 if jj==1
                     tmp = Response{ii,jj+2}(kk,:);
@@ -209,29 +216,15 @@ for zz=1:length(radianPerPixel)
 end
 
 [~,ind] = min(deviances);
-radianPerPixel = radianPerPixel(ind)
+radianPerPixel = radianPerPixel(ind);
+fprintf('Degrees per pixel: %3.2f\n',radianPerPixel*180/pi);
 
 for ii=1:numChans
     Y = [];
     POS = [];
     for jj=1:2
-        transformResponse{ii,jj} = zeros(2*reps,stimLenDS(jj));
         position = zeros(2*reps,stimLenDS(jj));
         for kk=1:2*reps
-            data = Response{ii,jj}(kk,:);
-            convData = conv(data,kernel,'same');
-%             convData = convData(1:length(data));
-            convData = sqrt(convData.*conj(convData));
-            
-            noiseConvData = zeros(size(convData));
-            for ll=1:length(noiseFreqs)
-                temp = conv(data,noiseKernels(ll,:),'same');
-                temp = sqrt(temp.*conj(temp));
-                noiseConvData = noiseConvData+temp./length(noiseFreqs);
-            end
-            
-            transformResponse{ii,jj}(kk,:) = convData(1:downsampleFactor:end)./...
-                noiseConvData(1:downsampleFactor:end)-transformBaseline(ii);
             
             if jj==1
                 tmp = Response{ii,jj+2}(kk,:);
@@ -293,6 +286,9 @@ for ii=1:numChans
 %     end
 end
 
+fprintf('X Center: %3.2f\n',Results.Center{ii,1}.*180/pi);
+fprintf('Y Center: %3.2f\n',Results.Center{ii,2}.*180/pi);
+
 figure();
 for ii=1:numChans
    xPos = Results.ScreenPos{ii,1};
@@ -321,7 +317,7 @@ end
 fileName = sprintf('RetinoCallResults%d_%d.mat',Date,AnimalName);
 save(fileName,'transformResponse','Results','DirNames','w_pixels','h_pixels',...
     'stimulationFrequency','waveletSize','kernel','Response','stimLen',...
-    'dsStimLen','downsampleFactor','centerPos','mmPerPixel','ifi','DistToScreen',...
+    'stimLenDS','downsampleFactor','centerPos','mmPerPixel','ifi','DistToScreen',...
     'radianPerPixel');
 
 end
