@@ -69,7 +69,7 @@ ifi = Screen('GetFlipInterval', win);
 [w_mm,h_mm] = Screen('DisplaySize',screenid);
 conv_factor = (w_mm/w_pixels+h_mm/h_pixels)/2;
 
-centerVals = [w_pixels/2,90/conv_factor];
+centerVals = [w_pixels/2,80/conv_factor];
 
 screenDist = DistToScreen*10/conv_factor;
 
