@@ -21,7 +21,7 @@ function [] = RetinotopyCallaway(AnimalName,holdTime)
 %
 % Created: 2016/05/31, 24 Cummington, Boston
 %  Byron Price
-% Updated: 2018/03/21
+% Updated: 2018/09/26
 %  By: Byron Price
 
 cd('~/CloudStation/ByronExp/Retino');
