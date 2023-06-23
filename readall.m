@@ -79,10 +79,10 @@ numads = 0;
 [u,nslowchannels] = size( slowcounts );   
 if ( nslowchannels > 0 )
     % preallocate for speed
-    allad = cell(1,nslowchannels);
+    allad = cell(1,nslowchannels);alladts = cell(1,nslowchannels);
     for ich = 0:nslowchannels-1
         if ( slowcounts(ich+1) > 0 )
-			[adfreq, nad, tsad, fnad, allad{ich+1}] = plx_ad(OpenedFileName, ich);
+			[adfreq, nad, alladts{ich+1}, fnad, allad{ich+1}] = plx_ad(OpenedFileName, ich);
 			numads = numads + 1;
         end
     end
